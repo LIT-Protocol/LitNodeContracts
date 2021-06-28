@@ -24,6 +24,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     uint256 private _totalSupply;
     mapping(address => uint256) private _balances;
 
+    mapping(address => uint32) ips;
+
     /* ========== CONSTRUCTOR ========== */
     constructor(address _stakingToken) {
         stakingToken = IERC20(_stakingToken);
@@ -39,13 +41,22 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return _balances[account];
     }
 
+    function getIp(address addr) external view returns (uint32) {
+        return ips[addr];
+    }
+
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function stake(uint256 amount) external nonReentrant whenNotPaused {
+    function stake(uint256 amount, uint32 ip)
+        external
+        nonReentrant
+        whenNotPaused
+    {
         require(amount > 0, "Cannot stake 0");
         _totalSupply = _totalSupply.add(amount);
         _balances[msg.sender] = _balances[msg.sender].add(amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+        ips[msg.sender] = ip;
         emit Staked(msg.sender, amount);
     }
 
@@ -69,6 +80,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     function exit() external {
         withdraw(_balances[msg.sender]);
         getReward();
+    }
+
+    function setIp(uint32 ip) external nonReentrant {
+        ips[msg.sender] = ip;
     }
 
     /* ========== EVENTS ========== */

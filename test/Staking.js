@@ -1,5 +1,6 @@
 const chai = require('chai')
 const { solidity } = require('ethereum-waffle')
+const { ip2int, int2ip } = require('../utils.js')
 
 chai.use(solidity)
 const { expect } = chai
@@ -11,6 +12,7 @@ describe('Staking', function () {
   let stakingAccount1
   let stakingContract
   const totalTokens = 1000
+  const stakingAccount1IpAddress = '192.168.1.1'
 
   before(async () => {
     // deploy token
@@ -45,15 +47,19 @@ describe('Staking', function () {
 
       const initialStakeBal = await stakingContract.balanceOf(stakingAccount1.getAddress())
       const initialLpBal = await token.balanceOf(stakingAccount1.getAddress())
+      const initialIpAddress = await stakingContract.getIp(stakingAccount1.getAddress())
 
       stakingContract = stakingContract.connect(stakingAccount1)
-      await stakingContract.stake(totalToStake)
+      await stakingContract.stake(totalToStake, ip2int(stakingAccount1IpAddress))
 
       const postStakeBal = await stakingContract.balanceOf(stakingAccount1.getAddress())
       const postLpBal = await token.balanceOf(stakingAccount1.getAddress())
+      const postIpAddress = await stakingContract.getIp(stakingAccount1.getAddress())
 
       expect(postLpBal).to.be.lt(initialLpBal)
       expect(postStakeBal).to.be.gt(initialStakeBal)
+      expect(initialIpAddress).to.equal(0)
+      expect(int2ip(postIpAddress)).to.equal(stakingAccount1IpAddress)
     })
 
     it('cannot stake 0', async () => {
