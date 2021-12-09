@@ -41,7 +41,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     constructor(address _stakingToken) {
         stakingToken = IERC20(_stakingToken);
         blocksBetweenEpochs = 1;
-        tokenRewardPerTokenPerEpoch = 10^ERC20(address(stakingToken)).decimals();
+        tokenRewardPerTokenPerEpoch = (10^ERC20(address(stakingToken)).decimals()) / 20; // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
     }
 
     /* ========== VIEWS ========== */
@@ -50,14 +50,28 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return balances[account];
     }
 
-    function getIp(address addr) external view returns (uint32) {
-        return ips[addr];
+    function getValidators() external view returns (address[] memory) {
+        return validators;
+    }
+
+    function getJoiners() external view returns (address[] memory) {
+        return joiners;
+    }
+
+    function getLeavers() external view returns (address[] memory) {
+        return leavers;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     function advanceEpoch() public {
         require(block.number > lastEpochBlock + blocksBetweenEpochs, "Enough blocks have not elapsed since the last epoch");
+        // reward the validators
+        for(uint i = 0; i < validators.length; i++){
+            rewards[validators[i]] += tokenRewardPerTokenPerEpoch * balances[validators[i]];
+        }
+
+
         // add the joiners
         for(uint i = 0; i < joiners.length; i++){
             validators.push(joiners[i]);
