@@ -27,6 +27,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     uint256 public tokenRewardPerTokenPerEpoch;
     mapping(address => uint256) public rewards;
 
+    uint256 public minimumStake;
     uint256 public totalStaked;
     mapping(address => uint256) private balances;
     address[] public joiners;
@@ -42,6 +43,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         stakingToken = IERC20(_stakingToken);
         blocksBetweenEpochs = 1;
         tokenRewardPerTokenPerEpoch = (10^ERC20(address(stakingToken)).decimals()) / 20; // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
+        minimumStake = 1;
     }
 
     /* ========== VIEWS ========== */
@@ -64,8 +66,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
+    /// Advance to the next Epoch.  Rewards validators, adds the joiners, and removes the leavers
     function advanceEpoch() public {
         require(block.number > lastEpochBlock + blocksBetweenEpochs, "Enough blocks have not elapsed since the last epoch");
+
         // reward the validators
         for(uint i = 0; i < validators.length; i++){
             rewards[validators[i]] += tokenRewardPerTokenPerEpoch * balances[validators[i]];
@@ -93,17 +97,17 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         lastEpochBlock = block.number;
     }
 
-    function setBlocksBetweenEpochs(uint256 newBlocksBetweenEpochs) public onlyOwner {
-        blocksBetweenEpochs = newBlocksBetweenEpochs;
-    }
-
-
+    /// Stake and request to join the validator set
+    /// @param amount The amount of tokens to stake
+    /// @param ip The IP address of the node
+    /// @param port The port of the node
     function stakeAndJoin(uint256 amount, uint32 ip, uint32 port)
         public
         nonReentrant
         whenNotPaused
     {
         require(amount > 0, "Cannot stake 0");
+        require(amount >= minimumStake, "Stake must be greater than or equal to minimumStake");
         totalStaked = totalStaked.add(amount);
 
         // check if they are already a validator
@@ -123,6 +127,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         emit Staked(msg.sender, amount);
     }
 
+    /// Withdraw staked tokens.  This can only be done by users who are not active in the validator set.
+    /// @param amount The amount of tokens to withdraw
     function withdraw(uint256 amount) public nonReentrant {
         require(amount > 0, "Cannot withdraw 0");
         bool contained;
@@ -135,7 +141,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         emit Withdrawn(msg.sender, amount);
     }
 
-    function requestToLeave() public{
+    /// Request to leave in the next Epoch
+    function requestToLeave() public {
         bool contained;
         uint256 index;
         (contained, index) = arrayContains(leavers, msg.sender);
@@ -154,6 +161,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         leavers.push(msg.sender);
     }
 
+    /// Transfer any outstanding reward tokens
     function getReward() public nonReentrant {
         uint256 reward = rewards[msg.sender];
         if (reward > 0) {
@@ -163,14 +171,23 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         }
     }
 
-    function exit() external {
+    /// Exit staking and get any outstanding rewards
+    function exit() public {
         withdraw(balances[msg.sender]);
         getReward();
     }
 
-    function setIpAndPort(uint32 ip, uint32 port) external nonReentrant {
+    /// Set the IP and port of your node
+    /// @param ip The ip address of your node
+    /// @param port The port of your node
+    function setIpAndPort(uint32 ip, uint32 port) public {
         ips[msg.sender] = ip;
         ports[msg.sender] = port;
+    }
+
+
+    function setBlocksBetweenEpochs(uint256 newBlocksBetweenEpochs) public onlyOwner {
+        blocksBetweenEpochs = newBlocksBetweenEpochs;
     }
 
     function setStakingToken(address newStakingTokenAddress) public onlyOwner {
@@ -180,6 +197,13 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     function setTokenRewardPerTokenPerEpoch(uint256 newTokenRewardPerTokenPerEpoch) public onlyOwner {
         tokenRewardPerTokenPerEpoch = newTokenRewardPerTokenPerEpoch;
     }
+
+    function setMinimumStake(uint256 newMinimumStake) public onlyOwner {
+        minimumStake = newMinimumStake;
+    }
+
+
+    /* ========== Internal Utils =========== */
 
     function arrayContains(address[] storage array, address toFind) internal view returns (bool, uint256) {
         for(uint i = 0; i < array.length; i++){
