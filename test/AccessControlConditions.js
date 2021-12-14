@@ -22,21 +22,30 @@ describe("AccessControlConditions", function () {
   });
 
   describe("storeAndRetrieveCondition", async () => {
-    // context('when unauthorized', async () => {
-    //   let unauthorizedMinter
-    //   let recipient
+    context("when unauthorized", async () => {
+      let creator;
+      let tester;
+      const key = 0x1234;
+      const value = 0x5678;
+      const chainId = 1;
 
-    //   beforeEach(async () => [unauthorizedMinter, recipient, ...signers] = signers)
+      beforeEach(async () => ([creator, tester, ...signers] = signers));
 
-    //   beforeEach(async () => token = token.connect(unauthorizedMinter))
+      beforeEach(
+        async () => await contract.storeCondition(key, value, chainId)
+      );
 
-    //   it('reverts', async () => {
-    //     expect(token.mint(await recipient.getAddress(), 1))
-    //       .revertedWith('LITToken: only minter')
-    //   })
-    // })
+      beforeEach(async () => (contract = contract.connect(tester)));
 
-    context("when ready", async () => {
+      it("retrieves empty condition", async () => {
+        const [valueFromContract, chainIdFromContract] =
+          await contract.getCondition(0xabcdef);
+        expect(valueFromContract).equal(0);
+        expect(chainIdFromContract).equal(0);
+      });
+    });
+
+    context("when key is correct", async () => {
       let creator;
       let tester;
       const key = 0x1234;
