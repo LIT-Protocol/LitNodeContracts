@@ -81,6 +81,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return validators;
     }
 
+    function getValidatorsInNextEpoch() external view returns (address[] memory) {
+        return validatorsInNextEpoch;
+    }
+
     function getJoiners() external view returns (address[] memory) {
         return joiners;
     }
