@@ -110,19 +110,22 @@ describe("Staking", function () {
     });
   });
 
-  describe("joining, leaving, and setting new validators", () => {
-    it("can join as a staker, become a validator, then leave", async () => {
+  describe("setting new validators", () => {
+    it("becomes a validator", async () => {
       // at this point, stakingAccount1 has already requested to join
       const joiners = await stakingContract.getJoiners();
       expect(joiners.length).equal(1);
       expect(joiners.includes(await stakingAccount1.getAddress())).is.true;
 
+      // check the epoch and epochForValidatorsInNextEpoch before setValidatorsForNextEpoch
       const epochBeforeTest = await stakingContract.epoch();
       const epochForValidatorsInNextEpochBeforeTest =
         await stakingContract.epochForValidatorsInNextEpoch();
 
+      // set new validators
       await stakingContract.setValidatorsForNextEpoch();
 
+      // check that the epochForValidatorsInNextEpoch has advanced by 1
       const epochAfterSettingValidatorsForNextEpoch =
         await stakingContract.epoch();
       const epochForValidatorsInNextEpochAfterSettingValidatorsForNextEpoch =
@@ -145,6 +148,7 @@ describe("Staking", function () {
         await stakingAccount1.getAddress()
       );
 
+      // advance the epoch.  this sets the validators to be the new set
       await stakingContract.advanceEpoch();
 
       const epochAfterAdvancingEpoch = await stakingContract.epoch();
@@ -157,6 +161,55 @@ describe("Staking", function () {
       expect(epochForValidatorsInNextEpochAfterAdvancingEpoch).to.equal(
         epochForValidatorsInNextEpochAfterSettingValidatorsForNextEpoch
       );
+
+      // validators should include stakingAccount1
+      const validatorsAfterAdvancingEpoch =
+        await stakingContract.getValidators();
+      expect(validatorsAfterAdvancingEpoch.length).equal(11);
+      expect(
+        validatorsAfterAdvancingEpoch.includes(
+          await stakingAccount1.getAddress()
+        )
+      ).is.true;
+    });
+
+    it("leaves as a validator", async () => {
+      // validators should include stakingAccount1
+      const validatorsBefore = await stakingContract.getValidators();
+      expect(validatorsBefore.length).equal(11);
+      expect(validatorsBefore.includes(await stakingAccount1.getAddress())).is
+        .true;
+
+      const leaversBefore = await stakingContract.getLeavers();
+      expect(leaversBefore.length).equal(0);
+
+      // attempt to leave
+      await stakingContract.requestToLeave();
+
+      const leaversAfter = await stakingContract.getLeavers();
+      expect(leaversAfter.length).equal(1);
+      expect(leaversAfter[0]).equal(await stakingAccount1.getAddress());
+
+      // create the new validator set
+      await stakingContract.setValidatorsForNextEpoch();
+
+      const validatorsInNextEpoch =
+        await stakingContract.getValidatorsInNextEpoch();
+      expect(validatorsInNextEpoch.length).equal(10);
+      expect(validatorsInNextEpoch.includes(await stakingAccount1.getAddress()))
+        .to.be.false;
+
+      // advance the epoch.  this sets the validators to be the new set
+      await stakingContract.advanceEpoch();
+
+      const validatorsAfterAdvancingEpoch =
+        await stakingContract.getValidators();
+      expect(validatorsAfterAdvancingEpoch.length).equal(10);
+      expect(
+        validatorsAfterAdvancingEpoch.includes(
+          await stakingAccount1.getAddress()
+        )
+      ).to.be.false;
     });
   });
 });
