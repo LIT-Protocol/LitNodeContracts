@@ -45,7 +45,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         stakingToken = IERC20(_stakingToken);
         blocksBetweenEpochs = 1;
         tokenRewardPerTokenPerEpoch = (10^ERC20(address(stakingToken)).decimals()) / 20; // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
-        minimumStake = 1;
+        minimumStake = 2;
 
         // for testing
         validators = [
