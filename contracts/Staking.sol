@@ -38,8 +38,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         mapping (address => bool) isIn;
         mapping (address => uint) indices;
     }
-    ValidatorAddressList public validatorsInCurrentEpoch;
-    ValidatorAddressList public validatorsInNextEpoch;
+    ValidatorAddressList validatorsInCurrentEpoch;
+    ValidatorAddressList validatorsInNextEpoch;
+    bool validatorsForNextEpochLocked;
 
     struct Validator {
         uint32 ip;
@@ -57,14 +58,13 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         epoch = Epoch({
             length: 1,
             number: 1,
-            endBlock: block.number + 1,
+            endBlock: block.number + 1
         });
-        blocksBetweenEpochs = 1;
         tokenRewardPerTokenPerEpoch = (10^ERC20(address(stakingToken)).decimals()) / 20; // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
         minimumStake = 2;
 
         // for testing
-        validators = [
+        address[10] memory validatorAddresses = [
             address(0x2e910606fBa7c361Cee433D92ED2Cf21cBBe4EA5),
             address(0xC027471D03F30669C69ABC6D167835C4987185Ca),
             address(0x3dbFCf705d31d1B15C49379f2A27F1bbDFCc2544),
@@ -79,18 +79,33 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
         uint32 ip = 2130706433;
         uint32 startingPort = 7470;
-        for (uint32 i=0; i<validators.length; i++) {
-            ips[validators[i]] = ip;
-            ports[validators[i]] = startingPort + i;
+        for (uint32 i=0; i<validatorAddresses.length; i++) {
+            validators[validatorAddresses[i]] = Validator({
+                ip: ip,
+                port: startingPort + i,
+                nodeAddress: validatorAddresses[i],
+                balance: 0,
+                reward: 0
+            });
+            validatorsInCurrentEpoch.indices[validatorAddresses[i]] = validatorsInCurrentEpoch.values.length;
+            validatorsInCurrentEpoch.values.push(validatorAddresses[i]);
+            validatorsInCurrentEpoch.isIn[validatorAddresses[i]] = true;
+
+            validatorsInNextEpoch.indices[validatorAddresses[i]] = validatorsInNextEpoch.values.length;
+            validatorsInNextEpoch.values.push(validatorAddresses[i]);
+            validatorsInNextEpoch.isIn[validatorAddresses[i]] = true;
         }
 
-
+        validatorsForNextEpochLocked = false;
     }
 
     /* ========== VIEWS ========== */
+    function rewardOf(address account) external view returns (uint256) {
+        return validators[account].reward;
+    }
 
     function balanceOf(address account) external view returns (uint256) {
-        return balances[account];
+        return validators[account].balance;
     }
 
     function getValidatorsInCurrentEpoch() external view returns (address[] memory) {
@@ -104,50 +119,46 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    /// Populate validatorsInNextEpoch with the new list of validators.  Adds the joiners and removes the leavers
-    function setValidatorsForNextEpoch() public {
-        require(block.number > lastEpochBlock + blocksBetweenEpochs, "Enough blocks have not elapsed since the last epoch");
-        require(epochForValidatorsInNextEpoch <= epoch, "epochForValidatorsInNextEpoch must be less than or equal the current epoch");
-
-        delete validatorsInNextEpoch;
-
-        bool contained;
-        uint256 index;
-
-        //populate validatorsInNextEpoch with all validators unless the validator is leaving
-        for(uint i = 0; i < validators.length; i++){
-            (contained, index) = arrayContains(leavers, validators[i]);
-            if (!contained){
-                validatorsInNextEpoch.push(validators[i]);
-            }
-        }
-
-        // add the joiners
-        for(uint i = 0; i < joiners.length; i++){
-            validatorsInNextEpoch.push(joiners[i]);
-        }
-
-        delete joiners;
-        delete leavers;
-
-        epochNumberForValidatorsInNextEpoch = epoch.number + 1;
+    /// Lock in the validators for the next epoch
+    function lockValidatorsForNextEpoch() public {
+        validatorsForNextEpochLocked = true;
     }
 
     /// Advance to the next Epoch.  Rewards validators, adds the joiners, and removes the leavers
     function advanceEpoch() public {
-        require(block.number > lastEpochBlock + blocksBetweenEpochs, "Enough blocks have not elapsed since the last epoch");
-        require(epochForValidatorsInNextEpoch > epoch, "epochForValidatorsInNextEpoch must be greater than epoch, indicating that setValidatorsForNextEpoch has already been run.  Please run setValidatorsForNextEpoch and try again.");
+        require(block.number >= epoch.endBlock, "Enough blocks have not elapsed since the last epoch");
+        require(validatorsForNextEpochLocked == true, "Validators for next epoch have not been locked.  Please lock them in before advancing to the next epoch.");
 
         // reward the validators
-        for(uint i = 0; i < validators.length; i++){
-            rewards[validators[i]] += tokenRewardPerTokenPerEpoch * balances[validators[i]];
+        for(uint i = 0; i < validatorsInCurrentEpoch.values.length; i++){
+            address validatorAddress = validatorsInCurrentEpoch.values[i];
+            validators[validatorAddress].reward += tokenRewardPerTokenPerEpoch * validators[validatorAddress].balance;
         }
 
         // set the validators to the new validator set
-        validators = validatorsInNextEpoch;
+        // ideally we could just do this:
+        // validatorsInCurrentEpoch = validatorsInNextEpoch;
+        // but solidity doesn't allow that, so we have to do it manually
 
-        epoch++;
-        lastEpochBlock = block.number;
+        // clear out isIn for all existing validators
+        for(uint i = 0; i < validatorsInCurrentEpoch.values.length; i++){
+            address validatorAddress = validatorsInCurrentEpoch.values[i];
+            validatorsInCurrentEpoch.isIn[validatorAddress] = false;
+        }
+
+        // copy over the values
+        validatorsInCurrentEpoch.values = validatorsInNextEpoch.values;
+
+        // copy over the indices and isIn
+        for(uint i = 0; i < validatorsInCurrentEpoch.values.length; i++){
+            address validatorAddress = validatorsInCurrentEpoch.values[i];
+            validatorsInCurrentEpoch.indices[validatorAddress] = i;
+            validatorsInCurrentEpoch.isIn[validatorAddress] = true;
+        }
+
+        epoch.number++;
+        epoch.endBlock = epoch.endBlock + epoch.length;
+        validatorsForNextEpochLocked = false;
     }
 
     /// Stake and request to join the validator set
@@ -161,12 +172,14 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     {
         require(amount > 0, "Cannot stake 0");
         require(amount >= minimumStake, "Stake must be greater than or equal to minimumStake");
+        require(validatorsForNextEpochLocked == false, "Validators for next epoch have already been locked");
+
         totalStaked = totalStaked.add(amount);
 
         // check if they are already signed up as validator
         // or to join the next epoch and add them if not
         if (!validatorsInNextEpoch.isIn[msg.sender]) { 
-            validatorsInNextEpoch.indices[msg.sender] = validatorsInNextEpoch.length;
+            validatorsInNextEpoch.indices[msg.sender] = validatorsInNextEpoch.values.length;
             validatorsInNextEpoch.values.push(msg.sender);
             validatorsInNextEpoch.isIn[msg.sender] = true;
         }
@@ -184,18 +197,20 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// @param amount The amount of tokens to withdraw
     function withdraw(uint256 amount) public nonReentrant {
         require(amount > 0, "Cannot withdraw 0");
-        bool contained;
-        uint256 index;
-        (contained, index) = arrayContains(validators, msg.sender);
-        require(contained == false, "Active validators cannot leave.  Please use the leave() function and wait for the next epoch to leave");
+
+        require(validatorsInCurrentEpoch.isIn[msg.sender] == false, "Active validators cannot leave.  Please use the leave() function and wait for the next epoch to leave");
+
+        require(validators[msg.sender].balance >= amount, "Not enough tokens to withdraw");
+
         totalStaked = totalStaked.sub(amount);
-        balances[msg.sender] = balances[msg.sender].sub(amount);
+        validators[msg.sender].balance = validators[msg.sender].balance.sub(amount);
         stakingToken.safeTransfer(msg.sender, amount);
         emit Withdrawn(msg.sender, amount);
     }
 
     /// Request to leave in the next Epoch
     function requestToLeave() public {
+        require(validatorsForNextEpochLocked == false, "Validators for next epoch have already been locked");
         if (validatorsInNextEpoch.isIn[msg.sender]) { 
             // remove them
             removeFromValidatorAddressList(validatorsInNextEpoch, msg.sender);
@@ -204,9 +219,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// Transfer any outstanding reward tokens
     function getReward() public nonReentrant {
-        uint256 reward = rewards[msg.sender];
+        uint256 reward = validators[msg.sender].reward;
         if (reward > 0) {
-            rewards[msg.sender] = 0;
+            validators[msg.sender].reward = 0;
             stakingToken.safeTransfer(msg.sender, reward);
             emit RewardPaid(msg.sender, reward);
         }
@@ -214,7 +229,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// Exit staking and get any outstanding rewards
     function exit() public {
-        withdraw(balances[msg.sender]);
+        withdraw(validators[msg.sender].balance);
         getReward();
     }
 
