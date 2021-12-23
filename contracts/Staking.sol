@@ -20,29 +20,45 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     IERC20 public stakingToken;
 
     // epoch vars
-    uint256 public epoch;
-    uint256 public epochForValidatorsInNextEpoch;
-    uint256 public lastEpochBlock;
-    uint256 public blocksBetweenEpochs;
+    struct Epoch {
+        uint length;
+        uint number;
+        uint endBlock;
+    }
+    Epoch public epoch;
+    uint256 public epochNumberForValidatorsInNextEpoch;
 
     uint256 public tokenRewardPerTokenPerEpoch;
-    mapping(address => uint256) public rewards;
 
     uint256 public minimumStake;
     uint256 public totalStaked;
-    mapping(address => uint256) private balances;
-    address[] public joiners;
-    address[] public leavers;
-    address[] public validators;
-    address[] public validatorsInNextEpoch;
+    
+    struct ValidatorAddressList {
+        address[] values;
+        mapping (address => bool) isIn;
+        mapping (address => uint) indices;
+    }
+    ValidatorAddressList public validatorsInCurrentEpoch;
+    ValidatorAddressList public validatorsInNextEpoch;
 
-
-    mapping(address => uint32) public ips;
-    mapping(address => uint32) public ports;
+    struct Validator {
+        uint32 ip;
+        uint32 port;
+        address nodeAddress;
+        uint256 balance;
+        uint256 reward;
+    }
+    mapping(address => Validator) public validators;
+    mapping(address => address) public nodeAddressToStakerAddress;
 
     /* ========== CONSTRUCTOR ========== */
     constructor(address _stakingToken) {
         stakingToken = IERC20(_stakingToken);
+        epoch = Epoch({
+            length: 1,
+            number: 1,
+            endBlock: block.number + 1,
+        });
         blocksBetweenEpochs = 1;
         tokenRewardPerTokenPerEpoch = (10^ERC20(address(stakingToken)).decimals()) / 20; // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
         minimumStake = 2;
@@ -77,20 +93,12 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return balances[account];
     }
 
-    function getValidators() external view returns (address[] memory) {
-        return validators;
+    function getValidatorsInCurrentEpoch() external view returns (address[] memory) {
+        return validatorsInCurrentEpoch.values;
     }
 
     function getValidatorsInNextEpoch() external view returns (address[] memory) {
-        return validatorsInNextEpoch;
-    }
-
-    function getJoiners() external view returns (address[] memory) {
-        return joiners;
-    }
-
-    function getLeavers() external view returns (address[] memory) {
-        return leavers;
+        return validatorsInNextEpoch.values;
     }
 
 
@@ -122,7 +130,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         delete joiners;
         delete leavers;
 
-        epochForValidatorsInNextEpoch = epoch + 1;
+        epochNumberForValidatorsInNextEpoch = epoch.number + 1;
     }
 
     /// Advance to the next Epoch.  Rewards validators, adds the joiners, and removes the leavers
@@ -138,24 +146,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         // set the validators to the new validator set
         validators = validatorsInNextEpoch;
 
-
-        // // add the joiners
-        // for(uint i = 0; i < joiners.length; i++){
-        //     validators.push(joiners[i]);
-        // }
-        // delete joiners;
-
-        // // remove the leavers
-        // bool contained;
-        // uint256 index;
-        // for(uint i = 0; i < leavers.length; i++){
-        //     (contained, index) = arrayContains(validators, leavers[i]);
-        //     if (contained) {
-        //         removeFromArray(validators, index);
-        //     }
-        // }
-        // delete leavers;
-
         epoch++;
         lastEpochBlock = block.number;
     }
@@ -164,7 +154,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// @param amount The amount of tokens to stake
     /// @param ip The IP address of the node
     /// @param port The port of the node
-    function stakeAndJoin(uint256 amount, uint32 ip, uint32 port)
+    function stakeAndJoin(uint256 amount, uint32 ip, uint32 port, address nodeAddress) 
         public
         nonReentrant
         whenNotPaused
@@ -173,20 +163,20 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         require(amount >= minimumStake, "Stake must be greater than or equal to minimumStake");
         totalStaked = totalStaked.add(amount);
 
-        // check if they are already a validator
-        bool contained;
-        uint256 index;
-        (contained, index) = arrayContains(validators, msg.sender);
-
-        if (!contained && balances[msg.sender] == 0) { 
-            // add to joiners
-            joiners.push(msg.sender);
+        // check if they are already signed up as validator
+        // or to join the next epoch and add them if not
+        if (!validatorsInNextEpoch.isIn[msg.sender]) { 
+            validatorsInNextEpoch.indices[msg.sender] = validatorsInNextEpoch.length;
+            validatorsInNextEpoch.values.push(msg.sender);
+            validatorsInNextEpoch.isIn[msg.sender] = true;
         }
 
-        balances[msg.sender] = balances[msg.sender].add(amount);
+        validators[msg.sender].balance = validators[msg.sender].balance.add(amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
-        ips[msg.sender] = ip;
-        ports[msg.sender] = port;
+        validators[msg.sender].ip = ip;
+        validators[msg.sender].port = port;
+        validators[msg.sender].nodeAddress = nodeAddress;
+        nodeAddressToStakerAddress[nodeAddress] = msg.sender;
         emit Staked(msg.sender, amount);
     }
 
@@ -206,22 +196,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// Request to leave in the next Epoch
     function requestToLeave() public {
-        bool contained;
-        uint256 index;
-        (contained, index) = arrayContains(leavers, msg.sender);
-        require(contained == false, "You have already signaled that you wish to leave");
-
-        // handle the case where the user decides to leave before they become a validator
-        (contained, index) = arrayContains(joiners, msg.sender);
-        if (contained) {
-            removeFromArray(joiners, index);
-            return;
+        if (validatorsInNextEpoch.isIn[msg.sender]) { 
+            // remove them
+            removeFromValidatorAddressList(validatorsInNextEpoch, msg.sender);
         }
-
-        (contained, index) = arrayContains(validators, msg.sender);
-        require(contained == true, "You must be either an active validator or on the list of joiners to request to leave");
-
-        leavers.push(msg.sender);
     }
 
     /// Transfer any outstanding reward tokens
@@ -243,14 +221,14 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// Set the IP and port of your node
     /// @param ip The ip address of your node
     /// @param port The port of your node
-    function setIpAndPort(uint32 ip, uint32 port) public {
-        ips[msg.sender] = ip;
-        ports[msg.sender] = port;
+    function setIpPortAndNodeAddress(uint32 ip, uint32 port) public {
+        validators[msg.sender].ip = ip;
+        validators[msg.sender].port = port;
     }
 
 
-    function setBlocksBetweenEpochs(uint256 newBlocksBetweenEpochs) public onlyOwner {
-        blocksBetweenEpochs = newBlocksBetweenEpochs;
+    function setEpochLength(uint256 newEpochLength) public onlyOwner {
+        epoch.length = newEpochLength;
     }
 
     function setStakingToken(address newStakingTokenAddress) public onlyOwner {
@@ -281,6 +259,19 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         require(index < array.length);
         array[index] = array[array.length-1];
         array.pop();
+    }
+
+     function removeFromValidatorAddressList(ValidatorAddressList storage val, address toRemove) internal {
+        // get the index of the thing we are removing and make sure the array contains it
+        uint256 index = val.indices[toRemove];
+        require(index < val.values.length);
+
+        // move the last element to the index of the item we are removing
+        val.values[index] = val.values[val.values.length-1];
+        // update the index of the element we moved
+        val.indices[val.values[index]] = index;
+        // the last element is now at val.values[index] so we can pop it off the end
+        val.values.pop();
     }
 
     /* ========== EVENTS ========== */
