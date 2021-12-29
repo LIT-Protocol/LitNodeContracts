@@ -21,7 +21,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     // epoch vars
     struct Epoch {
-        uint length;
+        uint epochLength;
         uint number;
         uint endBlock;
     }
@@ -40,7 +40,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
     ValidatorAddressList validatorsInCurrentEpoch;
     ValidatorAddressList validatorsInNextEpoch;
-    bool validatorsForNextEpochLocked;
+    bool public validatorsForNextEpochLocked;
 
     struct Validator {
         uint32 ip;
@@ -56,7 +56,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     constructor(address _stakingToken) {
         stakingToken = IERC20(_stakingToken);
         epoch = Epoch({
-            length: 1,
+            epochLength: 1,
             number: 1,
             endBlock: block.number + 1
         });
@@ -121,6 +121,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// Lock in the validators for the next epoch
     function lockValidatorsForNextEpoch() public {
+        require(block.number >= epoch.endBlock, "Enough blocks have not elapsed since the last epoch");
         validatorsForNextEpochLocked = true;
     }
 
@@ -157,7 +158,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         }
 
         epoch.number++;
-        epoch.endBlock = epoch.endBlock + epoch.length;
+        epoch.endBlock = epoch.endBlock + epoch.epochLength;
         validatorsForNextEpochLocked = false;
     }
 
@@ -243,7 +244,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
 
     function setEpochLength(uint256 newEpochLength) public onlyOwner {
-        epoch.length = newEpochLength;
+        epoch.epochLength = newEpochLength;
     }
 
     function setStakingToken(address newStakingTokenAddress) public onlyOwner {
@@ -260,21 +261,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
 
     /* ========== Internal Utils =========== */
-
-    function arrayContains(address[] storage array, address toFind) internal view returns (bool, uint256) {
-        for(uint i = 0; i < array.length; i++){
-            if (array[i] == toFind){
-                return (true, i);
-            }
-        }
-        return (false, 0);
-    }
-
-    function removeFromArray(address[] storage array, uint index) internal {
-        require(index < array.length);
-        array[index] = array[array.length-1];
-        array.pop();
-    }
 
      function removeFromValidatorAddressList(ValidatorAddressList storage val, address toRemove) internal {
         // get the index of the thing we are removing and make sure the array contains it

@@ -10,6 +10,7 @@ describe("Staking", function () {
   let signers;
   let token;
   let stakingAccount1;
+  let nodeAccount1;
   let stakingContract;
   const totalTokens = 1000;
   const stakingAccount1IpAddress = "192.168.1.1";
@@ -18,7 +19,8 @@ describe("Staking", function () {
   before(async () => {
     // deploy token
     const TokenFactory = await ethers.getContractFactory("LITToken");
-    [deployer, stakingAccount1, ...signers] = await ethers.getSigners();
+    [deployer, stakingAccount1, nodeAccount1, ...signers] =
+      await ethers.getSigners();
     token = await TokenFactory.deploy();
     await token.mint(deployer.getAddress(), totalTokens);
 
@@ -41,7 +43,7 @@ describe("Staking", function () {
   describe("validators and joining", () => {
     it("has the default validator set", async () => {
       stakingContract = stakingContract.connect(stakingAccount1);
-      const validators = await stakingContract.getValidators();
+      const validators = await stakingContract.getValidatorsInCurrentEpoch();
       expect(validators.length).equal(10);
     });
 
@@ -55,44 +57,83 @@ describe("Staking", function () {
       const initialStakeBal = await stakingContract.balanceOf(
         stakingAccount1.getAddress()
       );
-      const initialLpBal = await token.balanceOf(stakingAccount1.getAddress());
-      const initialIpAddress = await stakingContract.ips(
+      const initialTokenBalance = await token.balanceOf(
         stakingAccount1.getAddress()
       );
-      const initialPort = await stakingContract.ports(
+      const initialValidatorEntry = await stakingContract.validators(
         stakingAccount1.getAddress()
       );
+      const initialIpAddress = initialValidatorEntry.ip;
+      const initialPort = initialValidatorEntry.port;
+      const initialNodeAddresss = initialValidatorEntry.nodeAddress;
+      const initialBalance = initialValidatorEntry.balance;
+      const initialReward = initialValidatorEntry.reward;
+      const initialNodeAddressToStakerAddress =
+        await stakingContract.nodeAddressToStakerAddress(
+          nodeAccount1.getAddress()
+        );
 
       stakingContract = stakingContract.connect(stakingAccount1);
       await stakingContract.stakeAndJoin(
         totalToStake,
         ip2int(stakingAccount1IpAddress),
-        stakingAccount1Port
+        stakingAccount1Port,
+        nodeAccount1.getAddress()
       );
 
       const postStakeBal = await stakingContract.balanceOf(
         stakingAccount1.getAddress()
       );
-      const postLpBal = await token.balanceOf(stakingAccount1.getAddress());
-      const postIpAddress = await stakingContract.ips(
+      const postTokenBalance = await token.balanceOf(
         stakingAccount1.getAddress()
       );
-      const postPort = await stakingContract.ports(
+      const postValidatorEntry = await stakingContract.validators(
         stakingAccount1.getAddress()
       );
+      const postIpAddress = postValidatorEntry.ip;
+      const postPort = postValidatorEntry.port;
+      const postNodeAddress = postValidatorEntry.nodeAddress;
+      const postBalance = postValidatorEntry.balance;
+      const postReward = postValidatorEntry.reward;
+      const postNodeAddressToStakerAddress =
+        await stakingContract.nodeAddressToStakerAddress(
+          nodeAccount1.getAddress()
+        );
 
-      expect(postLpBal).to.be.lt(initialLpBal);
+      expect(postTokenBalance).to.be.lt(initialTokenBalance);
       expect(postStakeBal).to.be.gt(initialStakeBal);
       expect(initialIpAddress).to.equal(0);
       expect(int2ip(postIpAddress)).to.equal(stakingAccount1IpAddress);
       expect(initialPort).to.equal(0);
       expect(postPort).to.equal(stakingAccount1Port);
+      expect(initialNodeAddresss).to.equal(
+        "0x0000000000000000000000000000000000000000"
+      );
+      // console.log("postNodeAddress", postNodeAddress);
+      // console.log("nodeAccount1.getAddress()", await nodeAccount1.getAddress());
+      expect(postNodeAddress).to.equal(await nodeAccount1.getAddress());
+      expect(initialBalance).to.equal(0);
+      expect(postBalance).to.equal(totalToStake);
+      expect(initialReward).to.equal(0);
+      expect(postReward).to.equal(0);
+
+      expect(initialNodeAddressToStakerAddress).to.equal(
+        "0x0000000000000000000000000000000000000000"
+      );
+      expect(postNodeAddressToStakerAddress).to.equal(
+        await stakingAccount1.getAddress()
+      );
     });
 
     it("cannot stake 0", async () => {
       stakingContract = stakingContract.connect(stakingAccount1);
       expect(
-        stakingContract.stakeAndJoin(0, ip2int(stakingAccount1IpAddress), 7777)
+        stakingContract.stakeAndJoin(
+          0,
+          ip2int(stakingAccount1IpAddress),
+          7777,
+          nodeAccount1.getAddress()
+        )
       ).revertedWith("Cannot stake 0");
     });
 
@@ -104,7 +145,8 @@ describe("Staking", function () {
         stakingContract.stakeAndJoin(
           minStake - 1,
           ip2int(stakingAccount1IpAddress),
-          7777
+          7777,
+          nodeAccount1.getAddress()
         )
       ).revertedWith("Stake must be greater than or equal to minimumStake");
     });
@@ -113,31 +155,30 @@ describe("Staking", function () {
   describe("setting new validators", () => {
     it("becomes a validator", async () => {
       // at this point, stakingAccount1 has already requested to join
-      const joiners = await stakingContract.getJoiners();
-      expect(joiners.length).equal(1);
-      expect(joiners.includes(await stakingAccount1.getAddress())).is.true;
-
-      // check the epoch and epochForValidatorsInNextEpoch before setValidatorsForNextEpoch
-      const epochBeforeTest = await stakingContract.epoch();
-      const epochForValidatorsInNextEpochBeforeTest =
-        await stakingContract.epochForValidatorsInNextEpoch();
-
-      // set new validators
-      await stakingContract.setValidatorsForNextEpoch();
-
-      // check that the epochForValidatorsInNextEpoch has advanced by 1
-      const epochAfterSettingValidatorsForNextEpoch =
-        await stakingContract.epoch();
-      const epochForValidatorsInNextEpochAfterSettingValidatorsForNextEpoch =
-        await stakingContract.epochForValidatorsInNextEpoch();
-
-      expect(epochAfterSettingValidatorsForNextEpoch).to.equal(epochBeforeTest);
+      const validatorsInNextEpochBeforeTest =
+        await stakingContract.getValidatorsInNextEpoch();
+      expect(validatorsInNextEpochBeforeTest.length).equal(11);
       expect(
-        epochForValidatorsInNextEpochAfterSettingValidatorsForNextEpoch
-      ).to.equal(epochForValidatorsInNextEpochBeforeTest + 1);
+        validatorsInNextEpochBeforeTest.includes(
+          await stakingAccount1.getAddress()
+        )
+      ).is.true;
+
+      const epochBeforeAdvancingEpoch = await stakingContract.epoch();
+
+      const validatorsForNextEpochLockedBeforeTest =
+        await stakingContract.validatorsForNextEpochLocked();
+      expect(validatorsForNextEpochLockedBeforeTest).is.false;
+
+      // lock new validators
+      await stakingContract.lockValidatorsForNextEpoch();
+
+      const validatorsForNextEpochLockedAfterLocking =
+        await stakingContract.validatorsForNextEpochLocked();
+      expect(validatorsForNextEpochLockedAfterLocking).is.true;
 
       // validators should be unchanged
-      const validators = await stakingContract.getValidators();
+      const validators = await stakingContract.getValidatorsInCurrentEpoch();
       expect(validators.length).equal(10);
 
       // validators in next epoch should include stakingAccount1
@@ -152,19 +193,25 @@ describe("Staking", function () {
       await stakingContract.advanceEpoch();
 
       const epochAfterAdvancingEpoch = await stakingContract.epoch();
-      const epochForValidatorsInNextEpochAfterAdvancingEpoch =
-        await stakingContract.epochForValidatorsInNextEpoch();
 
-      expect(epochAfterAdvancingEpoch).to.equal(
-        epochAfterSettingValidatorsForNextEpoch + 1
+      // advancing the epoch should reset validatorsForNextEpochLocked
+      const validatorsForNextEpochLockedAfterTest =
+        await stakingContract.validatorsForNextEpochLocked();
+      expect(validatorsForNextEpochLockedAfterTest).is.false;
+
+      expect(epochAfterAdvancingEpoch.number).to.equal(
+        epochBeforeAdvancingEpoch.number.add(1)
       );
-      expect(epochForValidatorsInNextEpochAfterAdvancingEpoch).to.equal(
-        epochForValidatorsInNextEpochAfterSettingValidatorsForNextEpoch
+
+      expect(epochAfterAdvancingEpoch.endBlock).to.equal(
+        epochBeforeAdvancingEpoch.endBlock.add(
+          epochBeforeAdvancingEpoch.epochLength
+        )
       );
 
       // validators should include stakingAccount1
       const validatorsAfterAdvancingEpoch =
-        await stakingContract.getValidators();
+        await stakingContract.getValidatorsInCurrentEpoch();
       expect(validatorsAfterAdvancingEpoch.length).equal(11);
       expect(
         validatorsAfterAdvancingEpoch.includes(
@@ -175,38 +222,53 @@ describe("Staking", function () {
 
     it("leaves as a validator", async () => {
       // validators should include stakingAccount1
-      const validatorsBefore = await stakingContract.getValidators();
+      const validatorsBefore =
+        await stakingContract.getValidatorsInCurrentEpoch();
       expect(validatorsBefore.length).equal(11);
       expect(validatorsBefore.includes(await stakingAccount1.getAddress())).is
         .true;
 
-      const leaversBefore = await stakingContract.getLeavers();
-      expect(leaversBefore.length).equal(0);
+      const validatorsInNextEpochBefore =
+        await stakingContract.getValidatorsInNextEpoch();
+      expect(validatorsInNextEpochBefore.length).equal(11);
+      expect(
+        validatorsInNextEpochBefore.includes(await stakingAccount1.getAddress())
+      ).is.true;
 
       // attempt to leave
       await stakingContract.requestToLeave();
 
-      const leaversAfter = await stakingContract.getLeavers();
-      expect(leaversAfter.length).equal(1);
-      expect(leaversAfter[0]).equal(await stakingAccount1.getAddress());
+      const validatorsInNextEpochAfter =
+        await stakingContract.getValidatorsInNextEpoch();
+      expect(validatorsInNextEpochAfter.length).equal(10);
+      expect(
+        validatorsInNextEpochAfter.includes(await stakingAccount1.getAddress())
+      ).is.false;
 
       // create the new validator set
-      await stakingContract.setValidatorsForNextEpoch();
+      await stakingContract.lockValidatorsForNextEpoch();
 
-      const validatorsInNextEpoch =
-        await stakingContract.getValidatorsInNextEpoch();
-      expect(validatorsInNextEpoch.length).equal(10);
-      expect(validatorsInNextEpoch.includes(await stakingAccount1.getAddress()))
-        .to.be.false;
+      const validatorsForNextEpochLockedAfterLocking =
+        await stakingContract.validatorsForNextEpochLocked();
+      expect(validatorsForNextEpochLockedAfterLocking).is.true;
 
       // advance the epoch.  this sets the validators to be the new set
       await stakingContract.advanceEpoch();
 
       const validatorsAfterAdvancingEpoch =
-        await stakingContract.getValidators();
+        await stakingContract.getValidatorsInCurrentEpoch();
       expect(validatorsAfterAdvancingEpoch.length).equal(10);
       expect(
         validatorsAfterAdvancingEpoch.includes(
+          await stakingAccount1.getAddress()
+        )
+      ).to.be.false;
+
+      const validatorsInNextEpochAfterAdvancingEpoch =
+        await stakingContract.getValidatorsInNextEpoch();
+      expect(validatorsInNextEpochAfterAdvancingEpoch.length).equal(10);
+      expect(
+        validatorsInNextEpochAfterAdvancingEpoch.includes(
           await stakingAccount1.getAddress()
         )
       ).to.be.false;
