@@ -9,10 +9,10 @@ contract AccessControlConditions is ReentrancyGuard {
 
     /* ========== STRUCTS ========== */
     struct StoredCondition {
-        address creator;
-        bool permanant;
         uint256 value;
         uint256 chainId;
+        bool permanant;
+        address creator;
     }
 
     /* ========== STATE VARIABLES ========== */
@@ -37,18 +37,18 @@ contract AccessControlConditions is ReentrancyGuard {
     {
         require(key != 0, "Key must not be zero");
         if (storedConditions[key].creator != address(0)){
-            // update
+            // this is an update
             require(storedConditions[key].creator == msg.sender, "Only the condition creator can update it");
             require(storedConditions[key].permanant == false, "This condition was stored with the Permanant flag and cannot be updated");
 
         } 
-        storedConditions[key] = StoredCondition(msg.sender, permanant, value, chainId);
+        storedConditions[key] = StoredCondition(value, chainId, permanant, msg.sender);
         
-        emit ConditionStored(key, value, chainId, msg.sender, permanant);
+        emit ConditionStored(key, value, chainId, permanant, msg.sender);
     }
 
 
     /* ========== EVENTS ========== */
 
-    event ConditionStored(uint indexed key, uint256 value, uint256 chainId, address creator, bool permanant);
+    event ConditionStored(uint indexed key, uint256 value, uint256 chainId, bool permanant, address creator);
 }
