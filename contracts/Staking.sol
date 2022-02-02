@@ -8,12 +8,14 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "hardhat/console.sol";
 
 contract Staking is ReentrancyGuard, Pausable, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     /* ========== STATE VARIABLES ========== */
 
@@ -33,13 +35,17 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     uint256 public minimumStake;
     uint256 public totalStaked;
     
-    struct ValidatorAddressList {
-        address[] values;
-        mapping (address => bool) isIn;
-        mapping (address => uint) indices;
-    }
-    ValidatorAddressList validatorsInCurrentEpoch;
-    ValidatorAddressList validatorsInNextEpoch;
+    // struct ValidatorAddressList {
+    //     address[] values;
+    //     mapping (address => bool) isIn;
+    //     mapping (address => uint) indices;
+    // }
+    // ValidatorAddressList validatorsInCurrentEpoch;
+    // ValidatorAddressList validatorsInNextEpoch;
+
+    EnumerableSet.AddressSet validatorsInCurrentEpoch;
+    EnumerableSet.AddressSet validatorsInNextEpoch;
+
     bool public validatorsForNextEpochLocked;
 
     struct Validator {
@@ -87,13 +93,16 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
                 balance: 0,
                 reward: 0
             });
-            validatorsInCurrentEpoch.indices[validatorAddresses[i]] = validatorsInCurrentEpoch.values.length;
-            validatorsInCurrentEpoch.values.push(validatorAddresses[i]);
-            validatorsInCurrentEpoch.isIn[validatorAddresses[i]] = true;
+            validatorsInCurrentEpoch.add(validatorAddresses[i]);
+            validatorsInNextEpoch.add(validatorAddresses[i]);
 
-            validatorsInNextEpoch.indices[validatorAddresses[i]] = validatorsInNextEpoch.values.length;
-            validatorsInNextEpoch.values.push(validatorAddresses[i]);
-            validatorsInNextEpoch.isIn[validatorAddresses[i]] = true;
+            // validatorsInCurrentEpoch.indices[validatorAddresses[i]] = validatorsInCurrentEpoch.values.length;
+            // validatorsInCurrentEpoch.values.push(validatorAddresses[i]);
+            // validatorsInCurrentEpoch.isIn[validatorAddresses[i]] = true;
+
+            // validatorsInNextEpoch.indices[validatorAddresses[i]] = validatorsInNextEpoch.values.length;
+            // validatorsInNextEpoch.values.push(validatorAddresses[i]);
+            // validatorsInNextEpoch.isIn[validatorAddresses[i]] = true;
         }
 
         validatorsForNextEpochLocked = false;
@@ -109,11 +118,19 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     function getValidatorsInCurrentEpoch() external view returns (address[] memory) {
-        return validatorsInCurrentEpoch.values;
+        address[] memory values = new address[](validatorsInCurrentEpoch.length());
+        for(uint i = 0; i < validatorsInCurrentEpoch.length(); i++){
+            values[i] = validatorsInCurrentEpoch.at(i);
+        }
+        return values;
     }
 
     function getValidatorsInNextEpoch() external view returns (address[] memory) {
-        return validatorsInNextEpoch.values;
+        address[] memory values = new address[](validatorsInCurrentEpoch.length());
+        for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
+            values[i] = validatorsInNextEpoch.at(i);
+        }
+        return values;
     }
 
 
@@ -131,8 +148,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         require(validatorsForNextEpochLocked == true, "Validators for next epoch have not been locked.  Please lock them in before advancing to the next epoch.");
 
         // reward the validators
-        for(uint i = 0; i < validatorsInCurrentEpoch.values.length; i++){
-            address validatorAddress = validatorsInCurrentEpoch.values[i];
+        for(uint i = 0; i < validatorsInCurrentEpoch.length(); i++){
+            address validatorAddress = validatorsInCurrentEpoch.at(i);
             validators[validatorAddress].reward += tokenRewardPerTokenPerEpoch * validators[validatorAddress].balance;
         }
 
@@ -141,21 +158,30 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         // validatorsInCurrentEpoch = validatorsInNextEpoch;
         // but solidity doesn't allow that, so we have to do it manually
 
+        // clear out validators in current epoch
+        while(validatorsInCurrentEpoch.length() > 0) {
+            validatorsInCurrentEpoch.remove(validatorsInCurrentEpoch.at(0));
+        }
+
+        for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
+            validatorsInCurrentEpoch.add(validatorsInNextEpoch.at(i));
+        }
+
         // clear out isIn for all existing validators
-        for(uint i = 0; i < validatorsInCurrentEpoch.values.length; i++){
-            address validatorAddress = validatorsInCurrentEpoch.values[i];
-            validatorsInCurrentEpoch.isIn[validatorAddress] = false;
-        }
+        // for(uint i = 0; i < validatorsInCurrentEpoch.values.length; i++){
+        //     address validatorAddress = validatorsInCurrentEpoch.values[i];
+        //     validatorsInCurrentEpoch.isIn[validatorAddress] = false;
+        // }
 
-        // copy over the values
-        validatorsInCurrentEpoch.values = validatorsInNextEpoch.values;
+        // // copy over the values
+        // validatorsInCurrentEpoch.values = validatorsInNextEpoch.values;
 
-        // copy over the indices and isIn
-        for(uint i = 0; i < validatorsInCurrentEpoch.values.length; i++){
-            address validatorAddress = validatorsInCurrentEpoch.values[i];
-            validatorsInCurrentEpoch.indices[validatorAddress] = i;
-            validatorsInCurrentEpoch.isIn[validatorAddress] = true;
-        }
+        // // copy over the indices and isIn
+        // for(uint i = 0; i < validatorsInCurrentEpoch.values.length; i++){
+        //     address validatorAddress = validatorsInCurrentEpoch.values[i];
+        //     validatorsInCurrentEpoch.indices[validatorAddress] = i;
+        //     validatorsInCurrentEpoch.isIn[validatorAddress] = true;
+        // }
 
         epoch.number++;
         epoch.endBlock = epoch.endBlock + epoch.epochLength;
@@ -179,10 +205,13 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
         // check if they are already signed up as validator
         // or to join the next epoch and add them if not
-        if (!validatorsInNextEpoch.isIn[msg.sender]) { 
-            validatorsInNextEpoch.indices[msg.sender] = validatorsInNextEpoch.values.length;
-            validatorsInNextEpoch.values.push(msg.sender);
-            validatorsInNextEpoch.isIn[msg.sender] = true;
+        // if (!validatorsInNextEpoch.isIn[msg.sender]) { 
+        //     validatorsInNextEpoch.indices[msg.sender] = validatorsInNextEpoch.values.length;
+        //     validatorsInNextEpoch.values.push(msg.sender);
+        //     validatorsInNextEpoch.isIn[msg.sender] = true;
+        // }
+        if (!validatorsInNextEpoch.contains(msg.sender)){
+            validatorsInNextEpoch.add(msg.sender);
         }
 
         validators[msg.sender].balance = validators[msg.sender].balance.add(amount);
@@ -199,7 +228,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     function withdraw(uint256 amount) public nonReentrant {
         require(amount > 0, "Cannot withdraw 0");
 
-        require(validatorsInCurrentEpoch.isIn[msg.sender] == false, "Active validators cannot leave.  Please use the leave() function and wait for the next epoch to leave");
+        require(validatorsInCurrentEpoch.contains(msg.sender) == false, "Active validators cannot leave.  Please use the leave() function and wait for the next epoch to leave");
 
         require(validators[msg.sender].balance >= amount, "Not enough tokens to withdraw");
 
@@ -212,9 +241,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// Request to leave in the next Epoch
     function requestToLeave() public {
         require(validatorsForNextEpochLocked == false, "Validators for next epoch have already been locked");
-        if (validatorsInNextEpoch.isIn[msg.sender]) { 
+        if (validatorsInNextEpoch.contains(msg.sender)) { 
             // remove them
-            removeFromValidatorAddressList(validatorsInNextEpoch, msg.sender);
+            validatorsInNextEpoch.remove(msg.sender);
+            // removeFromValidatorAddressList(validatorsInNextEpoch, msg.sender);
         }
     }
 
@@ -262,18 +292,18 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /* ========== Internal Utils =========== */
 
-     function removeFromValidatorAddressList(ValidatorAddressList storage val, address toRemove) internal {
-        // get the index of the thing we are removing and make sure the array contains it
-        uint256 index = val.indices[toRemove];
-        require(index < val.values.length);
+    //  function removeFromValidatorAddressList(ValidatorAddressList storage val, address toRemove) internal {
+    //     // get the index of the thing we are removing and make sure the array contains it
+    //     uint256 index = val.indices[toRemove];
+    //     require(index < val.values.length);
 
-        // move the last element to the index of the item we are removing
-        val.values[index] = val.values[val.values.length-1];
-        // update the index of the element we moved
-        val.indices[val.values[index]] = index;
-        // the last element is now at val.values[index] so we can pop it off the end
-        val.values.pop();
-    }
+    //     // move the last element to the index of the item we are removing
+    //     val.values[index] = val.values[val.values.length-1];
+    //     // update the index of the element we moved
+    //     val.indices[val.values[index]] = index;
+    //     // the last element is now at val.values[index] so we can pop it off the end
+    //     val.values.pop();
+    // }
 
     /* ========== EVENTS ========== */
 
