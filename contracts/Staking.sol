@@ -126,7 +126,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     function getValidatorsInNextEpoch() external view returns (address[] memory) {
-        address[] memory values = new address[](validatorsInCurrentEpoch.length());
+        address[] memory values = new address[](validatorsInNextEpoch.length());
         for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
             values[i] = validatorsInNextEpoch.at(i);
         }
