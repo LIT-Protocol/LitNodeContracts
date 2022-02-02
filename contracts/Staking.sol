@@ -34,14 +34,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     uint256 public minimumStake;
     uint256 public totalStaked;
-    
-    // struct ValidatorAddressList {
-    //     address[] values;
-    //     mapping (address => bool) isIn;
-    //     mapping (address => uint) indices;
-    // }
-    // ValidatorAddressList validatorsInCurrentEpoch;
-    // ValidatorAddressList validatorsInNextEpoch;
 
     EnumerableSet.AddressSet validatorsInCurrentEpoch;
     EnumerableSet.AddressSet validatorsInNextEpoch;
@@ -95,14 +87,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             });
             validatorsInCurrentEpoch.add(validatorAddresses[i]);
             validatorsInNextEpoch.add(validatorAddresses[i]);
-
-            // validatorsInCurrentEpoch.indices[validatorAddresses[i]] = validatorsInCurrentEpoch.values.length;
-            // validatorsInCurrentEpoch.values.push(validatorAddresses[i]);
-            // validatorsInCurrentEpoch.isIn[validatorAddresses[i]] = true;
-
-            // validatorsInNextEpoch.indices[validatorAddresses[i]] = validatorsInNextEpoch.values.length;
-            // validatorsInNextEpoch.values.push(validatorAddresses[i]);
-            // validatorsInNextEpoch.isIn[validatorAddresses[i]] = true;
         }
 
         validatorsForNextEpochLocked = false;
@@ -163,25 +147,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             validatorsInCurrentEpoch.remove(validatorsInCurrentEpoch.at(0));
         }
 
+        // copy validators from next epoch to current epoch
         for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
             validatorsInCurrentEpoch.add(validatorsInNextEpoch.at(i));
         }
-
-        // clear out isIn for all existing validators
-        // for(uint i = 0; i < validatorsInCurrentEpoch.values.length; i++){
-        //     address validatorAddress = validatorsInCurrentEpoch.values[i];
-        //     validatorsInCurrentEpoch.isIn[validatorAddress] = false;
-        // }
-
-        // // copy over the values
-        // validatorsInCurrentEpoch.values = validatorsInNextEpoch.values;
-
-        // // copy over the indices and isIn
-        // for(uint i = 0; i < validatorsInCurrentEpoch.values.length; i++){
-        //     address validatorAddress = validatorsInCurrentEpoch.values[i];
-        //     validatorsInCurrentEpoch.indices[validatorAddress] = i;
-        //     validatorsInCurrentEpoch.isIn[validatorAddress] = true;
-        // }
 
         epoch.number++;
         epoch.endBlock = epoch.endBlock + epoch.epochLength;
@@ -203,13 +172,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
         totalStaked = totalStaked.add(amount);
 
-        // check if they are already signed up as validator
-        // or to join the next epoch and add them if not
-        // if (!validatorsInNextEpoch.isIn[msg.sender]) { 
-        //     validatorsInNextEpoch.indices[msg.sender] = validatorsInNextEpoch.values.length;
-        //     validatorsInNextEpoch.values.push(msg.sender);
-        //     validatorsInNextEpoch.isIn[msg.sender] = true;
-        // }
         if (!validatorsInNextEpoch.contains(msg.sender)){
             validatorsInNextEpoch.add(msg.sender);
         }
@@ -244,7 +206,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         if (validatorsInNextEpoch.contains(msg.sender)) { 
             // remove them
             validatorsInNextEpoch.remove(msg.sender);
-            // removeFromValidatorAddressList(validatorsInNextEpoch, msg.sender);
         }
     }
 
@@ -288,22 +249,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     function setMinimumStake(uint256 newMinimumStake) public onlyOwner {
         minimumStake = newMinimumStake;
     }
-
-
-    /* ========== Internal Utils =========== */
-
-    //  function removeFromValidatorAddressList(ValidatorAddressList storage val, address toRemove) internal {
-    //     // get the index of the thing we are removing and make sure the array contains it
-    //     uint256 index = val.indices[toRemove];
-    //     require(index < val.values.length);
-
-    //     // move the last element to the index of the item we are removing
-    //     val.values[index] = val.values[val.values.length-1];
-    //     // update the index of the element we moved
-    //     val.indices[val.values[index]] = index;
-    //     // the last element is now at val.values[index] so we can pop it off the end
-    //     val.values.pop();
-    // }
 
     /* ========== EVENTS ========== */
 
