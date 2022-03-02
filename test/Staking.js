@@ -77,6 +77,7 @@ describe("Staking", function () {
       await stakingContract.stakeAndJoin(
         totalToStake,
         ip2int(stakingAccount1IpAddress),
+        0,
         stakingAccount1Port,
         nodeAccount1.getAddress()
       );
@@ -131,6 +132,7 @@ describe("Staking", function () {
         stakingContract.stakeAndJoin(
           0,
           ip2int(stakingAccount1IpAddress),
+          0,
           7777,
           nodeAccount1.getAddress()
         )
@@ -145,6 +147,7 @@ describe("Staking", function () {
         stakingContract.stakeAndJoin(
           minStake - 1,
           ip2int(stakingAccount1IpAddress),
+          0,
           7777,
           nodeAccount1.getAddress()
         )
