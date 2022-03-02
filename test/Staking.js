@@ -12,21 +12,78 @@ describe("Staking", function () {
   let stakingAccount1;
   let nodeAccount1;
   let stakingContract;
-  const totalTokens = 1000;
+  const stakingAccounts = [];
+  const totalTokens = 1000000;
   const stakingAccount1IpAddress = "192.168.1.1";
   const stakingAccount1Port = 7777;
+  const stakingAccountCount = 10;
 
   before(async () => {
     // deploy token
     const TokenFactory = await ethers.getContractFactory("LITToken");
     [deployer, stakingAccount1, nodeAccount1, ...signers] =
       await ethers.getSigners();
+
     token = await TokenFactory.deploy();
     await token.mint(deployer.getAddress(), totalTokens);
+    token = token.connect(deployer);
 
     // deploy staking contract
     const StakingFactory = await ethers.getContractFactory("Staking");
     stakingContract = await StakingFactory.deploy(token.address);
+
+    let provider = deployer.provider;
+    console.log(
+      `deployer has ${await deployer.getBalance()} eth.  Funding stakers...`
+    );
+
+    const totalToStake = 100;
+    const ethForGas = ethers.utils.parseEther("1.0");
+    // set stakingAccounts and stake with them
+    for (let i = 0; i < stakingAccountCount; i++) {
+      // create the wallets
+      stakingAccounts.push({
+        stakingAddress: ethers.Wallet.createRandom().connect(provider),
+        nodeAddress: ethers.Wallet.createRandom().connect(provider),
+      });
+
+      // stake with them
+      const stakingAccount = stakingAccounts[i];
+      const stakingAddress = stakingAccount.stakingAddress.getAddress();
+      const nodeAddress = stakingAccount.nodeAddress.getAddress();
+      const ipAddress = ip2int(stakingAccount1IpAddress);
+      const port = stakingAccount1Port + i + 1;
+
+      // send them some gas
+      await deployer.sendTransaction({
+        to: stakingAddress,
+        value: ethForGas,
+      });
+      await deployer.sendTransaction({
+        to: nodeAddress,
+        value: ethForGas,
+      });
+
+      // send them some tokens
+      token = token.connect(deployer);
+      await token.transfer(stakingAddress, totalToStake);
+      token = token.connect(stakingAccount.stakingAddress);
+      await token.approve(stakingContract.address, totalToStake);
+
+      stakingContract = stakingContract.connect(stakingAccount.stakingAddress);
+
+      await stakingContract.stakeAndJoin(
+        totalToStake,
+        ipAddress,
+        0,
+        port,
+        nodeAddress
+      );
+    }
+
+    // okay now that we're all staked, let's kickoff the first epoch
+    await stakingContract.lockValidatorsForNextEpoch();
+    await stakingContract.advanceEpoch();
   });
 
   describe("Constructor & Settings", () => {
@@ -192,6 +249,16 @@ describe("Staking", function () {
         await stakingAccount1.getAddress()
       );
 
+      // signal that we are ready to advance epoch
+      for (let i = 0; i < stakingAccounts.length; i++) {
+        const stakingAccount = stakingAccounts[i];
+        const nodeAddress = stakingAccount.nodeAddress;
+        stakingContract = stakingContract.connect(nodeAddress);
+        await stakingContract.signalReadyForNextEpoch();
+      }
+
+      stakingContract = stakingContract.connect(stakingAccount1);
+
       // advance the epoch.  this sets the validators to be the new set
       await stakingContract.advanceEpoch();
 
@@ -254,6 +321,16 @@ describe("Staking", function () {
       const validatorsForNextEpochLockedAfterLocking =
         await stakingContract.validatorsForNextEpochLocked();
       expect(validatorsForNextEpochLockedAfterLocking).is.true;
+
+      // signal that we are ready to advance epoch
+      for (let i = 0; i < stakingAccounts.length; i++) {
+        const stakingAccount = stakingAccounts[i];
+        const nodeAddress = stakingAccount.nodeAddress;
+        stakingContract = stakingContract.connect(nodeAddress);
+        await stakingContract.signalReadyForNextEpoch();
+      }
+
+      stakingContract = stakingContract.connect(stakingAccount1);
 
       // advance the epoch.  this sets the validators to be the new set
       await stakingContract.advanceEpoch();
