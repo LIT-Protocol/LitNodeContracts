@@ -99,7 +99,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
                 total++;
             }
         }
-        if (total >= (validatorsInCurrentEpoch.length() / 10) * 9){ // 90% of validators must be ready
+        if (total >= (validatorsInCurrentEpoch.length() / 3) * 2){ // 2/3 of validators must be ready
             return true;
         }
         return false;
