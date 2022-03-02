@@ -115,6 +115,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         emit ValidatorsForNextEpochLocked(epoch.number);
     }
 
+    /// After proactive secret sharing is complete, the nodes may signal that they are ready for the next epoch.  Note that this function is called by the node itself, and so msg.sender is the nodeAddress and not the stakerAddress.
     function signalReadyForNextEpoch() public {
         address stakerAddress = nodeAddressToStakerAddress[msg.sender];
         require(validatorsInCurrentEpoch.contains(stakerAddress), "Validator is not in the current epoch");
