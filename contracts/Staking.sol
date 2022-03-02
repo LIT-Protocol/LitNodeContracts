@@ -41,6 +41,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     struct Validator {
         uint32 ip;
+        uint128 ipv6;
         uint32 port;
         address nodeAddress;
         uint256 balance;
@@ -133,7 +134,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// @param amount The amount of tokens to stake
     /// @param ip The IP address of the node
     /// @param port The port of the node
-    function stakeAndJoin(uint256 amount, uint32 ip, uint32 port, address nodeAddress) 
+    function stakeAndJoin(uint256 amount, uint32 ip, uint128 ipv6, uint32 port, address nodeAddress) 
         public
         nonReentrant
         whenNotPaused
@@ -149,6 +150,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         validators[msg.sender].balance = validators[msg.sender].balance.add(amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
         validators[msg.sender].ip = ip;
+        validators[msg.sender].ipv6 = ipv6;
         validators[msg.sender].port = port;
         validators[msg.sender].nodeAddress = nodeAddress;
         nodeAddressToStakerAddress[nodeAddress] = msg.sender;
@@ -245,6 +247,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         for (uint32 i=0; i<validatorAddresses.length; i++) {
             validators[validatorAddresses[i]] = Validator({
                 ip: ip,
+                ipv6: 0,
                 port: startingPort + i,
                 nodeAddress: validatorAddresses[i],
                 balance: 0,
