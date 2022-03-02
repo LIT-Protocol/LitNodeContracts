@@ -203,8 +203,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// Set the IP and port of your node
     /// @param ip The ip address of your node
     /// @param port The port of your node
-    function setIpPortAndNodeAddress(uint32 ip, uint32 port) public {
+    function setIpPortAndNodeAddress(uint32 ip, uint128 ipv6, uint32 port) public {
         validators[msg.sender].ip = ip;
+        validators[msg.sender].ipv6 = ipv6;
         validators[msg.sender].port = port;
     }
 
