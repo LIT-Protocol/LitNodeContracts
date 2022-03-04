@@ -19,6 +19,19 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /* ========== STATE VARIABLES ========== */
 
+    enum States {
+        Active,
+        NextValidatorSetLocked,
+        ReadyForNextEpoch
+    }
+
+    States public state = States.Active;
+
+    modifier inState(States _state) {
+        require(state == _state);
+        _;
+    }
+
     IERC20 public stakingToken;
 
     // epoch vars
@@ -36,8 +49,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     EnumerableSet.AddressSet validatorsInCurrentEpoch;
     EnumerableSet.AddressSet validatorsInNextEpoch;
-
-    bool public validatorsForNextEpochLocked;
 
     struct Validator {
         uint32 ip;
@@ -61,10 +72,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         });
         tokenRewardPerTokenPerEpoch = (10^ERC20(address(stakingToken)).decimals()) / 20; // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
         minimumStake = 2;
-
-        // setInitialValidatorSet();
-
-        validatorsForNextEpochLocked = false;
     }
 
     /* ========== VIEWS ========== */
@@ -111,8 +118,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// Lock in the validators for the next epoch
     function lockValidatorsForNextEpoch() public {
         require(block.number >= epoch.endBlock, "Enough blocks have not elapsed since the last epoch");
-        validatorsForNextEpochLocked = true;
-        emit ValidatorsForNextEpochLocked(epoch.number);
+        
+        state = States.NextValidatorSetLocked;
+        emit StateChanged(state);
     }
 
     /// After proactive secret sharing is complete, the nodes may signal that they are ready for the next epoch.  Note that this function is called by the node itself, and so msg.sender is the nodeAddress and not the stakerAddress.
@@ -122,12 +130,17 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         require(!readyForNextEpoch[stakerAddress], "Validator is already ready for the next epoch");
         readyForNextEpoch[stakerAddress] = true;
         emit ReadyForNextEpoch(stakerAddress);
+
+        if (isReadyForNextEpoch()){
+            state = States.ReadyForNextEpoch;
+            emit StateChanged(state);
+        }
     }
 
     /// Advance to the next Epoch.  Rewards validators, adds the joiners, and removes the leavers
     function advanceEpoch() public {
         require(block.number >= epoch.endBlock, "Enough blocks have not elapsed since the last epoch");
-        require(validatorsForNextEpochLocked == true, "Validators for next epoch have not been locked.  Please lock them in before advancing to the next epoch.");
+        require(state == States.ReadyForNextEpoch, "Must be in ready for next epoch state");
         require(isReadyForNextEpoch() == true, "Not enough validators are ready for the next epoch");
 
         // reward the validators
@@ -156,7 +169,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
         epoch.number++;
         epoch.endBlock = epoch.endBlock + epoch.epochLength;
-        validatorsForNextEpochLocked = false;
+
+        state = States.Active;
+        emit StateChanged(state);
     }
 
     /// Stake and request to join the validator set
@@ -168,25 +183,39 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         nonReentrant
         whenNotPaused
     {
+        stake(amount);
+        requestToJoin(ip, ipv6, port, nodeAddress);
+    }
+
+    /// Stake tokens for a validator
+    function stake(uint256 amount) public {
         require(amount > 0, "Cannot stake 0");
-        require(amount >= minimumStake, "Stake must be greater than or equal to minimumStake");
-        require(validatorsForNextEpochLocked == false, "Validators for next epoch have already been locked");
+
+        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+        validators[msg.sender].balance = validators[msg.sender].balance.add(amount);
+
+        totalStaked = totalStaked.add(amount);
+
+        emit Staked(msg.sender, amount);
+    }
+
+    function requestToJoin(uint32 ip, uint128 ipv6, uint32 port, address nodeAddress) public {
+        uint256 amountStaked = validators[msg.sender].balance;
+        require(amountStaked >= minimumStake, "Stake must be greater than or equal to minimumStake");
+        require(state == States.Active, "Must be in active state to request to join");
 
         if (!validatorsInNextEpoch.contains(msg.sender)){
             validatorsInNextEpoch.add(msg.sender);
         }
 
-        validators[msg.sender].balance = validators[msg.sender].balance.add(amount);
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+
         validators[msg.sender].ip = ip;
         validators[msg.sender].ipv6 = ipv6;
         validators[msg.sender].port = port;
         validators[msg.sender].nodeAddress = nodeAddress;
         nodeAddressToStakerAddress[nodeAddress] = msg.sender;
 
-        totalStaked = totalStaked.add(amount);
-
-        emit Staked(msg.sender, amount);
+        emit RequestToJoin(msg.sender);
     }
 
     /// Withdraw staked tokens.  This can only be done by users who are not active in the validator set.
@@ -206,11 +235,12 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// Request to leave in the next Epoch
     function requestToLeave() public {
-        require(validatorsForNextEpochLocked == false, "Validators for next epoch have already been locked");
+        require(state == States.Active, "Must be in active state to request to leave");
         if (validatorsInNextEpoch.contains(msg.sender)) { 
             // remove them
             validatorsInNextEpoch.remove(msg.sender);
         }
+        emit RequestToLeave(msg.sender);
     }
 
     /// Transfer any outstanding reward tokens
@@ -227,6 +257,16 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     function exit() public {
         withdraw(validators[msg.sender].balance);
         getReward();
+    }
+
+    /// If more than the threshold of validators vote to kick someone, kick them.
+    function kickValidatorInNextEpoch(address validatorAddress) public {
+        require(state == States.NextValidatorSetLocked, "Must be in state NextValidatorSetLocked to kick validators");
+        require(validatorsInNextEpoch.contains(validatorAddress), "Validator is not in the next epoch");
+
+
+
+        emit KickValidatorInNextEpoch(msg.sender, validatorAddress);
     }
 
     /// Set the IP and port of your node
@@ -259,10 +299,13 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /* ========== EVENTS ========== */
 
     event Staked(address indexed user, uint256 amount);
+    event RequestToJoin(address indexed user);
+    event RequestToLeave(address indexed user);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
     event RewardsDurationUpdated(uint256 newDuration);
     event Recovered(address token, uint256 amount);
-    event ValidatorsForNextEpochLocked(uint256 indexed epochNumber);
     event ReadyForNextEpoch(address indexed user);
+    event StateChanged(States newState);
+    event KickValidatorInNextEpoch(address indexed user, address indexed validatorAddress);
 }
