@@ -252,6 +252,8 @@ describe("Staking", function () {
         await stakingContract.validatorsForNextEpochLocked();
       expect(validatorsForNextEpochLockedBeforeTest).is.false;
 
+      const currentState = await stakingContract.state();
+
       // lock new validators
       await stakingContract.lockValidatorsForNextEpoch();
 
