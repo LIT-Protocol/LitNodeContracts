@@ -37,7 +37,10 @@ describe("Staking", function () {
       `deployer has ${await deployer.getBalance()} eth.  Funding stakers...`
     );
 
+    // fund stakingAccount1 with tokens
     const totalToStake = 100;
+    await token.transfer(stakingAccount1.getAddress(), totalToStake);
+
     const ethForGas = ethers.utils.parseEther("1.0");
     // set stakingAccounts and stake with them
     for (let i = 0; i < stakingAccountCount; i++) {
@@ -83,6 +86,12 @@ describe("Staking", function () {
 
     // okay now that we're all staked, let's kickoff the first epoch
     await stakingContract.lockValidatorsForNextEpoch();
+    const currentState = await stakingContract.state();
+    console.log(`locked validators.  current state is ${currentState}`);
+    for (let i = 0; i < stakingAccounts.length; i++) {
+      stakingContract = stakingContract.connect(stakingAccounts[i].nodeAddress);
+      await stakingContract.signalReadyForNextEpoch();
+    }
     await stakingContract.advanceEpoch();
   });
 
@@ -105,7 +114,7 @@ describe("Staking", function () {
     });
 
     it("can join as a staker", async () => {
-      const totalToStake = 100;
+      const totalToStake = 10;
       token = token.connect(deployer);
       await token.transfer(stakingAccount1.getAddress(), totalToStake);
       token = token.connect(stakingAccount1);
@@ -198,11 +207,24 @@ describe("Staking", function () {
 
     it("cannot stake less than the minimum stake", async () => {
       stakingContract = stakingContract.connect(stakingAccount1);
+      token = token.connect(stakingAccount1);
+      await token.approve(stakingContract.address, 10);
       const minStake = await stakingContract.minimumStake();
       // console.log("minStake", minStake);
+      // const stakingAccount1TokenBalance = await token.balanceOf(
+      //   stakingAccount1.getAddress()
+      // );
+      // console.log(
+      //   `stakingAccount1TokenBalance: ${stakingAccount1TokenBalance}`
+      // );
+      // const stakingAccount1Allowance = await token.allowance(
+      //   stakingAccount1.getAddress(),
+      //   stakingContract.address
+      // );
+      console.log(`stakingAccount1Allowance: ${stakingAccount1Allowance}`);
       expect(
         stakingContract.stakeAndJoin(
-          minStake - 1,
+          minStake.sub(1),
           ip2int(stakingAccount1IpAddress),
           0,
           7777,

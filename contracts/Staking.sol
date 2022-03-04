@@ -9,6 +9,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "hardhat/console.sol";
 
@@ -137,7 +138,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// After proactive secret sharing is complete, the nodes may signal that they are ready for the next epoch.  Note that this function is called by the node itself, and so msg.sender is the nodeAddress and not the stakerAddress.
     function signalReadyForNextEpoch() public {
         address stakerAddress = nodeAddressToStakerAddress[msg.sender];
-        require(state == States.NextValidatorSetLocked, "Must be in state NextValidatorSetLocked");
+        console.log("Inside signalReadyForNextEpoch and state is");
+        console.log(uint(state));
+        require(state == States.NextValidatorSetLocked || state == States.ReadyForNextEpoch, "Must be in state NextValidatorSetLocked or ReadyForNextEpoch");
         // at the first epoch, validatorsInCurrentEpoch is empty
         if (epoch.number != 1){
             require(validatorsInCurrentEpoch.contains(stakerAddress), "Validator is not in the current epoch");
