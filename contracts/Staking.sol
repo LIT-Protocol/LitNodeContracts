@@ -276,23 +276,24 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// If more than the threshold of validators vote to kick someone, kick them.
     /// It's expected that this will be called by the node directly, so msg.sender will be the nodeAddress
-    function kickValidatorInNextEpoch(address validatorAddress) public {
+    function kickValidatorInNextEpoch(address validatorStakerAddress) public {
         require(state == States.NextValidatorSetLocked, "Must be in state NextValidatorSetLocked to kick validators");
-        require(validatorsInNextEpoch.contains(validatorAddress), "Validator is not in the next epoch");
+        require(validatorsInNextEpoch.contains(validatorStakerAddress), "Validator is not in the next epoch");
 
         address stakerAddressOfSender = nodeAddressToStakerAddress[msg.sender];
         require(validatorsInNextEpoch.contains(stakerAddressOfSender), "You must be a validator in the next epoch to kick someone from the next epoch");
-        require(votesToKickValidatorsInNextEpoch[epoch.number][validatorAddress].voted[stakerAddressOfSender] == false, "You can only vote to kick someone once per epoch");
+        require(votesToKickValidatorsInNextEpoch[epoch.number][validatorStakerAddress].voted[stakerAddressOfSender] == false, "You can only vote to kick someone once per epoch");
 
         // Vote to kick
-        votesToKickValidatorsInNextEpoch[epoch.number][validatorAddress].votes++;
-        votesToKickValidatorsInNextEpoch[epoch.number][validatorAddress].voted[stakerAddressOfSender] = true;
+        votesToKickValidatorsInNextEpoch[epoch.number][validatorStakerAddress].votes++;
+        votesToKickValidatorsInNextEpoch[epoch.number][validatorStakerAddress].voted[stakerAddressOfSender] = true;
 
-        if (shouldKickValidator(validatorAddress)) {
-            validatorsInNextEpoch.remove(validatorAddress);
+        if (shouldKickValidator(validatorStakerAddress)) {
+            validatorsInNextEpoch.remove(validatorStakerAddress);
+            emit ValidatorKickedFromNextEpoch(validatorStakerAddress);
         }
 
-        emit VotedToKickValidatorInNextEpoch(stakerAddressOfSender, validatorAddress);
+        emit VotedToKickValidatorInNextEpoch(stakerAddressOfSender, validatorStakerAddress);
     }
 
     /// Set the IP and port of your node
@@ -324,14 +325,15 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /* ========== EVENTS ========== */
 
-    event Staked(address indexed user, uint256 amount);
-    event RequestToJoin(address indexed user);
-    event RequestToLeave(address indexed user);
-    event Withdrawn(address indexed user, uint256 amount);
-    event RewardPaid(address indexed user, uint256 reward);
+    event Staked(address indexed staker, uint256 amount);
+    event Withdrawn(address indexed staker, uint256 amount);
+    event RewardPaid(address indexed staker, uint256 reward);
     event RewardsDurationUpdated(uint256 newDuration);
+    event RequestToJoin(address indexed staker);
+    event RequestToLeave(address indexed staker);
     event Recovered(address token, uint256 amount);
-    event ReadyForNextEpoch(address indexed user);
+    event ReadyForNextEpoch(address indexed staker);
     event StateChanged(States newState);
-    event VotedToKickValidatorInNextEpoch(address indexed user, address indexed validatorAddress);
+    event VotedToKickValidatorInNextEpoch(address indexed staker, address indexed validatorStakerAddress);
+    event ValidatorKickedFromNextEpoch(address indexed staker);
 }
