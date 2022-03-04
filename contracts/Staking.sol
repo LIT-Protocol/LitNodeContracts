@@ -27,11 +27,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     States public state = States.Active;
 
-    modifier inState(States _state) {
-        require(state == _state);
-        _;
-    }
-
     IERC20 public stakingToken;
 
     // epoch vars
@@ -133,6 +128,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// Lock in the validators for the next epoch
     function lockValidatorsForNextEpoch() public {
         require(block.number >= epoch.endBlock, "Enough blocks have not elapsed since the last epoch");
+        require(state == States.Active, "Must be in active state");
         
         state = States.NextValidatorSetLocked;
         emit StateChanged(state);
@@ -141,7 +137,11 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// After proactive secret sharing is complete, the nodes may signal that they are ready for the next epoch.  Note that this function is called by the node itself, and so msg.sender is the nodeAddress and not the stakerAddress.
     function signalReadyForNextEpoch() public {
         address stakerAddress = nodeAddressToStakerAddress[msg.sender];
-        require(validatorsInCurrentEpoch.contains(stakerAddress), "Validator is not in the current epoch");
+        require(state == States.NextValidatorSetLocked, "Must be in state NextValidatorSetLocked");
+        // at the first epoch, validatorsInCurrentEpoch is empty
+        if (epoch.number != 1){
+            require(validatorsInCurrentEpoch.contains(stakerAddress), "Validator is not in the current epoch");
+        }
         require(!readyForNextEpoch[stakerAddress], "Validator is already ready for the next epoch");
         readyForNextEpoch[stakerAddress] = true;
         emit ReadyForNextEpoch(stakerAddress);
