@@ -58,9 +58,16 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint256 balance;
         uint256 reward;
     }
-    mapping(address => Validator) public validators;
-    mapping(address => address) public nodeAddressToStakerAddress;
-    mapping(address => bool) public readyForNextEpoch;
+
+    struct VoteToKickValidatorInNextEpoch {
+        uint256 votes;
+        mapping (address => bool) voted;
+    }
+
+    mapping (address => Validator) public validators;
+    mapping (address => address) public nodeAddressToStakerAddress;
+    mapping (address => bool) public readyForNextEpoch;
+    mapping (uint => mapping (address => VoteToKickValidatorInNextEpoch)) public votesToKickValidatorsInNextEpoch;
 
     /* ========== CONSTRUCTOR ========== */
     constructor(address _stakingToken) {
@@ -107,6 +114,14 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             }
         }
         if (total >= (validatorsInCurrentEpoch.length() / 3) * 2){ // 2/3 of validators must be ready
+            return true;
+        }
+        return false;
+    }
+
+    function shouldKickValidator(address stakerAddress) public view returns (bool) {
+        VoteToKickValidatorInNextEpoch storage vk = votesToKickValidatorsInNextEpoch[epoch.number][stakerAddress];
+        if (vk.votes >= (validatorsInCurrentEpoch.length() / 3) * 2) { // 2/3 of validators must vote
             return true;
         }
         return false;
@@ -260,13 +275,24 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     /// If more than the threshold of validators vote to kick someone, kick them.
+    /// It's expected that this will be called by the node directly, so msg.sender will be the nodeAddress
     function kickValidatorInNextEpoch(address validatorAddress) public {
         require(state == States.NextValidatorSetLocked, "Must be in state NextValidatorSetLocked to kick validators");
         require(validatorsInNextEpoch.contains(validatorAddress), "Validator is not in the next epoch");
 
+        address stakerAddressOfSender = nodeAddressToStakerAddress[msg.sender];
+        require(validatorsInNextEpoch.contains(stakerAddressOfSender), "You must be a validator in the next epoch to kick someone from the next epoch");
+        require(votesToKickValidatorsInNextEpoch[epoch.number][validatorAddress].voted[stakerAddressOfSender] == false, "You can only vote to kick someone once per epoch");
 
+        // Vote to kick
+        votesToKickValidatorsInNextEpoch[epoch.number][validatorAddress].votes++;
+        votesToKickValidatorsInNextEpoch[epoch.number][validatorAddress].voted[stakerAddressOfSender] = true;
 
-        emit KickValidatorInNextEpoch(msg.sender, validatorAddress);
+        if (shouldKickValidator(validatorAddress)) {
+            validatorsInNextEpoch.remove(validatorAddress);
+        }
+
+        emit VotedToKickValidatorInNextEpoch(stakerAddressOfSender, validatorAddress);
     }
 
     /// Set the IP and port of your node
@@ -307,5 +333,5 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     event Recovered(address token, uint256 amount);
     event ReadyForNextEpoch(address indexed user);
     event StateChanged(States newState);
-    event KickValidatorInNextEpoch(address indexed user, address indexed validatorAddress);
+    event VotedToKickValidatorInNextEpoch(address indexed user, address indexed validatorAddress);
 }
