@@ -1,9 +1,16 @@
+const { assert } = require("chai");
 const chai = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { ip2int, int2ip } = require("../utils.js");
 
 chai.use(solidity);
 const { expect } = chai;
+
+const StakingState = {
+  Active: 0,
+  NextValidatorSetLocked: 1,
+  ReadyForNextEpoch: 2,
+};
 
 describe("Staking", function () {
   let deployer;
@@ -207,10 +214,11 @@ describe("Staking", function () {
 
     it("cannot stake less than the minimum stake", async () => {
       stakingContract = stakingContract.connect(stakingAccount1);
+      await stakingContract.exit();
       token = token.connect(stakingAccount1);
       await token.approve(stakingContract.address, 10);
       const minStake = await stakingContract.minimumStake();
-      // console.log("minStake", minStake);
+      console.log("minStake", minStake.toString());
       // const stakingAccount1TokenBalance = await token.balanceOf(
       //   stakingAccount1.getAddress()
       // );
@@ -221,7 +229,7 @@ describe("Staking", function () {
       //   stakingAccount1.getAddress(),
       //   stakingContract.address
       // );
-      console.log(`stakingAccount1Allowance: ${stakingAccount1Allowance}`);
+      // console.log(`stakingAccount1Allowance: ${stakingAccount1Allowance}`);
       expect(
         stakingContract.stakeAndJoin(
           minStake.sub(1),
@@ -248,18 +256,14 @@ describe("Staking", function () {
 
       const epochBeforeAdvancingEpoch = await stakingContract.epoch();
 
-      const validatorsForNextEpochLockedBeforeTest =
-        await stakingContract.validatorsForNextEpochLocked();
-      expect(validatorsForNextEpochLockedBeforeTest).is.false;
-
-      const currentState = await stakingContract.state();
+      let currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.Active);
 
       // lock new validators
       await stakingContract.lockValidatorsForNextEpoch();
 
-      const validatorsForNextEpochLockedAfterLocking =
-        await stakingContract.validatorsForNextEpochLocked();
-      expect(validatorsForNextEpochLockedAfterLocking).is.true;
+      currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.NextValidatorSetLocked);
 
       // validators should be unchanged
       const validators = await stakingContract.getValidatorsInCurrentEpoch();
@@ -276,10 +280,13 @@ describe("Staking", function () {
       // signal that we are ready to advance epoch
       for (let i = 0; i < stakingAccounts.length; i++) {
         const stakingAccount = stakingAccounts[i];
-        const nodeAddress = stakingAccount.nodeAddress;
+        const { nodeAddress } = stakingAccount;
         stakingContract = stakingContract.connect(nodeAddress);
         await stakingContract.signalReadyForNextEpoch();
       }
+
+      currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.ReadyForNextEpoch);
 
       stakingContract = stakingContract.connect(stakingAccount1);
 
@@ -289,9 +296,8 @@ describe("Staking", function () {
       const epochAfterAdvancingEpoch = await stakingContract.epoch();
 
       // advancing the epoch should reset validatorsForNextEpochLocked
-      const validatorsForNextEpochLockedAfterTest =
-        await stakingContract.validatorsForNextEpochLocked();
-      expect(validatorsForNextEpochLockedAfterTest).is.false;
+      currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.Active);
 
       expect(epochAfterAdvancingEpoch.number).to.equal(
         epochBeforeAdvancingEpoch.number.add(1)
@@ -339,12 +345,14 @@ describe("Staking", function () {
         validatorsInNextEpochAfter.includes(await stakingAccount1.getAddress())
       ).is.false;
 
+      let currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.Active);
+
       // create the new validator set
       await stakingContract.lockValidatorsForNextEpoch();
 
-      const validatorsForNextEpochLockedAfterLocking =
-        await stakingContract.validatorsForNextEpochLocked();
-      expect(validatorsForNextEpochLockedAfterLocking).is.true;
+      currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.NextValidatorSetLocked);
 
       // signal that we are ready to advance epoch
       for (let i = 0; i < stakingAccounts.length; i++) {
@@ -354,10 +362,16 @@ describe("Staking", function () {
         await stakingContract.signalReadyForNextEpoch();
       }
 
+      currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.ReadyForNextEpoch);
+
       stakingContract = stakingContract.connect(stakingAccount1);
 
       // advance the epoch.  this sets the validators to be the new set
       await stakingContract.advanceEpoch();
+
+      currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.Active);
 
       const validatorsAfterAdvancingEpoch =
         await stakingContract.getValidatorsInCurrentEpoch();
