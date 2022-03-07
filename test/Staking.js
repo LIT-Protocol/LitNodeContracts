@@ -12,6 +12,15 @@ const StakingState = {
   ReadyForNextEpoch: 2,
 };
 
+const intToState = (num) => {
+  return Object.keys(StakingState).filter((key) => {
+    if (StakingState[key] === num) {
+      return true;
+    }
+    return false;
+  })[0];
+};
+
 describe("Staking", function () {
   let deployer;
   let signers;
@@ -94,7 +103,12 @@ describe("Staking", function () {
     // okay now that we're all staked, let's kickoff the first epoch
     await stakingContract.lockValidatorsForNextEpoch();
     const currentState = await stakingContract.state();
-    console.log(`locked validators.  current state is ${currentState}`);
+    console.log(
+      `locked validators.  current state is ${intToState(currentState)}`
+    );
+    const validatorsInNextEpoch =
+      await stakingContract.getValidatorsInNextEpoch();
+    console.log(`validatorsInNextEpoch: ${validatorsInNextEpoch}`);
     for (let i = 0; i < stakingAccounts.length; i++) {
       stakingContract = stakingContract.connect(stakingAccounts[i].nodeAddress);
       await stakingContract.signalReadyForNextEpoch();

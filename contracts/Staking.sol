@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -15,7 +14,6 @@ import "hardhat/console.sol";
 
 contract Staking is ReentrancyGuard, Pausable, Ownable {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /* ========== STATE VARIABLES ========== */
@@ -212,7 +210,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// @param port The port of the node
     function stakeAndJoin(uint256 amount, uint32 ip, uint128 ipv6, uint32 port, address nodeAddress) 
         public
-        nonReentrant
         whenNotPaused
     {
         stake(amount);
@@ -220,18 +217,18 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     /// Stake tokens for a validator
-    function stake(uint256 amount) public {
+    function stake(uint256 amount) public nonReentrant {
         require(amount > 0, "Cannot stake 0");
 
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
-        validators[msg.sender].balance = validators[msg.sender].balance.add(amount);
+        validators[msg.sender].balance += amount;
 
-        totalStaked = totalStaked.add(amount);
+        totalStaked += amount;
 
         emit Staked(msg.sender, amount);
     }
 
-    function requestToJoin(uint32 ip, uint128 ipv6, uint32 port, address nodeAddress) public {
+    function requestToJoin(uint32 ip, uint128 ipv6, uint32 port, address nodeAddress) public nonReentrant {
         uint256 amountStaked = validators[msg.sender].balance;
         require(amountStaked >= minimumStake, "Stake must be greater than or equal to minimumStake");
         require(state == States.Active, "Must be in active state to request to join");
@@ -244,6 +241,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         validators[msg.sender].port = port;
         validators[msg.sender].nodeAddress = nodeAddress;
         nodeAddressToStakerAddress[nodeAddress] = msg.sender;
+        
+        validatorsInNextEpoch.add(msg.sender);
 
         emit RequestToJoin(msg.sender);
     }
@@ -257,14 +256,14 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
         require(validators[msg.sender].balance >= amount, "Not enough tokens to withdraw");
 
-        totalStaked = totalStaked.sub(amount);
-        validators[msg.sender].balance = validators[msg.sender].balance.sub(amount);
+        totalStaked = totalStaked - amount;
+        validators[msg.sender].balance = validators[msg.sender].balance - amount;
         stakingToken.safeTransfer(msg.sender, amount);
         emit Withdrawn(msg.sender, amount);
     }
 
     /// Request to leave in the next Epoch
-    function requestToLeave() public {
+    function requestToLeave() public nonReentrant {
         require(state == States.Active, "Must be in active state to request to leave");
         if (validatorsInNextEpoch.contains(msg.sender)) { 
             // remove them
@@ -291,7 +290,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// If more than the threshold of validators vote to kick someone, kick them.
     /// It's expected that this will be called by the node directly, so msg.sender will be the nodeAddress
-    function kickValidatorInNextEpoch(address validatorStakerAddress) public {
+    function kickValidatorInNextEpoch(address validatorStakerAddress) public nonReentrant {
         require(validatorsInNextEpoch.contains(validatorStakerAddress), "Validator is not in the next epoch");
 
         address stakerAddressOfSender = nodeAddressToStakerAddress[msg.sender];
