@@ -407,5 +407,103 @@ describe("Staking", function () {
         )
       ).to.be.false;
     });
+
+    it("kicks and slashes validator", async () => {
+      const toBeKicked = stakingAccounts[stakingAccounts.length - 1];
+
+      const validatorsBefore =
+        await stakingContract.getValidatorsInCurrentEpoch();
+      expect(validatorsBefore.length).equal(10);
+
+      const validatorsInNextEpochBefore =
+        await stakingContract.getValidatorsInNextEpoch();
+      expect(validatorsInNextEpochBefore.length).equal(10);
+
+      const kickedValidatorStakeBefore = await stakingContract.balanceOf(
+        toBeKicked.stakingAddress.getAddress()
+      );
+      const totalStakedBefore = await stakingContract.totalStaked();
+
+      // vote to kick the last stakingAccount
+      for (let i = 0; i < stakingAccounts.length - 1; i++) {
+        const stakingAccount = stakingAccounts[i];
+        const nodeAddress = stakingAccount.nodeAddress;
+        stakingContract = stakingContract.connect(nodeAddress);
+        await stakingContract.kickValidatorInNextEpoch(
+          toBeKicked.stakingAddress.getAddress()
+        );
+      }
+
+      const validatorsInNextEpochAfter =
+        await stakingContract.getValidatorsInNextEpoch();
+      expect(validatorsInNextEpochAfter.length).equal(9);
+      expect(
+        validatorsInNextEpochAfter.includes(
+          await toBeKicked.stakingAddress.getAddress()
+        )
+      ).is.false;
+
+      // check that they were slashed
+      const kickedValidatorStakeAfter = await stakingContract.balanceOf(
+        toBeKicked.stakingAddress.getAddress()
+      );
+      const kickPenaltyPercent = await stakingContract.kickPenaltyPercent();
+      const amountBurned = kickedValidatorStakeBefore.mul(
+        kickPenaltyPercent.div(BigNumber.from(100))
+      );
+
+      expect(kickedValidatorStakeAfter.toString()).to.equal(
+        kickedValidatorStakeBefore.sub(amountBurned).toString()
+      );
+
+      const totalStakedAfter = await stakingContract.totalStaked();
+      expect(totalStakedAfter.toString()).to.equal(
+        totalStakedBefore.sub(amountBurned).toString()
+      );
+
+      let currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.Active);
+
+      // create the new validator set
+      await stakingContract.lockValidatorsForNextEpoch();
+
+      currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.NextValidatorSetLocked);
+
+      // signal that we are ready to advance epoch
+      for (let i = 0; i < stakingAccounts.length - 1; i++) {
+        const stakingAccount = stakingAccounts[i];
+        const nodeAddress = stakingAccount.nodeAddress;
+        stakingContract = stakingContract.connect(nodeAddress);
+        await stakingContract.signalReadyForNextEpoch();
+      }
+
+      currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.ReadyForNextEpoch);
+
+      // advance the epoch.  this sets the validators to be the new set
+      await stakingContract.advanceEpoch();
+
+      currentState = await stakingContract.state();
+      expect(currentState).to.equal(StakingState.Active);
+
+      const validatorsAfterAdvancingEpoch =
+        await stakingContract.getValidatorsInCurrentEpoch();
+      expect(validatorsAfterAdvancingEpoch.length).equal(9);
+      expect(
+        validatorsAfterAdvancingEpoch.includes(
+          await toBeKicked.stakingAddress.getAddress()
+        )
+      ).to.be.false;
+
+      const validatorsInNextEpochAfterAdvancingEpoch =
+        await stakingContract.getValidatorsInNextEpoch();
+      expect(validatorsInNextEpochAfterAdvancingEpoch.length).equal(9);
+      expect(
+        validatorsInNextEpochAfterAdvancingEpoch.includes(
+          await toBeKicked.stakingAddress.getAddress()
+        )
+      ).to.be.false;
+    });
   });
 });

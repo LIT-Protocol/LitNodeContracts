@@ -1,19 +1,18 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {LITToken} from "./LITToken.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "hardhat/console.sol";
 
 contract Staking is ReentrancyGuard, Pausable, Ownable {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for LITToken;
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /* ========== STATE VARIABLES ========== */
@@ -26,7 +25,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     States public state = States.Active;
 
-    IERC20 public stakingToken;
+    LITToken public stakingToken;
 
     struct Epoch {
         uint epochLength;
@@ -81,16 +80,16 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /* ========== CONSTRUCTOR ========== */
     constructor(address _stakingToken) {
-        stakingToken = IERC20(_stakingToken);
+        stakingToken = LITToken(_stakingToken);
         epoch = Epoch({
             epochLength: 1,
             number: 1,
             endBlock: block.number + 1
         });
         // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
-        tokenRewardPerTokenPerEpoch = (10^ERC20(address(stakingToken)).decimals()) / 20; 
+        tokenRewardPerTokenPerEpoch = (10^stakingToken.decimals()) / 20; 
         // 1 token minimum stake
-        minimumStake = 1 * 10^ERC20(address(stakingToken)).decimals(); 
+        minimumStake = 1 * 10^stakingToken.decimals(); 
         kickPenaltyPercent = 5;
     }
 
@@ -293,9 +292,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// If more than the threshold of validators vote to kick someone, kick them.
     /// It's expected that this will be called by the node directly, so msg.sender will be the nodeAddress
     function kickValidatorInNextEpoch(address validatorStakerAddress) public nonReentrant {
-        require(validatorsInNextEpoch.contains(validatorStakerAddress), "Validator is not in the next epoch");
-
         address stakerAddressOfSender = nodeAddressToStakerAddress[msg.sender];
+        require(stakerAddressOfSender != address(0), "Could not map your nodeAddress to your stakerAddress");
         require(validatorsInNextEpoch.contains(stakerAddressOfSender), "You must be a validator in the next epoch to kick someone from the next epoch");
         require(votesToKickValidatorsInNextEpoch[epoch.number][validatorStakerAddress].voted[stakerAddressOfSender] == false, "You can only vote to kick someone once per epoch");
 
@@ -303,7 +301,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         votesToKickValidatorsInNextEpoch[epoch.number][validatorStakerAddress].votes++;
         votesToKickValidatorsInNextEpoch[epoch.number][validatorStakerAddress].voted[stakerAddressOfSender] = true;
 
-        if (shouldKickValidator(validatorStakerAddress)) {
+        if (validatorsInNextEpoch.contains(validatorStakerAddress) && shouldKickValidator(validatorStakerAddress)) {
             // remove from next validator set
             validatorsInNextEpoch.remove(validatorStakerAddress);
             // block them from rejoining the next epoch
@@ -312,7 +310,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             uint256 amountToBurn = validators[validatorStakerAddress].balance * (kickPenaltyPercent / 100);
             validators[validatorStakerAddress].balance -= amountToBurn;
             totalStaked -= amountToBurn;
-            stakingToken.safeTransfer(address(0), amountToBurn);
+            stakingToken.burn(amountToBurn);
             // shame them with an event
             emit ValidatorKickedFromNextEpoch(validatorStakerAddress);
         }
@@ -336,7 +334,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     function setStakingToken(address newStakingTokenAddress) public onlyOwner {
-        stakingToken = IERC20(newStakingTokenAddress);
+        stakingToken = LITToken(newStakingTokenAddress);
     }
 
     function setTokenRewardPerTokenPerEpoch(uint256 newTokenRewardPerTokenPerEpoch) public onlyOwner {
