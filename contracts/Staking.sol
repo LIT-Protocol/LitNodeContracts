@@ -30,7 +30,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     IERC20 public stakingToken;
 
-    // epoch vars
     struct Epoch {
         uint epochLength;
         uint number;
@@ -43,8 +42,12 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     uint256 public minimumStake;
     uint256 public totalStaked;
 
+     // tokens slashed when kicked
+    uint256 public kickPenaltyPercent;
+
     EnumerableSet.AddressSet validatorsInCurrentEpoch;
     EnumerableSet.AddressSet validatorsInNextEpoch;
+    EnumerableSet.AddressSet validatorsKickedFromNextEpoch;
 
     struct Validator {
         uint32 ip;
@@ -60,9 +63,22 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         mapping (address => bool) voted;
     }
 
+    // list of all validators, even ones that are not in the current or next epoch
     mapping (address => Validator) public validators;
+
+    // stakers join by staking, but nodes need to be able to vote to kick.
+    // to avoid node operators having to run a hotwallet with their staking private key,
+    // the node gets it's own private key that it can use to vote to kick,
+    // or signal that the next epoch is ready.
+    // this mapping lets you go from the nodeAddressto the stakingAddress.
     mapping (address => address) public nodeAddressToStakerAddress;
+
+    // after the validator set is locked, nodes vote that they have successfully completed the PSS
+    // operation.  Once a threshold of nodes have voted that they are ready, then the epoch can advance
     mapping (address => bool) public readyForNextEpoch;
+
+    // nodes can vote to kick another node.  If a threshold of nodes vote to kick someone, they
+    // are removed from the next validator set
     mapping (uint => mapping (address => VoteToKickValidatorInNextEpoch)) public votesToKickValidatorsInNextEpoch;
 
     /* ========== CONSTRUCTOR ========== */
@@ -75,6 +91,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         });
         tokenRewardPerTokenPerEpoch = (10^ERC20(address(stakingToken)).decimals()) / 20; // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
         minimumStake = 2;
+        kickPenaltyPercent = 5;
     }
 
     /* ========== VIEWS ========== */
@@ -219,10 +236,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         require(amountStaked >= minimumStake, "Stake must be greater than or equal to minimumStake");
         require(state == States.Active, "Must be in active state to request to join");
 
-        if (!validatorsInNextEpoch.contains(msg.sender)){
-            validatorsInNextEpoch.add(msg.sender);
-        }
-
+        // make sure they haven't been kicked
+        require(validatorsKickedFromNextEpoch.contains(msg.sender) == false, "You cannot rejoin if you have been kicked until the next epoch");
 
         validators[msg.sender].ip = ip;
         validators[msg.sender].ipv6 = ipv6;
@@ -277,7 +292,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// If more than the threshold of validators vote to kick someone, kick them.
     /// It's expected that this will be called by the node directly, so msg.sender will be the nodeAddress
     function kickValidatorInNextEpoch(address validatorStakerAddress) public {
-        require(state == States.NextValidatorSetLocked, "Must be in state NextValidatorSetLocked to kick validators");
         require(validatorsInNextEpoch.contains(validatorStakerAddress), "Validator is not in the next epoch");
 
         address stakerAddressOfSender = nodeAddressToStakerAddress[msg.sender];
@@ -289,7 +303,16 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         votesToKickValidatorsInNextEpoch[epoch.number][validatorStakerAddress].voted[stakerAddressOfSender] = true;
 
         if (shouldKickValidator(validatorStakerAddress)) {
+            // remove from next validator set
             validatorsInNextEpoch.remove(validatorStakerAddress);
+            // block them from rejoining the next epoch
+            validatorsKickedFromNextEpoch.add(validatorStakerAddress);
+            // slash the stake
+            uint256 amountToBurn = validators[validatorStakerAddress].balance * (kickPenaltyPercent / 100);
+            validators[validatorStakerAddress].balance -= amountToBurn;
+            totalStaked -= amountToBurn;
+            stakingToken.safeTransfer(address(0), amountToBurn);
+            // shame them with an event
             emit ValidatorKickedFromNextEpoch(validatorStakerAddress);
         }
 
@@ -321,6 +344,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     function setMinimumStake(uint256 newMinimumStake) public onlyOwner {
         minimumStake = newMinimumStake;
+    }
+
+    function setKickPenaltyPercent(uint256 newKickPenaltyPercent) public onlyOwner {
+        kickPenaltyPercent = newKickPenaltyPercent;
     }
 
     /* ========== EVENTS ========== */
