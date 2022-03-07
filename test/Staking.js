@@ -1,6 +1,7 @@
 const { assert } = require("chai");
 const chai = require("chai");
 const { solidity } = require("ethereum-waffle");
+const { BigNumber } = require("ethers");
 const { ip2int, int2ip } = require("../utils.js");
 
 chai.use(solidity);
@@ -28,6 +29,7 @@ describe("Staking", function () {
   let stakingAccount1;
   let nodeAccount1;
   let stakingContract;
+  let minStake;
   const stakingAccounts = [];
   const totalTokens = 1000000;
   const stakingAccount1IpAddress = "192.168.1.1";
@@ -48,13 +50,15 @@ describe("Staking", function () {
     const StakingFactory = await ethers.getContractFactory("Staking");
     stakingContract = await StakingFactory.deploy(token.address);
 
+    minStake = await stakingContract.minimumStake();
+
     let provider = deployer.provider;
     console.log(
       `deployer has ${await deployer.getBalance()} eth.  Funding stakers...`
     );
 
     // fund stakingAccount1 with tokens
-    const totalToStake = 100;
+    const totalToStake = minStake.mul(3); // 3 times the minimum stake
     await token.transfer(stakingAccount1.getAddress(), totalToStake);
 
     const ethForGas = ethers.utils.parseEther("1.0");
@@ -92,7 +96,7 @@ describe("Staking", function () {
       stakingContract = stakingContract.connect(stakingAccount.stakingAddress);
 
       await stakingContract.stakeAndJoin(
-        totalToStake,
+        minStake,
         ipAddress,
         0,
         port,
@@ -102,13 +106,13 @@ describe("Staking", function () {
 
     // okay now that we're all staked, let's kickoff the first epoch
     await stakingContract.lockValidatorsForNextEpoch();
-    const currentState = await stakingContract.state();
-    console.log(
-      `locked validators.  current state is ${intToState(currentState)}`
-    );
-    const validatorsInNextEpoch =
-      await stakingContract.getValidatorsInNextEpoch();
-    console.log(`validatorsInNextEpoch: ${validatorsInNextEpoch}`);
+    // const currentState = await stakingContract.state();
+    // console.log(
+    //   `locked validators.  current state is ${intToState(currentState)}`
+    // );
+    // const validatorsInNextEpoch =
+    // await stakingContract.getValidatorsInNextEpoch();
+    // console.log(`validatorsInNextEpoch: ${validatorsInNextEpoch}`);
     for (let i = 0; i < stakingAccounts.length; i++) {
       stakingContract = stakingContract.connect(stakingAccounts[i].nodeAddress);
       await stakingContract.signalReadyForNextEpoch();
@@ -134,85 +138,6 @@ describe("Staking", function () {
       expect(validators.length).equal(10);
     });
 
-    it("can join as a staker", async () => {
-      const totalToStake = 10;
-      token = token.connect(deployer);
-      await token.transfer(stakingAccount1.getAddress(), totalToStake);
-      token = token.connect(stakingAccount1);
-      await token.approve(stakingContract.address, totalToStake);
-
-      const initialStakeBal = await stakingContract.balanceOf(
-        stakingAccount1.getAddress()
-      );
-      const initialTokenBalance = await token.balanceOf(
-        stakingAccount1.getAddress()
-      );
-      const initialValidatorEntry = await stakingContract.validators(
-        stakingAccount1.getAddress()
-      );
-      const initialIpAddress = initialValidatorEntry.ip;
-      const initialPort = initialValidatorEntry.port;
-      const initialNodeAddresss = initialValidatorEntry.nodeAddress;
-      const initialBalance = initialValidatorEntry.balance;
-      const initialReward = initialValidatorEntry.reward;
-      const initialNodeAddressToStakerAddress =
-        await stakingContract.nodeAddressToStakerAddress(
-          nodeAccount1.getAddress()
-        );
-
-      stakingContract = stakingContract.connect(stakingAccount1);
-      await stakingContract.stakeAndJoin(
-        totalToStake,
-        ip2int(stakingAccount1IpAddress),
-        0,
-        stakingAccount1Port,
-        nodeAccount1.getAddress()
-      );
-
-      const postStakeBal = await stakingContract.balanceOf(
-        stakingAccount1.getAddress()
-      );
-      const postTokenBalance = await token.balanceOf(
-        stakingAccount1.getAddress()
-      );
-      const postValidatorEntry = await stakingContract.validators(
-        stakingAccount1.getAddress()
-      );
-      const postIpAddress = postValidatorEntry.ip;
-      const postPort = postValidatorEntry.port;
-      const postNodeAddress = postValidatorEntry.nodeAddress;
-      const postBalance = postValidatorEntry.balance;
-      const postReward = postValidatorEntry.reward;
-      const postNodeAddressToStakerAddress =
-        await stakingContract.nodeAddressToStakerAddress(
-          nodeAccount1.getAddress()
-        );
-
-      expect(postTokenBalance).to.be.lt(initialTokenBalance);
-      expect(postStakeBal).to.be.gt(initialStakeBal);
-      expect(initialIpAddress).to.equal(0);
-      expect(int2ip(postIpAddress)).to.equal(stakingAccount1IpAddress);
-      expect(initialPort).to.equal(0);
-      expect(postPort).to.equal(stakingAccount1Port);
-      expect(initialNodeAddresss).to.equal(
-        "0x0000000000000000000000000000000000000000"
-      );
-      // console.log("postNodeAddress", postNodeAddress);
-      // console.log("nodeAccount1.getAddress()", await nodeAccount1.getAddress());
-      expect(postNodeAddress).to.equal(await nodeAccount1.getAddress());
-      expect(initialBalance).to.equal(0);
-      expect(postBalance).to.equal(totalToStake);
-      expect(initialReward).to.equal(0);
-      expect(postReward).to.equal(0);
-
-      expect(initialNodeAddressToStakerAddress).to.equal(
-        "0x0000000000000000000000000000000000000000"
-      );
-      expect(postNodeAddressToStakerAddress).to.equal(
-        await stakingAccount1.getAddress()
-      );
-    });
-
     it("cannot stake 0", async () => {
       stakingContract = stakingContract.connect(stakingAccount1);
       expect(
@@ -228,11 +153,10 @@ describe("Staking", function () {
 
     it("cannot stake less than the minimum stake", async () => {
       stakingContract = stakingContract.connect(stakingAccount1);
+      // withdraw all tokens from staking contract
       await stakingContract.exit();
       token = token.connect(stakingAccount1);
-      await token.approve(stakingContract.address, 10);
-      const minStake = await stakingContract.minimumStake();
-      console.log("minStake", minStake.toString());
+      await token.approve(stakingContract.address, minStake);
       // const stakingAccount1TokenBalance = await token.balanceOf(
       //   stakingAccount1.getAddress()
       // );
@@ -254,6 +178,84 @@ describe("Staking", function () {
         )
       ).revertedWith("Stake must be greater than or equal to minimumStake");
     });
+  });
+
+  it("can join as a staker", async () => {
+    token = token.connect(deployer);
+    await token.transfer(stakingAccount1.getAddress(), minStake);
+    token = token.connect(stakingAccount1);
+    await token.approve(stakingContract.address, minStake);
+
+    const initialStakeBal = await stakingContract.balanceOf(
+      stakingAccount1.getAddress()
+    );
+    const initialTokenBalance = await token.balanceOf(
+      stakingAccount1.getAddress()
+    );
+    const initialValidatorEntry = await stakingContract.validators(
+      stakingAccount1.getAddress()
+    );
+    const initialIpAddress = initialValidatorEntry.ip;
+    const initialPort = initialValidatorEntry.port;
+    const initialNodeAddresss = initialValidatorEntry.nodeAddress;
+    const initialBalance = initialValidatorEntry.balance;
+    const initialReward = initialValidatorEntry.reward;
+    const initialNodeAddressToStakerAddress =
+      await stakingContract.nodeAddressToStakerAddress(
+        nodeAccount1.getAddress()
+      );
+
+    stakingContract = stakingContract.connect(stakingAccount1);
+    await stakingContract.stakeAndJoin(
+      minStake,
+      ip2int(stakingAccount1IpAddress),
+      0,
+      stakingAccount1Port,
+      nodeAccount1.getAddress()
+    );
+
+    const postStakeBal = await stakingContract.balanceOf(
+      stakingAccount1.getAddress()
+    );
+    const postTokenBalance = await token.balanceOf(
+      stakingAccount1.getAddress()
+    );
+    const postValidatorEntry = await stakingContract.validators(
+      stakingAccount1.getAddress()
+    );
+    const postIpAddress = postValidatorEntry.ip;
+    const postPort = postValidatorEntry.port;
+    const postNodeAddress = postValidatorEntry.nodeAddress;
+    const postBalance = postValidatorEntry.balance;
+    const postReward = postValidatorEntry.reward;
+    const postNodeAddressToStakerAddress =
+      await stakingContract.nodeAddressToStakerAddress(
+        nodeAccount1.getAddress()
+      );
+
+    expect(postTokenBalance).to.be.lt(initialTokenBalance);
+    expect(postStakeBal).to.be.gt(initialStakeBal);
+    expect(initialIpAddress).to.equal(0);
+    expect(int2ip(postIpAddress)).to.equal(stakingAccount1IpAddress);
+    expect(initialPort).to.equal(0);
+    expect(postPort).to.equal(stakingAccount1Port);
+    expect(initialNodeAddresss).to.equal(
+      "0x0000000000000000000000000000000000000000"
+    );
+    // console.log("postNodeAddress", postNodeAddress);
+    // console.log("nodeAccount1.getAddress()", await nodeAccount1.getAddress());
+    expect(postNodeAddress).to.equal(await nodeAccount1.getAddress());
+    expect(initialBalance).to.equal(0);
+    expect(postBalance).to.equal(minStake);
+    expect(initialReward).to.equal(0);
+    expect(postReward).to.equal(0);
+
+    expect(initialNodeAddressToStakerAddress).to.equal(
+      "0x0000000000000000000000000000000000000000"
+    );
+    expect(postNodeAddressToStakerAddress).to.equal(
+      await stakingAccount1.getAddress()
+    );
   });
 
   describe("setting new validators", () => {
