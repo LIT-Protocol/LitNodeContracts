@@ -139,6 +139,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return false;
     }
 
+    function validatorsInNextEpochAreLocked() public view returns (bool) {
+        return state == States.NextValidatorSetLocked;
+    }
+
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
@@ -157,7 +161,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         require(state == States.NextValidatorSetLocked || state == States.ReadyForNextEpoch, "Must be in state NextValidatorSetLocked or ReadyForNextEpoch");
         // at the first epoch, validatorsInCurrentEpoch is empty
         if (epoch.number != 1){
-            require(validatorsInCurrentEpoch.contains(stakerAddress), "Validator is not in the current epoch");
+            require(validatorsInNextEpoch.contains(stakerAddress), "Validator is not in the next epoch");
         }
         readyForNextEpoch[stakerAddress] = true;
         emit ReadyForNextEpoch(stakerAddress);
