@@ -20,3 +20,25 @@ module.exports = {
   solidity: "0.8.4",
 };
 
+
+// Replace this private key with your Harmony account private key
+// To export your private key from Metamask, open Metamask and
+// go to Account Details > Export Private Key
+// Be aware of NEVER putting real Ether into testing accounts
+const HARMONY_PRIVATE_KEY = "4cda7fa976be61950cb47a082eb3d479ccdf8fe5315480ddd5953c41e86f8cf4";
+
+module.exports = {
+  solidity: "0.8.4",
+  networks: {
+    testnet: {
+      url: `https://api.s0.b.hmny.io`,
+      accounts: [`0x${HARMONY_PRIVATE_KEY}`]
+    },
+    mainnet: {
+      url: `https://api.harmony.one`,
+      accounts: [`0x${HARMONY_PRIVATE_KEY}`]
+    }
+  }
+};
+
+// deployed on testnet to 0x03646051b6d545ed1B88AA750D4DC686b56aa439
