@@ -82,7 +82,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     constructor(address _stakingToken) {
         stakingToken = LITToken(_stakingToken);
         epoch = Epoch({
-            epochLength: 1,
+            epochLength: 80,
             number: 1,
             endBlock: block.number + 1
         });
@@ -120,12 +120,12 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     function isReadyForNextEpoch() public view returns (bool) {
         uint total = 0;
-        for(uint i = 0; i < validatorsInCurrentEpoch.length(); i++){
-            if (readyForNextEpoch[validatorsInCurrentEpoch.at(i)]){
+        for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
+            if (readyForNextEpoch[validatorsInNextEpoch.at(i)]){
                 total++;
             }
         }
-        if (total >= (validatorsInCurrentEpoch.length() / 3) * 2){ // 2/3 of validators must be ready
+        if ((total > 6) && (total >= (validatorsInNextEpoch.length() / 3) * 2)){ // 2/3 of validators must be ready
             return true;
         }
         return false;
@@ -203,7 +203,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         }
 
         epoch.number++;
-        epoch.endBlock = epoch.endBlock + epoch.epochLength;
+        epoch.endBlock = block.number + epoch.epochLength; // not epoch.endBlock + 
 
         state = States.Active;
         emit StateChanged(state);
