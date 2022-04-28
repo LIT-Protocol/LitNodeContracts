@@ -31,6 +31,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint epochLength;
         uint number;
         uint endBlock;
+	uint retries; // incremented upon failures
     }
     Epoch public epoch;
 
@@ -172,6 +173,18 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         }
     }
 
+    function unlockValidatorsForNextEpoch() public {
+	require(block.number >= epoch.endBlock + epoch.epochlength. "Enough blocks have not elapsed since the last epoch");
+	require(state == States.NextValidatorSetLocked, "Must be in NextValidatorSetLocked");
+
+	for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
+            readyForNextEpoch[validatorsInNextEpoch.at(i)] = false;
+        }
+
+	state = States.Active;
+        emit StateChanged(state);
+    }
+
     /// Advance to the next Epoch.  Rewards validators, adds the joiners, and removes the leavers
     function advanceEpoch() public {
         require(block.number >= epoch.endBlock, "Enough blocks have not elapsed since the last epoch");
@@ -183,8 +196,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             address validatorAddress = validatorsInCurrentEpoch.at(i);
             validators[validatorAddress].reward += tokenRewardPerTokenPerEpoch * validators[validatorAddress].balance;
 
-            // clear out readyForNextEpoch
-            readyForNextEpoch[validatorAddress] = false;
+	    // clear out readyForNextEpoch
+            //readyForNextEpoch[validatorAddress] = false; //moved to copy loop because this should enumerate over next validators
+
         }
 
         // set the validators to the new validator set
@@ -200,6 +214,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         // copy validators from next epoch to current epoch
         for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
             validatorsInCurrentEpoch.add(validatorsInNextEpoch.at(i));
+
+	    // clear out readyForNextEpoch
+            readyForNextEpoch[validatorsInNextEpoch.at(i)] = false;
+
         }
 
         epoch.number++;
