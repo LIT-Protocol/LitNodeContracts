@@ -30,9 +30,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     struct Epoch {
         uint epochLength;
         uint number;
-        uint endBlock;
-	uint retries; // incremented upon failures
+        uint endBlock;    // 
+	uint retries;     // incremented upon failure to advance and subsequent unlock
     }
+
     Epoch public epoch;
 
     uint256 public tokenRewardPerTokenPerEpoch;
@@ -174,12 +175,16 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     function unlockValidatorsForNextEpoch() public {
+	// the deadline to advance is epoch.endBlock + epoch.epochlength
 	require(block.number >= epoch.endBlock + epoch.epochlength. "Enough blocks have not elapsed since the last epoch");
 	require(state == States.NextValidatorSetLocked, "Must be in NextValidatorSetLocked");
 
 	for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
             readyForNextEpoch[validatorsInNextEpoch.at(i)] = false;
         }
+
+	epoch.retries++;
+        epoch.endBlock = block.number + epoch.epochLength; 
 
 	state = States.Active;
         emit StateChanged(state);
