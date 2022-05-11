@@ -88,7 +88,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             epochLength: 80,
             number: 1,
             endBlock: block.number + 1,
-	    retries: 0,
+	    retries: 0
         });
         // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
         tokenRewardPerTokenPerEpoch = (10^stakingToken.decimals()) / 20; 
@@ -188,7 +188,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// If the nodes fail to advance (e.g. because dkg failed), anyone can call to unlock and allow retry
     function unlockValidatorsForNextEpoch() public {
 	// the deadline to advance is thus epoch.endBlock + epoch.epochlength
-	require(block.number >= epoch.endBlock + epoch.epochlength. "Enough blocks have not elapsed since the last epoch");
+	require(block.number >= epoch.endBlock + epoch.epochLength, "Enough blocks have not elapsed since the last epoch");
 	require(state == States.NextValidatorSetLocked, "Must be in NextValidatorSetLocked");
 
 	for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
