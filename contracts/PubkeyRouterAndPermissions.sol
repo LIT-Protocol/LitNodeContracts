@@ -3,13 +3,19 @@ pragma solidity ^0.8.0;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {PKPNFT} from "./PKPNFT.sol";
 
 import "hardhat/console.sol";
+
+// TODO: make the tests send PKPNFT into the constructor
+// TODO: test interaction between PKPNFT and this contract, like mint a keypair and see if you can access it
 
 contract PubkeyRouterAndPermissions is Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /* ========== STATE VARIABLES ========== */
+
+    PKPNFT public pkpNFT;
 
     struct PubkeyRoutingData {
       bytes32 keyPart1; // pubkeys are larger than 32 bytes
@@ -27,9 +33,14 @@ contract PubkeyRouterAndPermissions is Ownable {
     // that is "true" if the address is allowed to sign with the pubkey
     mapping (bytes32 => EnumerableSet.AddressSet) permittedAddresses;
 
+    // mononically increasing counter for the tokenIds
+    uint public currentOwnerTokenId = 0;
+
 
     /* ========== CONSTRUCTOR ========== */
-    constructor() {}
+    constructor(address _pkpNft) {
+        pkpNFT = PKPNFT(_pkpNft);
+    }
 
     /* ========== VIEWS ========== */
 
@@ -38,16 +49,27 @@ contract PubkeyRouterAndPermissions is Ownable {
         return pubkeys[pubkeyHash];
     }
 
-    /// get if a user is permitted to use a given pubkey
+    /// get if a user is permitted to use a given pubkey.  returns true if they are the owner of the matching NFT, or if they are permitted to use the pubkey in the permittedAddresses[pubkeyHash] struct.
     function isPermitted(bytes32 pubkeyHash, address user) external view returns (bool) {
-        return permittedAddresses[pubkeyHash].contains(user);
+        uint tokenId = pubkeys[pubkeyHash].ownerTokenId;
+        return pkpNFT.ownerOf(tokenId) == user || permittedAddresses[pubkeyHash].contains(user);
     }
 
+
     function getPermittedAddresses(bytes32 pubkeyHash) external view returns (address[] memory) {
-        address[] memory allPermittedAddresses = new address[](permittedAddresses[pubkeyHash].length());
-        for(uint i = 0; i < permittedAddresses[pubkeyHash].length(); i++) {
-            allPermittedAddresses[i] = permittedAddresses[pubkeyHash].at(i);
+        uint permittedAddressLength = permittedAddresses[pubkeyHash].length();
+        address[] memory allPermittedAddresses = new address[](permittedAddressLength + 1);
+
+        // always add nft owner in first slot
+        uint tokenId = pubkeys[pubkeyHash].ownerTokenId;
+        address nftOwner = pkpNFT.ownerOf(tokenId);
+        allPermittedAddresses[0] = nftOwner;
+
+        // add all other addresses
+        for(uint i = 0; i < permittedAddressLength; i++) {
+            allPermittedAddresses[i + 1] = permittedAddresses[pubkeyHash].at(i);
         }
+        
         return allPermittedAddresses;
     }
 
@@ -60,18 +82,31 @@ contract PubkeyRouterAndPermissions is Ownable {
         pubkeys[pubkeyHash].keyLength = keyLength;
         pubkeys[pubkeyHash].stakingContract = stakingContract;
         pubkeys[pubkeyHash].keyType = keyType;
-        emit PubkeyRoutingDataSet(pubkeyHash, keyPart1, keyPart2, keyLength, stakingContract, keyType);
+        // currentOwnerTokenId starts at 0 but we want the first token id to be 1
+        currentOwnerTokenId++;
+        pubkeys[pubkeyHash].ownerTokenId = currentOwnerTokenId;
+        emit PubkeyRoutingDataSet(pubkeyHash, keyPart1, keyPart2, keyLength, stakingContract, keyType, currentOwnerTokenId);
     }
 
     /// Add a permitted addresses for a given pubkey
-    function addPermittedAddress(bytes32 pubkeyHash, address user) public onlyOwner {
+    function addPermittedAddress(bytes32 pubkeyHash, address user) public {
+        // check that user is allowed to set this
+        uint tokenId = pubkeys[pubkeyHash].ownerTokenId;
+        address nftOwner = pkpNFT.ownerOf(tokenId);
+        require(msg.sender == nftOwner, "Only the PKP NFT owner can add and remove permitted addresses");
+        
         EnumerableSet.AddressSet storage newPermittedUsers = permittedAddresses[pubkeyHash];
         newPermittedUsers.add(user);
         emit PermittedAddressAdded(pubkeyHash, user);
     }
 
     // Remove a permitted address for a given pubkey
-    function removePermittedAddress(bytes32 pubkeyHash, address user) public onlyOwner {
+    function removePermittedAddress(bytes32 pubkeyHash, address user) public {
+        // check that user is allowed to set this
+        uint tokenId = pubkeys[pubkeyHash].ownerTokenId;
+        address nftOwner = pkpNFT.ownerOf(tokenId);
+        require(msg.sender == nftOwner, "Only the PKP NFT owner can add and remove permitted addresses");
+        
         EnumerableSet.AddressSet storage newPermittedUsers = permittedAddresses[pubkeyHash];
         newPermittedUsers.remove(user);
         emit PermittedAddressRemoved(pubkeyHash, user);
@@ -80,7 +115,7 @@ contract PubkeyRouterAndPermissions is Ownable {
 
     /* ========== EVENTS ========== */
 
-    event PubkeyRoutingDataSet(bytes32 indexed pubkeyHash, bytes32 keyPart1, bytes32 keyPart2, uint keyLength, address stakingContract, uint keyType);
+    event PubkeyRoutingDataSet(bytes32 indexed pubkeyHash, bytes32 keyPart1, bytes32 keyPart2, uint keyLength, address stakingContract, uint keyType, uint ownerTokenId);
     event PermittedAddressAdded(bytes32 indexed pubkeyHash, address user);
     event PermittedAddressRemoved(bytes32 indexed pubkeyHash, address user);
 }
