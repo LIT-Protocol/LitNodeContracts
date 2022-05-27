@@ -9,7 +9,9 @@ describe("PubkeyRouter", function () {
   let ContractFactory;
 
   before(async () => {
-    ContractFactory = await ethers.getContractFactory("PubkeyRouter");
+    ContractFactory = await ethers.getContractFactory(
+      "PubkeyRouterAndPermissions"
+    );
   });
 
   beforeEach(async () => {
