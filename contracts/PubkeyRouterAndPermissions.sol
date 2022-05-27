@@ -9,6 +9,7 @@ import "hardhat/console.sol";
 
 // TODO: make the tests send PKPNFT into the constructor
 // TODO: test interaction between PKPNFT and this contract, like mint a keypair and see if you can access it
+// TODO: setRoutingData() for a batch of keys
 
 contract PubkeyRouterAndPermissions is Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -106,7 +107,7 @@ contract PubkeyRouterAndPermissions is Ownable {
         uint tokenId = pubkeys[pubkeyHash].ownerTokenId;
         address nftOwner = pkpNFT.ownerOf(tokenId);
         require(msg.sender == nftOwner, "Only the PKP NFT owner can add and remove permitted addresses");
-        
+
         EnumerableSet.AddressSet storage newPermittedUsers = permittedAddresses[pubkeyHash];
         newPermittedUsers.remove(user);
         emit PermittedAddressRemoved(pubkeyHash, user);
