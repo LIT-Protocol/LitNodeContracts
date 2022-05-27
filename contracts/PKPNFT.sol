@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+// TODO: Prevent users from minting when there are no available keypairs
+
 /// @title Programmable Keypair NFT
 ///
 /// @dev This is the contract for the PKP NFTs
