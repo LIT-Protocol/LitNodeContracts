@@ -29,26 +29,30 @@ contract ConditionValidations is ReentrancyGuard {
         address creator;
     }
 
+    struct ValidAddress {
+        bool isValid;
+    }
+
     /* ========== STATE VARIABLES ========== */
     mapping(bytes32 => ValidatedCondition) public validatedConditions;
-    address private _owner;
+    mapping(address => bool) public validAddresses;
 
     /* ========== CONSTRUCTOR ========== */
 
     // constructor(bytes memory _publicKey) {
-    //      require(_publicKey.length == 64);
-    //     _owner = address(bytes20(uint160(uint256(keccak256(_publicKey)))));
+    //     require(_publicKey.length == 64);
+    //     address addrFromPublicKey = address(
+    //         bytes20(uint160(uint256(keccak256(_publicKey))))
+    //     );
+
+    //     validAddresses[addrFromPublicKey] = true;
     // }
 
     constructor(address _ownerAddress) {
-        _owner = _ownerAddress;
+        validAddresses[_ownerAddress] = true;
     }
 
     /* ========== VIEWS ========== */
-
-    function getOwnerAddress() public view returns (address) {
-        return _owner;
-    }
 
     function getValidatedCondition(bytes32 conditionHashKey)
         external
@@ -63,6 +67,29 @@ contract ConditionValidations is ReentrancyGuard {
         }
     }
 
+    function verifySignature(bytes32 conditionHash, bytes memory signature)
+        external
+        view
+        returns (bool)
+    {
+        address sigAddress = ECDSA.recover(conditionHash, signature);
+        
+        return validAddresses[sigAddress];  
+    }
+
+    function testPubKeyToAddress(bytes memory _publicKey)
+        external
+        pure
+        returns (address)
+    {
+        //require(_publicKey.length == 64);
+        address addrFromPublicKey = address(
+            bytes20(uint160(uint256(keccak256(_publicKey))))
+        );
+
+        return addrFromPublicKey;
+    }
+
     /* ========== MUTATIVE FUNCTIONS ========== */
     function storeValidatedCondition(
         uint256 chainId,
@@ -70,9 +97,11 @@ contract ConditionValidations is ReentrancyGuard {
         bytes memory signature
     ) external nonReentrant {
         // check if the signature is valid
+        address sigAddress = ECDSA.recover(conditionHash, signature);
+
         require(
-            ECDSA.recover(conditionHash, signature) == _owner,
-            "Signature doesn't match the LIT key for the given hashed condition"
+            validAddresses[sigAddress],
+            "Signature doesn't match any LIT key for the given hashed condition"
         );
 
         validatedConditions[conditionHash] = ValidatedCondition(

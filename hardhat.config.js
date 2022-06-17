@@ -1,4 +1,5 @@
 require("@nomiclabs/hardhat-waffle");
+require('hardhat-ethernal');
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -26,6 +27,7 @@ module.exports = {
 // go to Account Details > Export Private Key
 // Be aware of NEVER putting real Ether into testing accounts
 const HARMONY_PRIVATE_KEY = "4cda7fa976be61950cb47a082eb3d479ccdf8fe5315480ddd5953c41e86f8cf4";
+const HARDAT_PRIVATE_KEY = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
 module.exports = {
   solidity: "0.8.4",
@@ -37,6 +39,14 @@ module.exports = {
     mainnet: {
       url: `https://api.harmony.one`,
       accounts: [`0x${HARMONY_PRIVATE_KEY}`]
+    },
+    hh: {
+      url: `http://127.0.0.1:8545`,
+      accounts: [`0x${HARDAT_PRIVATE_KEY}`],
+
+      
+       gasPrice: 8000000000, // default is 'auto' which breaks chains without the london hardfork
+    
     }
   }
 };

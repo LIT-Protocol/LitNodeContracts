@@ -28,12 +28,26 @@ describe("ConditionValidations", async ()  => {
 
 
   // this test is a bit useless right now - once the public key needs to be used as the constructor argument
-  describe("validate owner", async () => {
-    it ("owner address is correct", async () => {
-      const owner = await contract.getOwnerAddress();
-      expect(owner).equal('0x804C96C9750a57FB841f26a7bC9f2815782D8529');
-    });
-  });
+  // describe("validate owner", async () => {
+  //   it ("owner address is correct", async () => {
+  //     const owner = await contract.getOwnerAddress();
+  //     expect(owner).equal('0x804C96C9750a57FB841f26a7bC9f2815782D8529');
+  //   });
+  // });
+
+
+  describe("test public key to address conversion", async() => {
+      const publicKey = "0x02d285b90c267b448b9b521709d0cc980ff03c3e4b1dd0e844bb4b9de85a677fc9";
+      const publicKeyNoHdr = "0xd285b90c267b448b9b521709d0cc980ff03c3e4b1dd0e844bb4b9de85a677fc9";
+                              
+      //0x804C96C9750a57FB841f26a7bC9f2815782D8529
+      //0xA87A5D6818BeC94689Dc8Df976e57164808ef843
+      it ("public key to address", async() => {
+        const decodedAddress = await contract.testPubKeyToAddress(publicKeyNoHdr);
+        expect(ownerAddress).equal(decodedAddress);
+      })
+  })
+
 
   // describe storing a validation
   describe("store & retreive validation", async () => {
