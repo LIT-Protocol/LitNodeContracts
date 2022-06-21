@@ -28,13 +28,13 @@ describe("AccessControlConditions", function () {
       const key = 0x1234;
       const value = 0x5678;
       const chainId = 1;
-      const permanant = false;
+      const permanent = false;
 
       beforeEach(async () => ([creator, tester, ...signers] = signers));
 
       beforeEach(
         async () =>
-          await contract.storeCondition(key, value, chainId, permanant)
+          await contract.storeCondition(key, value, chainId, permanent)
       );
 
       beforeEach(async () => (contract = contract.connect(tester)));
@@ -43,25 +43,25 @@ describe("AccessControlConditions", function () {
         const [
           valueFromContract,
           chainIdFromContract,
-          permanantFromContract,
+          permanentFromContract,
           creatorFromContract,
         ] = await contract.getCondition(0xabcdef);
         expect(valueFromContract).equal(0);
         expect(chainIdFromContract).equal(0);
-        expect(permanantFromContract).equal(permanant);
+        expect(permanentFromContract).equal(permanent);
         expect(creatorFromContract).equal(
           "0x0000000000000000000000000000000000000000"
         );
       });
     });
 
-    context("when key is correct and condition is not permanant", async () => {
+    context("when key is correct and condition is not permanent", async () => {
       let creator;
       let tester;
       const key = 0x1234;
       const value = 0x5678;
       const chainId = 1;
-      const permanant = false;
+      const permanent = false;
 
       beforeEach(async () => {
         [creator, tester, ...signers] = signers;
@@ -70,7 +70,7 @@ describe("AccessControlConditions", function () {
 
       beforeEach(
         async () =>
-          await contract.storeCondition(key, value, chainId, permanant)
+          await contract.storeCondition(key, value, chainId, permanent)
       );
 
       beforeEach(async () => (contract = contract.connect(tester)));
@@ -79,12 +79,12 @@ describe("AccessControlConditions", function () {
         let [
           valueFromContract,
           chainIdFromContract,
-          permanantFromContract,
+          permanentFromContract,
           creatorFromContract,
         ] = await contract.getCondition(key);
         expect(valueFromContract).equal(value);
         expect(chainIdFromContract).equal(chainId);
-        expect(permanantFromContract).equal(permanant);
+        expect(permanentFromContract).equal(permanent);
         expect(creatorFromContract).equal(creator.address);
 
         const newValue = 0x8765;
@@ -92,33 +92,33 @@ describe("AccessControlConditions", function () {
 
         // attempt to update it with the wrong address.  it should revert.
         expect(
-          contract.storeCondition(key, newValue, newChainId, permanant)
+          contract.storeCondition(key, newValue, newChainId, permanent)
         ).revertedWith("Only the condition creator can update it");
 
         // update with the correct address
         contract = contract.connect(creator);
-        await contract.storeCondition(key, newValue, newChainId, permanant);
+        await contract.storeCondition(key, newValue, newChainId, permanent);
 
         [
           valueFromContract,
           chainIdFromContract,
-          permanantFromContract,
+          permanentFromContract,
           creatorFromContract,
         ] = await contract.getCondition(key);
         expect(valueFromContract).equal(newValue);
         expect(chainIdFromContract).equal(newChainId);
-        expect(permanantFromContract).equal(permanant);
+        expect(permanentFromContract).equal(permanent);
         expect(creatorFromContract).equal(creator.address);
       });
     });
 
-    context("when key is correct and condition is permanant", async () => {
+    context("when key is correct and condition is permanent", async () => {
       let creator;
       let tester;
       const key = 0x1234;
       const value = 0x5678;
       const chainId = 1;
-      const permanant = true;
+      const permanent = true;
 
       beforeEach(async () => {
         [creator, tester, ...signers] = signers;
@@ -127,7 +127,7 @@ describe("AccessControlConditions", function () {
 
       beforeEach(
         async () =>
-          await contract.storeCondition(key, value, chainId, permanant)
+          await contract.storeCondition(key, value, chainId, permanent)
       );
 
       beforeEach(async () => (contract = contract.connect(tester)));
@@ -136,33 +136,33 @@ describe("AccessControlConditions", function () {
         let [
           valueFromContract,
           chainIdFromContract,
-          permanantFromContract,
+          permanentFromContract,
           creatorFromContract,
         ] = await contract.getCondition(key);
         expect(valueFromContract).equal(value);
         expect(chainIdFromContract).equal(chainId);
-        expect(permanantFromContract).equal(permanant);
+        expect(permanentFromContract).equal(permanent);
         expect(creatorFromContract).equal(creator.address);
 
         const newValue = 0x8765;
         const newChainId = 2;
         contract = contract.connect(creator);
         expect(
-          contract.storeCondition(key, newValue, newChainId, permanant)
+          contract.storeCondition(key, newValue, newChainId, permanent)
         ).revertedWith(
-          "This condition was stored with the Permanant flag and cannot be updated"
+          "This condition was stored with the Permanent flag and cannot be updated"
         );
 
         // verify that nothing changed
         [
           valueFromContract,
           chainIdFromContract,
-          permanantFromContract,
+          permanentFromContract,
           creatorFromContract,
         ] = await contract.getCondition(key);
         expect(valueFromContract).equal(value);
         expect(chainIdFromContract).equal(chainId);
-        expect(permanantFromContract).equal(permanant);
+        expect(permanentFromContract).equal(permanent);
         expect(creatorFromContract).equal(creator.address);
       });
     });

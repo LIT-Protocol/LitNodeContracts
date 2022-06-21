@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 /// @title Lit Protocol Token
 ///
@@ -14,7 +15,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /// the deployer must revoke their admin role and minter role.
 ///
 /// This contract was initially borrowed from Alchemix, and modified extensively, from here: https://github.com/alchemix-finance/alchemix-protocol/blob/master/contracts/AlchemixToken.sol
-contract LITToken is AccessControl, ERC20("Lit Protocol", "LIT") {
+contract LITToken is AccessControl, ERC20("Lit Protocol", "LIT"), ERC20Burnable {
     /// @dev The identifier of the role which maintains other roles.
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
 
