@@ -14,15 +14,15 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /// The owner can also grant signing permissions to other eth addresses
 contract PKPNFT is ERC721("Programmable Keypair", "PKP"), Ownable {
   /* ========== STATE VARIABLES ========== */
-    uint currentTokenId = 0;
 
     constructor() {}
 
-    function mint() public returns (uint256) {
-      // currentTokenId starts at 0 but we
-      // want the first actual token to be 1
-      currentTokenId++;
-      _mint(msg.sender, currentTokenId);
-      return currentTokenId;
+    // create a valid token for a given public key.   
+    function mint( bytes memory pubkey) public returns (uint256) {
+          
+      uint256 tokenId = uint(keccak256(abi.encodePacked(pubkey)));
+      require( !_exists(tokenId), "PKP: pubkey has already been minted.");  // really just a message override.    
+      _mint(msg.sender, tokenId);
+      return 333;
     }
 }
