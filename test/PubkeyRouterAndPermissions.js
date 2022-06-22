@@ -27,7 +27,7 @@ describe("PubkeyRouter", function () {
     const event = tx.events[0];
     const tokenId = event.args[2];
     const token_address = event.address;
-    routerContract = await RouterContractFactory.deploy(token_address);
+    routerContract = await RouterContractFactory.deploy(TokenContract.address);
 
   });
 
