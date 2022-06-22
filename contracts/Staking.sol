@@ -20,8 +20,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     enum States {
         Active,
         NextValidatorSetLocked,
-        ReadyForNextEpoch,
-	Unlocked
+        ReadyForNextEpoch
     }
 
     States public state = States.Active;
@@ -31,10 +30,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     struct Epoch {
         uint epochLength;
         uint number;
-        uint endBlock;    // 
-	uint retries;     // incremented upon failure to advance and subsequent unlock
+        uint endBlock;
     }
-
     Epoch public epoch;
 
     uint256 public tokenRewardPerTokenPerEpoch;
@@ -85,10 +82,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     constructor(address _stakingToken) {
         stakingToken = LITToken(_stakingToken);
         epoch = Epoch({
-            epochLength: 80,
+            epochLength: 1,
             number: 1,
-            endBlock: block.number + 1,
-	    retries: 0
+            endBlock: block.number + 1
         });
         // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
         tokenRewardPerTokenPerEpoch = (10^stakingToken.decimals()) / 20; 
@@ -124,12 +120,12 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     function isReadyForNextEpoch() public view returns (bool) {
         uint total = 0;
-        for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
-            if (readyForNextEpoch[validatorsInNextEpoch.at(i)]){
+        for(uint i = 0; i < validatorsInCurrentEpoch.length(); i++){
+            if (readyForNextEpoch[validatorsInCurrentEpoch.at(i)]){
                 total++;
             }
         }
-        if ((total > 6) && (total >= (validatorsInNextEpoch.length() / 3) * 2)){ // 2/3 of validators must be ready
+        if (total >= (validatorsInCurrentEpoch.length() / 3) * 2){ // 2/3 of validators must be ready
             return true;
         }
         return false;
@@ -143,17 +139,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return false;
     }
 
-    // these could be checked with uint return value with the state getter, but included defensively in case more states are added.
     function validatorsInNextEpochAreLocked() public view returns (bool) {
         return state == States.NextValidatorSetLocked;
-    }
-
-    function validatorStateIsActive() public view returns (bool) {
-        return state == States.Active;
-    }
-
-    function validatorStateIsUnlocked() public view returns (bool) {
-        return state == States.Unlocked;
     }
 
 
@@ -162,7 +149,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// Lock in the validators for the next epoch
     function lockValidatorsForNextEpoch() public {
         require(block.number >= epoch.endBlock, "Enough blocks have not elapsed since the last epoch");
-        require(state == States.Active || state == States.Unlocked, "Must be in active or unlocked state");
+        require(state == States.Active, "Must be in active state");
         
         state = States.NextValidatorSetLocked;
         emit StateChanged(state);
@@ -185,23 +172,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         }
     }
 
-    /// If the nodes fail to advance (e.g. because dkg failed), anyone can call to unlock and allow retry
-    function unlockValidatorsForNextEpoch() public {
-	// the deadline to advance is thus epoch.endBlock + epoch.epochlength
-	require(block.number >= epoch.endBlock + epoch.epochLength, "Enough blocks have not elapsed since the last epoch");
-	require(state == States.NextValidatorSetLocked, "Must be in NextValidatorSetLocked");
-
-	for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
-            readyForNextEpoch[validatorsInNextEpoch.at(i)] = false;
-        }
-
-	epoch.retries++;
-        epoch.endBlock = block.number + epoch.epochLength; 
-
-	state = States.Unlocked;
-        emit StateChanged(state);
-    }
-
     /// Advance to the next Epoch.  Rewards validators, adds the joiners, and removes the leavers
     function advanceEpoch() public {
         require(block.number >= epoch.endBlock, "Enough blocks have not elapsed since the last epoch");
@@ -213,9 +183,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             address validatorAddress = validatorsInCurrentEpoch.at(i);
             validators[validatorAddress].reward += tokenRewardPerTokenPerEpoch * validators[validatorAddress].balance;
 
-	    // clear out readyForNextEpoch
-            //readyForNextEpoch[validatorAddress] = false; //moved to copy loop because this should enumerate over next validators
-
+            // clear out readyForNextEpoch
+            readyForNextEpoch[validatorAddress] = false;
         }
 
         // set the validators to the new validator set
@@ -231,14 +200,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         // copy validators from next epoch to current epoch
         for(uint i = 0; i < validatorsInNextEpoch.length(); i++){
             validatorsInCurrentEpoch.add(validatorsInNextEpoch.at(i));
-
-	    // clear out readyForNextEpoch
-            readyForNextEpoch[validatorsInNextEpoch.at(i)] = false;
-
         }
 
         epoch.number++;
-        epoch.endBlock = block.number + epoch.epochLength; // not epoch.endBlock + 
+        epoch.endBlock = epoch.endBlock + epoch.epochLength;
 
         state = States.Active;
         emit StateChanged(state);
@@ -271,7 +236,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     function requestToJoin(uint32 ip, uint128 ipv6, uint32 port, address nodeAddress) public nonReentrant {
         uint256 amountStaked = validators[msg.sender].balance;
         require(amountStaked >= minimumStake, "Stake must be greater than or equal to minimumStake");
-        require(state == States.Active || state == States.Unlocked, "Must be in Active or Unlocked state to request to join");
+        require(state == States.Active, "Must be in active state to request to join");
 
         // make sure they haven't been kicked
         require(validatorsKickedFromNextEpoch.contains(msg.sender) == false, "You cannot rejoin if you have been kicked until the next epoch");
@@ -304,7 +269,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// Request to leave in the next Epoch
     function requestToLeave() public nonReentrant {
-        require(state == States.Active || state == States.Unlocked, "Must be in Active or Unlocked state to request to leave");
+        require(state == States.Active, "Must be in active state to request to leave");
         if (validatorsInNextEpoch.contains(msg.sender)) { 
             // remove them
             validatorsInNextEpoch.remove(msg.sender);
