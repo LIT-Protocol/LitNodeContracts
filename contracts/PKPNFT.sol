@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.3;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -18,11 +18,12 @@ contract PKPNFT is ERC721("Programmable Keypair", "PKP"), Ownable {
     constructor() {}
 
     // create a valid token for a given public key.   
-    function mint( bytes memory pubkey) public returns (uint256) {
+    function mint( bytes memory pubkey) public returns (uint) {
           
-      uint256 tokenId = uint(keccak256(abi.encodePacked(pubkey)));
-      require( !_exists(tokenId), "PKP: pubkey has already been minted.");  // really just a message override.    
+      uint256 tokenId = uint256(keccak256(pubkey));
       _mint(msg.sender, tokenId);
-      return 333;
-    }
+
+      return tokenId;
+    } 
+    
 }

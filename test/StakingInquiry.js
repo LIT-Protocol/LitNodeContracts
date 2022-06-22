@@ -14,14 +14,14 @@ describe("Staking Contract Inquiry", function () {
     const LITToken = '0xFE5f411481565fbF70D8D33D992C78196E014b90';
     const Staking = '0xD6b040736e948621c5b6E0a494473c47a6113eA8';
 
-  [deployer, ...signers] = await hre.ethers.getSigners()
+  // [deployer, ...signers] = await hre.ethers.getSigners()
 
     
-  describe("Constructor & Settings", () => {
-        it("should staking token on constructor", async () => {
-            expect(await stakingContract.stakingToken(), token.address).is.equal;
+  // describe("Constructor & Settings", () => {
+  //       it("should staking token on constructor", async () => {
+  //           expect(await stakingContract.stakingToken(), token.address).is.equal;
         
         
-        });
-   });
+  //       });
+  //  });
 });

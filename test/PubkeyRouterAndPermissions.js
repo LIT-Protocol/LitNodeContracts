@@ -1,26 +1,37 @@
 const { expect } = require("chai");
-const { createHash } = require("crypto");
 
 describe("PubkeyRouter", function () {
   let deployer;
   let signers;
-  let contract;
+  let routerContract;
 
-  let ContractFactory;
+  let RouterContractFactory;
+  let TokenContractFactory;
+  let TokenContract;
+  let pubkey = '0x034319b040a81f78d14b8efcf73f3120b28d88ac5ca316dbd1a83797defcf20b5a';       
 
   before(async () => {
-    ContractFactory = await ethers.getContractFactory(
-      "PubkeyRouterAndPermissions"
-    );
-  });
+    RouterContractFactory = await ethers.getContractFactory("PubkeyRouterAndPermissions");
+    TokenContractFactory = await ethers.getContractFactory("PKPNFT");
 
-  beforeEach(async () => {
     [deployer, ...signers] = await ethers.getSigners();
+
+    TokenContract = await TokenContractFactory.deploy();
+    await TokenContract.connect(deployer);
+    const txn = await TokenContract.mint(pubkey);    
+    const tx = await txn.wait(); 
+
+    // console.log('tx:', tx);
+    // console.log('tx.events:', tx.events);
+
+    const event = tx.events[0];
+    const tokenId = event.args[2];
+    const token_address = event.address;
+    routerContract = await RouterContractFactory.deploy(token_address);
+
   });
 
-  beforeEach(async () => {
-    contract = await ContractFactory.deploy();
-  });
+
 
   describe("store and retrieve routing data", async () => {
     context("when routing data is unset", async () => {
@@ -29,15 +40,15 @@ describe("PubkeyRouter", function () {
 
       beforeEach(async () => {
         [creator, tester, ...signers] = signers;
-        contract = contract.connect(creator);
+        routerContract = routerContract.connect(creator);
       });
 
       it("retrieves empty routing data", async () => {
-        const hash = createHash("sha256");
-        hash.update(Buffer.from("abcdef", "hex"));
-        const pubkeyHash = "0x" + hash.digest("hex");
+        let fake_pubkey = '0x0437891234581f78d14b8efcf73f3120b28d88ac5ca316dbd1a83797defcf20b5a';       
+
+        const pubkeyHash = ethers.utils.keccak256(fake_pubkey);
         const [keyPart1, keyPart2, keyLength, stakingContract, keyType] =
-          await contract.getRoutingData(pubkeyHash);
+          await routerContract.getRoutingData(pubkeyHash);
         expect(keyPart1).equal(
           "0x0000000000000000000000000000000000000000000000000000000000000000"
         );
@@ -54,19 +65,16 @@ describe("PubkeyRouter", function () {
 
     context("when routing data is set", async () => {
       beforeEach(async () => {
-        contract = contract.connect(deployer);
+        routerContract = await routerContract.connect(deployer);
+        TokenContract = await TokenContract.connect(deployer);
       });
 
       it("sets and retrieves routing data", async () => {
-        const fakeBlsPubkey = ethers.utils.randomBytes(48);
-
-        const hash = createHash("sha256");
-        hash.update(Buffer.from(fakeBlsPubkey));
-        const pubkeyHash = "0x" + hash.digest("hex");
+          const pubkeyHash = ethers.utils.keccak256(pubkey);
 
         // validate that it's unset
         const [keyPart1, keyPart2, keyLength, stakingContract, keyType] =
-          await contract.getRoutingData(pubkeyHash);
+          await routerContract.getRoutingData(pubkeyHash);
         expect(keyPart1).equal(
           "0x0000000000000000000000000000000000000000000000000000000000000000"
         );
@@ -80,9 +88,9 @@ describe("PubkeyRouter", function () {
         expect(keyType).equal(0);
 
         // set routing data
-        const keyPart1Bytes = ethers.utils.hexDataSlice(fakeBlsPubkey, 0, 32);
+        const keyPart1Bytes = ethers.utils.hexDataSlice(pubkeyHash, 0, 32);
         const keyPart2Bytes = ethers.utils.hexZeroPad(
-          ethers.utils.hexDataSlice(fakeBlsPubkey, 32),
+          ethers.utils.hexDataSlice(pubkeyHash, 32),
           32
         );
 
@@ -91,7 +99,7 @@ describe("PubkeyRouter", function () {
         const keyLengthInput = 48;
         const keyTypeInput = 1;
 
-        await contract.setRoutingData(
+        await routerContract.setRoutingData(
           pubkeyHash,
           keyPart1Bytes,
           keyPart2Bytes,
@@ -107,7 +115,7 @@ describe("PubkeyRouter", function () {
           keyLengthAfter,
           stakingContractAfter,
           keyTypeAfter,
-        ] = await contract.getRoutingData(pubkeyHash);
+        ] = await routerContract.getRoutingData(pubkeyHash);
         expect(keyPart1After).equal(keyPart1Bytes);
         expect(keyPart2After).equal(keyPart2Bytes);
         expect(keyLengthAfter).equal(keyLengthInput);
