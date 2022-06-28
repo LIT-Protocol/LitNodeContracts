@@ -50,6 +50,9 @@ describe("Staking", function () {
     const StakingFactory = await ethers.getContractFactory("Staking");
     stakingContract = await StakingFactory.deploy(token.address);
 
+    // set epoch length to 1 so that we can test quickly
+    await stakingContract.setEpochLength(1);
+
     minStake = await stakingContract.minimumStake();
 
     let provider = deployer.provider;
