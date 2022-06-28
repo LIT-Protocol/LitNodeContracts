@@ -25,5 +25,11 @@ contract PKPNFT is ERC721("Programmable Keypair", "PKP"), Ownable {
 
       return tokenId;
     } 
+
+    function transfer(address from,
+        address to,
+        uint256 tokenId) public {
+      _transfer(from, to, tokenId);
+    }
     
 }
