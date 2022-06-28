@@ -27,12 +27,27 @@ contract PubkeyRouterAndPermissions is Ownable {
       uint ownerTokenId;
     }
 
+    // from https://github.com/saurfang/ipfs-multihash-on-solidity
+    // for storing IPFS IDs
+    struct Multihash {
+        bytes32 digest;
+        uint8 hashFunction;
+        uint8 size;
+    }
+
     // map the sha256(compressed pubkey) -> PubkeyRoutingData
     mapping (bytes32 => PubkeyRoutingData) public pubkeys;
 
-    // map the sha256(compressed pubkey) -> map of addresses to a bool
-    // that is "true" if the address is allowed to sign with the pubkey
+    // map the sha256(compressed pubkey) -> set of addresses
+    // the address is allowed to sign with the pubkey if it's in the set of permittedAddresses for that pubkey
     mapping (bytes32 => EnumerableSet.AddressSet) permittedAddresses;
+
+    // maps the keccack256(hashFunction, size, digest) -> Multihash
+    mapping (bytes32 => Multihash) public ipfsIds;
+
+    // map the sha256(compressed pubkey) -> set of hashes of IPFS IDs
+    // the lit action is allowed to sign with the pubkey if it's IPFS ID is in the set of permittedActions for that pubkey
+    mapping (bytes32 => EnumerableSet.Bytes32Set) permittedActions;
 
     // mononically increasing counter for the tokenIds
     uint public currentOwnerTokenId = 0;
