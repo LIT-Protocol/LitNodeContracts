@@ -322,12 +322,6 @@ describe("Staking", function () {
         epochBeforeAdvancingEpoch.number.add(1)
       );
 
-      expect(epochAfterAdvancingEpoch.endBlock).to.equal(
-        epochBeforeAdvancingEpoch.endBlock.add(
-          epochBeforeAdvancingEpoch.epochLength
-        )
-      );
-
       // validators should include stakingAccount1
       const validatorsAfterAdvancingEpoch =
         await stakingContract.getValidatorsInCurrentEpoch();
