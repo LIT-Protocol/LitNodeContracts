@@ -5,9 +5,11 @@ describe("ConditionValidations", async ()  => {
   let contract;
   let deployer;
 
-  // const publicKey = "0x02d285b90c267b448b9b521709d0cc980ff03c3e4b1dd0e844bb4b9de85a677fc9";
-  // const publicKeyNoHdr = "0xd285b90c267b448b9b521709d0cc980ff03c3e4b1dd0e844bb4b9de85a677fc9";
-  const ownerAddress = "0x804C96C9750a57FB841f26a7bC9f2815782D8529";
+  const publicKey = "0x034319b040a81f78d14b8efcf73f3120b28d88ac5ca316dbd1a83797defcf20b5a";
+  const publicKeyNoHdr = "0x034319b040a81f78d14b8efcf73f3120b28d88ac5ca316dbd1a83797defcf20b5a";
+  //const ownerAddress = "0x804C96C9750a57FB841f26a7bC9f2815782D8529";
+  const ownerAddress = ethers.utils.computeAddress(ethers.utils.arrayify(publicKey));
+  
   /// let ContractFactory;
   before(async () => {
     ContractFactory = await ethers.getContractFactory(
@@ -37,13 +39,15 @@ describe("ConditionValidations", async ()  => {
 
 
   describe("test public key to address conversion", async() => {
-      const publicKey = "0x02d285b90c267b448b9b521709d0cc980ff03c3e4b1dd0e844bb4b9de85a677fc9";
-      const publicKeyNoHdr = "0xd285b90c267b448b9b521709d0cc980ff03c3e4b1dd0e844bb4b9de85a677fc9";
                               
-      //0x804C96C9750a57FB841f26a7bC9f2815782D8529
-      //0xA87A5D6818BeC94689Dc8Df976e57164808ef843
+     
       it ("public key to address", async() => {
-        const decodedAddress = await contract.testPubKeyToAddress(publicKeyNoHdr);
+        const testval = '0x044319b040a81f78d14b8efcf73f3120b28d88ac5ca316dbd1a83797defcf20b5a4319b040a81f78d14b8efcf73f3120b28d88ac5ca316dbd1a83797defcf20b5a'
+        const decodedAddress = await contract.testPubKeyToAddress(testval);
+        const decodedAddress2 = await contract.testPubKeyToAddress(publicKeyNoHdr);
+        console.log("decodedAddress:", decodedAddress);
+        console.log("decodedAddress2:", decodedAddress2);
+
         expect(ownerAddress).equal(decodedAddress);
       })
   })
