@@ -1,4 +1,4 @@
-import bs58 from "bs58";
+const bs58 = require("bs58");
 
 function int2ip(ipInt) {
   return (
@@ -38,7 +38,7 @@ function getBytes32FromMultihash(multihash) {
   const decoded = bs58.decode(multihash);
 
   return {
-    digest: `0x${decoded.slice(2).toString("hex")}`,
+    digest: `0x${Buffer.from(decoded.slice(2)).toString("hex")}`,
     hashFunction: decoded[0],
     size: decoded[1],
   };
@@ -93,6 +93,7 @@ function getMultihashFromContractResponse(response) {
 
 function ipfsIdToIpfsIdHash(ipfsId) {
   const multihashStruct = getBytes32FromMultihash(ipfsId);
+  // console.log("multihashStruct", multihashStruct);
   const packed = ethers.utils.solidityPack(
     ["bytes32", "uint8", "uint8"],
     [multihashStruct.digest, multihashStruct.hashFunction, multihashStruct.size]

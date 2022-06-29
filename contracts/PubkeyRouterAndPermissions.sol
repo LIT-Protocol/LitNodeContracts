@@ -49,9 +49,6 @@ contract PubkeyRouterAndPermissions is Ownable {
     // the lit action is allowed to sign with the pubkey if it's IPFS ID is in the set of permittedActions for that pubkey
     mapping(uint256 => EnumerableSet.Bytes32Set) permittedActions;
 
-    // mononically increasing counter for the tokenIds
-    uint256 public currentOwnerTokenId = 0;
-
     /* ========== CONSTRUCTOR ========== */
     constructor(address _pkpNft) {
         pkpNFT = PKPNFT(_pkpNft);
@@ -132,30 +129,31 @@ contract PubkeyRouterAndPermissions is Ownable {
         uint256 keyType
     ) public onlyOwner {
         // FIXME need to make  thing we keccak match the actual public key.  i don't think abi.encodePacked just works for this.
-        if (pubkeys[tokenId].keyLength != 0) {
-            // this is the only place where the tokenId could become decoupled from the keyParts.
-            // therefore, we need to ensure that the tokenId was derived correctly
-            require(
-                tokenId ==
-                    uint256(keccak256(abi.encodePacked(keyPart1, keyPart2)))
-            );
-        }
+        // this is the only place where the tokenId could become decoupled from the keyParts.
+        // therefore, we need to ensure that the tokenId was derived correctly
+        // this only needs to be done the first time the PKP is registered
+        // if (pubkeys[tokenId].keyLength != 0) {
+        //     require(
+        //         tokenId ==
+        //             uint256(keccak256(abi.encodePacked(keyPart1, keyPart2)))
+        //     );
+        // }
+
+        // check that the sender is a staking node and hasn't already voted for this key
 
         pubkeys[tokenId].keyPart1 = keyPart1;
         pubkeys[tokenId].keyPart2 = keyPart2;
         pubkeys[tokenId].keyLength = keyLength;
         pubkeys[tokenId].stakingContract = stakingContract;
         pubkeys[tokenId].keyType = keyType;
-        // currentOwnerTokenId starts at 0 but we want the first token id to be 1
-        currentOwnerTokenId++;
+
         emit PubkeyRoutingDataSet(
             tokenId,
             keyPart1,
             keyPart2,
             keyLength,
             stakingContract,
-            keyType,
-            currentOwnerTokenId
+            keyType
         );
     }
 
@@ -171,24 +169,24 @@ contract PubkeyRouterAndPermissions is Ownable {
         EnumerableSet.Bytes32Set storage newPermittedActions = permittedActions[
             tokenId
         ];
-        newPermittedUsers.add(user);
-        emit PermittedAddressAdded(tokenId, user);
+        newPermittedActions.add(ipfsId);
+        emit PermittedActionAdded(tokenId, ipfsId);
     }
 
     // Remove a permitted address for a given pubkey
-    function removePermittedAction(uint256 tokenId, address user) public {
+    function removePermittedAction(uint256 tokenId, bytes32 ipfsId) public {
         // check that user is allowed to set this
         address nftOwner = pkpNFT.ownerOf(tokenId);
         require(
             msg.sender == nftOwner,
-            "Only the PKP NFT owner can add and remove permitted addresses"
+            "Only the PKP NFT owner can add and remove permitted actions"
         );
 
-        EnumerableSet.AddressSet storage newPermittedUsers = permittedAddresses[
+        EnumerableSet.Bytes32Set storage newPermittedActions = permittedActions[
             tokenId
         ];
-        newPermittedUsers.remove(user);
-        emit PermittedAddressRemoved(tokenId, user);
+        newPermittedActions.remove(ipfsId);
+        emit PermittedActionRemoved(tokenId, ipfsId);
     }
 
     /// Add a permitted addresses for a given pubkey
@@ -231,9 +229,10 @@ contract PubkeyRouterAndPermissions is Ownable {
         bytes32 keyPart2,
         uint256 keyLength,
         address stakingContract,
-        uint256 keyType,
-        uint256 ownerTokenId
+        uint256 keyType
     );
     event PermittedAddressAdded(uint256 indexed tokenId, address user);
     event PermittedAddressRemoved(uint256 indexed tokenId, address user);
+    event PermittedActionAdded(uint256 indexed tokenId, bytes32 ipfsId);
+    event PermittedActionRemoved(uint256 indexed tokenId, bytes32 ipfsId);
 }

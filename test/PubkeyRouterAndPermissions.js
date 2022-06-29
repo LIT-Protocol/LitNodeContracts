@@ -124,7 +124,7 @@ describe("PubkeyRouterAndPermissions", function () {
       let creator;
       let tokenId;
 
-      beforeEach(async () => {
+      before(async () => {
         [creator, tester, ...signers] = signers;
 
         routerContract = await routerContract.connect(deployer);
@@ -216,13 +216,13 @@ describe("PubkeyRouterAndPermissions", function () {
         // validate that the ipfs ID is not permitted
         let permitted = await routerContract.isPermittedAction(
           tokenId,
-          addressToPermit
+          ipfsIdHash
         );
         expect(permitted).equal(false);
 
         routerContract = await routerContract.connect(tester);
-        await routerContract.addPermittedAddress(tokenId, addressToPermit);
-        permitted = await routerContract.isPermitted(tokenId, addressToPermit);
+        await routerContract.addPermittedAction(tokenId, ipfsIdHash);
+        permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
         expect(permitted).equal(true);
       });
     });
