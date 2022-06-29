@@ -3,6 +3,7 @@ pragma solidity ^0.8.3;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {PubkeyRouterAndPermissions} from "./PubkeyRouterAndPermissions.sol";
 
 // TODO: Prevent users from minting when there are no available keypairs
 
@@ -15,12 +16,16 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 contract PKPNFT is ERC721("Programmable Keypair", "PKP"), Ownable {
   /* ========== STATE VARIABLES ========== */
 
+  PubkeyRouterAndPermissions public router;
+
     constructor() {}
 
     // create a valid token for a given public key.   
-    function mint( bytes memory pubkey) public returns (uint) {
-          
+    function mint( bytes memory pubkey) public returns (uint) {    
       uint256 tokenId = uint256(keccak256(pubkey));
+
+      require(router.isRouted(tokenId), "This PKP has not been routed yet");
+
       _mint(msg.sender, tokenId);
 
       return tokenId;
@@ -30,6 +35,10 @@ contract PKPNFT is ERC721("Programmable Keypair", "PKP"), Ownable {
         address to,
         uint256 tokenId) public {
       _transfer(from, to, tokenId);
+    }
+
+    function setRouterAddress(address routerAddress) public onlyOwner {
+      router = PubkeyRouterAndPermissions(routerAddress);
     }
     
 }

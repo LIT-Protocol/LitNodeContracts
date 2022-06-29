@@ -20,6 +20,9 @@ describe("PubkeyRouterAndPermissions", function () {
     tokenContract = await TokenContractFactory.deploy();
 
     routerContract = await RouterContractFactory.deploy(tokenContract.address);
+
+    tokenContract = await tokenContract.connect(deployer);
+    await tokenContract.setRouterAddress(routerContract.address);
   });
 
   describe("store and retrieve routing data", async () => {
