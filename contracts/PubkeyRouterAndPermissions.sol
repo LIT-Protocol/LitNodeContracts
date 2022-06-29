@@ -13,6 +13,7 @@ import "hardhat/console.sol";
 
 contract PubkeyRouterAndPermissions is Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSet for EnumerableSet.Bytes32Set;
 
     /* ========== STATE VARIABLES ========== */
 
@@ -41,7 +42,7 @@ contract PubkeyRouterAndPermissions is Ownable {
     // the address is allowed to sign with the pubkey if it's in the set of permittedAddresses for that pubkey
     mapping (uint => EnumerableSet.AddressSet) permittedAddresses;
 
-    // maps the keccack256(hashFunction, size, digest) -> Multihash
+    // maps the keccack256(digest, hashFunction, size) -> Multihash
     mapping (bytes32 => Multihash) public ipfsIds;
 
     // map the keccack256(compressed pubkey) -> set of hashes of IPFS IDs
@@ -64,8 +65,13 @@ contract PubkeyRouterAndPermissions is Ownable {
         return pubkeys[pubkeyHash];
     }
 
+    /// get if a Lit Action is permitted to use a given pubkey.  returns true if it is permitted to use the pubkey in the permittedActions[tokenId] struct.
+    function isPermittedAction(uint tokenId, bytes32 ipfsId) external view returns (bool) {
+        return permittedActions[tokenId].contains(ipfsId);
+    }
+
     /// get if a user is permitted to use a given pubkey.  returns true if they are the owner of the matching NFT, or if they are permitted to use the pubkey in the permittedAddresses[pubkeyHash] struct.
-    function isPermitted(uint tokenId, address user) external view returns (bool) {
+    function isPermittedAddress(uint tokenId, address user) external view returns (bool) {
         return pkpNFT.ownerOf(tokenId) == user || permittedAddresses[tokenId].contains(user);
     }
 

@@ -17,6 +17,7 @@
     "hardhat-ethernal": "^1.0.0"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.1.0"
+    "@openzeppelin/contracts": "^4.1.0",
+    "bs58": "^5.0.0"
   }
 }

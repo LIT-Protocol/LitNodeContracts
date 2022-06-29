@@ -1,4 +1,5 @@
 const { expect } = require("chai");
+const { ipfsIdToIpfsIdHash } = require("../utils.js");
 
 describe("PubkeyRouterAndPermissions", function () {
   let deployer;
@@ -121,6 +122,7 @@ describe("PubkeyRouterAndPermissions", function () {
         "0xf3eff7fd71d9ed07417480dd1bf36487d426d9a17129a1aa72ef946dff7be4769fca165782f439f85d594dca927187b98c65e978509dcc581b0cbc42abb9100f";
       let tester;
       let creator;
+      let tokenId;
 
       beforeEach(async () => {
         [creator, tester, ...signers] = signers;
@@ -176,11 +178,52 @@ describe("PubkeyRouterAndPermissions", function () {
         expect(keyLengthAfter).equal(keyLengthInput);
         expect(stakingContractAfter).equal(stakingContractAddress);
         expect(keyTypeAfter).equal(keyTypeInput);
+
+        // mint the PKP to the tester account
+        tokenContract = await tokenContract.connect(tester);
+        await tokenContract.mint(fakePubkey);
+
+        tokenId = ethers.BigNumber.from(pubkeyHash);
       });
 
-      it("mints a PKP and grants permission to an eth address", async () => {
+      it("grants permission to an eth address", async () => {
+        const addressToPermit = "0x75EdCdfb5A678290A8654979703bdb75C683B3dD";
+
         tokenContract = await tokenContract.connect(tester);
-        const txn = await tokenContract.mint(fakePubkey);
+
+        // validate that the address is not permitted
+        let permitted = await routerContract.isPermittedAddress(
+          tokenId,
+          addressToPermit
+        );
+        expect(permitted).equal(false);
+
+        routerContract = await routerContract.connect(tester);
+        await routerContract.addPermittedAddress(tokenId, addressToPermit);
+        permitted = await routerContract.isPermittedAddress(
+          tokenId,
+          addressToPermit
+        );
+        expect(permitted).equal(true);
+      });
+
+      it("grants permission to an IPFS id", async () => {
+        const ipfsIdToPermit = "QmPRjq7medLpjnFSZaiJ3xUudKteVFQDmaMZuhr644MQ4Z";
+        const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
+
+        tokenContract = await tokenContract.connect(tester);
+
+        // validate that the ipfs ID is not permitted
+        let permitted = await routerContract.isPermittedAction(
+          tokenId,
+          addressToPermit
+        );
+        expect(permitted).equal(false);
+
+        routerContract = await routerContract.connect(tester);
+        await routerContract.addPermittedAddress(tokenId, addressToPermit);
+        permitted = await routerContract.isPermitted(tokenId, addressToPermit);
+        expect(permitted).equal(true);
       });
     });
   });
