@@ -1,4 +1,5 @@
 const { expect } = require("chai");
+const { ethers } = require("hardhat");
 
 describe("PKPNFT", function () {
   let deployer;
@@ -35,10 +36,11 @@ describe("PKPNFT", function () {
     let pubkey =
       "0x034319b040a81f78d14b8efcf73f3120b28d88ac5ca316dbd1a83797defcf20b5a";
     const pubkeyHash = ethers.utils.keccak256(pubkey);
+    const tokenId = ethers.BigNumber.from(pubkeyHash);
     //console.log("PubkeyHash: " , pubkeyHash);
 
     it("refuses to mint because the PKP isnt routed yet", async () => {
-      expect(token.mint(pubkey)).revertedWith(
+      expect(token.mint(tokenId)).revertedWith(
         "This PKP has not been routed yet"
       );
     });

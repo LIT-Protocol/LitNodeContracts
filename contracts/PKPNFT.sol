@@ -21,9 +21,7 @@ contract PKPNFT is ERC721("Programmable Keypair", "PKP"), Ownable {
     constructor() {}
 
     // create a valid token for a given public key.
-    function mint(bytes memory pubkey) public returns (uint256) {
-        uint256 tokenId = uint256(keccak256(pubkey));
-
+    function mint(uint256 tokenId) public returns (uint256) {
         require(router.isRouted(tokenId), "This PKP has not been routed yet");
 
         _mint(msg.sender, tokenId);
