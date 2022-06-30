@@ -345,6 +345,70 @@ describe("Staking", function () {
       ).is.true;
     });
 
+    it("votes to register a PKP", async () => {
+      const fakePubkey =
+        "0x83709b8bcc865ce02b7a918909936c8fbc3520445634dcaf4a18cfa1f0218a5ca37173aa265defedad866a0ae7b6c301";
+
+      // validate that it's not routed yet
+      const pubkeyHash = ethers.utils.keccak256(fakePubkey);
+      const [
+        keyPart1,
+        keyPart2,
+        keyLength,
+        stakingContractAddressBefore,
+        keyType,
+      ] = await routerContract.getRoutingData(pubkeyHash);
+      expect(keyPart1).equal(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      );
+      expect(keyPart2).equal(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      );
+      expect(keyLength).equal(0);
+      expect(stakingContractAddressBefore).equal(
+        "0x0000000000000000000000000000000000000000"
+      );
+      expect(keyType).equal(0);
+
+      const keyPart1Bytes = ethers.utils.hexDataSlice(fakePubkey, 0, 32);
+      const keyPart2Bytes = ethers.utils.hexZeroPad(
+        ethers.utils.hexDataSlice(fakePubkey, 32),
+        32
+      );
+      const keyLengthInput = 48;
+      const keyTypeInput = 1;
+
+      // vote to register it
+      for (let i = 0; i < stakingAccounts.length; i++) {
+        const stakingAccount = stakingAccounts[i];
+        const nodeAddress = stakingAccount.nodeAddress;
+        routerContract = routerContract.connect(nodeAddress);
+        // console.log("voting with address ", nodeAddress.address);
+        await routerContract.voteForRoutingData(
+          pubkeyHash,
+          keyPart1Bytes,
+          keyPart2Bytes,
+          keyLengthInput,
+          stakingContract.address,
+          keyTypeInput
+        );
+      }
+
+      // validate that it was set
+      const [
+        keyPart1After,
+        keyPart2After,
+        keyLengthAfter,
+        stakingContractAddressAfter,
+        keyTypeAfter,
+      ] = await routerContract.getRoutingData(pubkeyHash);
+      expect(keyPart1After).equal(keyPart1Bytes);
+      expect(keyPart2After).equal(keyPart2Bytes);
+      expect(keyLengthAfter).equal(keyLengthInput);
+      expect(stakingContractAddressAfter).equal(stakingContract.address);
+      expect(keyTypeAfter).equal(keyTypeInput);
+    });
+
     it("leaves as a validator", async () => {
       // validators should include stakingAccount1
       const validatorsBefore =
@@ -513,64 +577,6 @@ describe("Staking", function () {
           await toBeKicked.stakingAddress.getAddress()
         )
       ).to.be.false;
-    });
-
-    it("votes to register a PKP", async () => {
-      const fakePubkey =
-        "0x83709b8bcc865ce02b7a918909936c8fbc3520445634dcaf4a18cfa1f0218a5ca37173aa265defedad866a0ae7b6c301";
-
-      // validate that it's not routed yet
-      const pubkeyHash = ethers.utils.keccak256(fakePubkey);
-      const [keyPart1, keyPart2, keyLength, stakingContract, keyType] =
-        await routerContract.getRoutingData(pubkeyHash);
-      expect(keyPart1).equal(
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
-      );
-      expect(keyPart2).equal(
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
-      );
-      expect(keyLength).equal(0);
-      expect(stakingContract).equal(
-        "0x0000000000000000000000000000000000000000"
-      );
-      expect(keyType).equal(0);
-
-      const keyPart1Bytes = ethers.utils.hexDataSlice(fakePubkey, 0, 32);
-      const keyPart2Bytes = ethers.utils.hexZeroPad(
-        ethers.utils.hexDataSlice(fakePubkey, 32),
-        32
-      );
-      const keyLengthInput = 48;
-      const keyTypeInput = 1;
-
-      // vote to register it
-      for (let i = 0; i < stakingAccounts.length; i++) {
-        const stakingAccount = stakingAccounts[i];
-        const nodeAddress = stakingAccount.nodeAddress;
-        routerContract = routerContract.connect(nodeAddress);
-        await routerContract.voteForRoutingData(
-          pubkeyHash,
-          keyPart1Bytes,
-          keyPart2Bytes,
-          keyLengthInput,
-          stakingContract.address,
-          keyTypeInput
-        );
-      }
-
-      // validate that it was set
-      const [
-        keyPart1After,
-        keyPart2After,
-        keyLengthAfter,
-        stakingContractAddressAfter,
-        keyTypeAfter,
-      ] = await routerContract.getRoutingData(pubkeyHash);
-      expect(keyPart1After).equal(keyPart1Bytes);
-      expect(keyPart2After).equal(keyPart2Bytes);
-      expect(keyLengthAfter).equal(keyLengthInput);
-      expect(stakingContractAddressAfter).equal(stakingContract.address);
-      expect(keyTypeAfter).equal(keyTypeInput);
     });
   });
 });

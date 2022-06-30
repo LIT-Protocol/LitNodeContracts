@@ -185,8 +185,10 @@ contract PubkeyRouterAndPermissions is Ownable {
     ) public {
         // check that the sender is a staking node and hasn't already voted for this key
         Staking stakingContractInstance = Staking(stakingContract);
+        address stakerAddress = stakingContractInstance
+            .nodeAddressToStakerAddress(msg.sender);
         require(
-            stakingContractInstance.isActiveValidator(msg.sender),
+            stakingContractInstance.isActiveValidator(stakerAddress),
             "Only active validators can set routing data"
         );
 
