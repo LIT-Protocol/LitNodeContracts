@@ -186,7 +186,7 @@ describe("PubkeyRouterAndPermissions", function () {
         tokenId = ethers.BigNumber.from(pubkeyHash);
       });
 
-      it("grants permission to an eth address", async () => {
+      it("grants permission to an eth address and then revokes it", async () => {
         const addressToPermit = "0x75EdCdfb5A678290A8654979703bdb75C683B3dD";
 
         tokenContract = await tokenContract.connect(tester);
@@ -198,6 +198,7 @@ describe("PubkeyRouterAndPermissions", function () {
         );
         expect(permitted).equal(false);
 
+        // permit it
         routerContract = await routerContract.connect(tester);
         await routerContract.addPermittedAddress(tokenId, addressToPermit);
         permitted = await routerContract.isPermittedAddress(
@@ -205,9 +206,17 @@ describe("PubkeyRouterAndPermissions", function () {
           addressToPermit
         );
         expect(permitted).equal(true);
+
+        // revoke
+        await routerContract.removePermittedAddress(tokenId, addressToPermit);
+        permitted = await routerContract.isPermittedAddress(
+          tokenId,
+          addressToPermit
+        );
+        expect(permitted).equal(false);
       });
 
-      it("grants permission to an IPFS id", async () => {
+      it("grants permission to an IPFS id and then revokes it", async () => {
         const ipfsIdToPermit = "QmPRjq7medLpjnFSZaiJ3xUudKteVFQDmaMZuhr644MQ4Z";
         const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
 
@@ -220,10 +229,16 @@ describe("PubkeyRouterAndPermissions", function () {
         );
         expect(permitted).equal(false);
 
+        // permit it
         routerContract = await routerContract.connect(tester);
         await routerContract.addPermittedAction(tokenId, ipfsIdHash);
         permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
         expect(permitted).equal(true);
+
+        // revoke
+        await routerContract.removePermittedAction(tokenId, ipfsIdHash);
+        permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
+        expect(permitted).equal(false);
       });
     });
   });
