@@ -99,6 +99,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     /* ========== VIEWS ========== */
+    function isActiveValidator(address account) external view returns (bool) {
+        return validatorsInCurrentEpoch.contains(account);
+    }
+
     function rewardOf(address account) external view returns (uint256) {
         return validators[account].reward;
     }
@@ -158,7 +162,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             storage vk = votesToKickValidatorsInNextEpoch[epoch.number][
                 stakerAddress
             ];
-        if (vk.votes >= (validatorsInCurrentEpoch.length() / 3) * 2) {
+        if (vk.votes >= validatorCountForConsensus()) {
             // 2/3 of validators must vote
             return true;
         }
@@ -176,6 +180,11 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     function validatorStateIsUnlocked() public view returns (bool) {
         return state == States.Unlocked;
+    }
+
+    function validatorCountForConsensus() public view returns (uint256) {
+        // currently set to 2/3.  this could be changed to be configurable.
+        return (validatorsInCurrentEpoch.length() / 3) * 2;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */

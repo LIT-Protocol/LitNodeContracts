@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {PKPNFT} from "./PKPNFT.sol";
+import {Staking} from "./Staking.sol";
 
 import "hardhat/console.sol";
 
@@ -27,6 +28,13 @@ contract PubkeyRouterAndPermissions is Ownable {
         uint256 keyType; // 1 = BLS, 2 = ECDSA.  Not doing this in an enum so we can add more keytypes in the future without redeploying.
     }
 
+    struct PubkeyRegistrationProgress {
+        PubkeyRoutingData routingData;
+        uint256 nodeVoteCount;
+        uint256 nodeVoteThreshold;
+        mapping(address => bool) votedNodes;
+    }
+
     // from https://github.com/saurfang/ipfs-multihash-on-solidity
     // for storing IPFS IDs
     struct Multihash {
@@ -37,6 +45,10 @@ contract PubkeyRouterAndPermissions is Ownable {
 
     // map the keccack256(compressed pubkey) -> PubkeyRoutingData
     mapping(uint256 => PubkeyRoutingData) public pubkeys;
+
+    // this is used to count the votes from the nodes to register a key
+    // map the keccack256(compressed pubkey) -> PubkeyRegistrationProgress
+    mapping(uint256 => PubkeyRegistrationProgress) public pubkeyRegistrations;
 
     // map the keccack256(compressed pubkey) -> set of addresses
     // the address is allowed to sign with the pubkey if it's in the set of permittedAddresses for that pubkey
@@ -55,6 +67,21 @@ contract PubkeyRouterAndPermissions is Ownable {
     }
 
     /* ========== VIEWS ========== */
+
+    function stripLeadingZeros(bytes32 b) public pure returns (bytes memory) {
+        uint256 i = 0;
+        while (i < b.length && b[i] == 0) {
+            i++;
+        }
+        // we now know there are i leading zeroes to remove
+        bytes memory result = new bytes(b.length - i);
+
+        // copy over the nonzero bytes
+        for (uint256 j = 0; j < result.length; j++) {
+            result[j] = b[j + i];
+        }
+        return result;
+    }
 
     /// get the routing data for a given key hash
     function getRoutingData(uint256 pubkeyHash)
@@ -86,7 +113,7 @@ contract PubkeyRouterAndPermissions is Ownable {
     }
 
     /// get if a given pubkey has routing data associated with it or not
-    function isRouted(uint256 tokenId) external view returns (bool) {
+    function isRouted(uint256 tokenId) public view returns (bool) {
         PubkeyRoutingData memory prd = pubkeys[tokenId];
         return
             prd.keyPart1 != 0 &&
@@ -120,6 +147,7 @@ contract PubkeyRouterAndPermissions is Ownable {
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     /// Set the pubkey and routing data for a given key hash
+    // this is only used by an admin in case of emergency.  can prob be removed.
     function setRoutingData(
         uint256 tokenId,
         bytes32 keyPart1,
@@ -128,19 +156,6 @@ contract PubkeyRouterAndPermissions is Ownable {
         address stakingContract,
         uint256 keyType
     ) public onlyOwner {
-        // FIXME need to make  thing we keccak match the actual public key.  i don't think abi.encodePacked just works for this.
-        // this is the only place where the tokenId could become decoupled from the keyParts.
-        // therefore, we need to ensure that the tokenId was derived correctly
-        // this only needs to be done the first time the PKP is registered
-        // if (pubkeys[tokenId].keyLength != 0) {
-        //     require(
-        //         tokenId ==
-        //             uint256(keccak256(abi.encodePacked(keyPart1, keyPart2)))
-        //     );
-        // }
-
-        // check that the sender is a staking node and hasn't already voted for this key
-
         pubkeys[tokenId].keyPart1 = keyPart1;
         pubkeys[tokenId].keyPart2 = keyPart2;
         pubkeys[tokenId].keyLength = keyLength;
@@ -155,6 +170,127 @@ contract PubkeyRouterAndPermissions is Ownable {
             stakingContract,
             keyType
         );
+    }
+
+    /// vote to set the pubkey and routing data for a given key
+    // FIXME this is vulnerable to an attack where the first node to call setRoutingData can set an incorrect key length, stakingContract, or keyType, since none of those are validated.  Then, if more nodes try to call setRoutingData with the correct data, it will revert because it doesn't match.  Instead, it should probably be vote based.  so if 1 guy votes for an incorrect keyLength, it doesn't matter, because the one that gets the most votes wins.
+    // FIXME this is also vulnerable to an attack where someone sets up their own staking contract with a threshold of 1 and then goes around claiming tokenIds and filling them with junk.  we probably need to verify that the staking contract is legit.  i'm not sure how to do that though.  like we can check various things from the staking contract, that the staked token is the real Lit token, and that the user has staked a significant amount.  But how do we know that staking contract isn't a custom fork that lies about all that stuff?  Maybe we need a mapping of valid staking contracts somewhere, and when we deploy a new one we add it manually.
+    function voteForRoutingData(
+        uint256 tokenId,
+        bytes32 keyPart1,
+        bytes32 keyPart2,
+        uint256 keyLength,
+        address stakingContract,
+        uint256 keyType
+    ) public {
+        // check that the sender is a staking node and hasn't already voted for this key
+        Staking stakingContractInstance = Staking(stakingContract);
+        require(
+            stakingContractInstance.isActiveValidator(msg.sender),
+            "Only active validators can set routing data"
+        );
+
+        require(
+            !pubkeyRegistrations[tokenId].votedNodes[msg.sender],
+            "You have already voted for this key"
+        );
+
+        // if this is the first registration, validate that the hashes match
+        if (pubkeyRegistrations[tokenId].nodeVoteCount == 0) {
+            // this is the only place where the tokenId could become decoupled from the keyParts.
+            // therefore, we need to ensure that the tokenId was derived correctly
+            // this only needs to be done the first time the PKP is registered
+
+            // console.log("keypart1: ");
+            // console.logBytes32(keyPart1);
+            // console.log("keypart2: ");
+            // console.logBytes32(keyPart2);
+
+            // strip leading zeros because we added those to the keyPart2 when we stored them
+            bytes memory keyPart2WithoutLeadingZeros = stripLeadingZeros(
+                keyPart2
+            );
+
+            // console.log("keyPart2WithoutLeadingZeros: ");
+            // console.logBytes(keyPart2WithoutLeadingZeros);
+
+            require(
+                tokenId ==
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                keyPart1,
+                                keyPart2WithoutLeadingZeros
+                            )
+                        )
+                    ),
+                "tokenId does not match hashed keyParts"
+            );
+            pubkeyRegistrations[tokenId].routingData.keyPart1 = keyPart1;
+            pubkeyRegistrations[tokenId].routingData.keyPart2 = keyPart2;
+            pubkeyRegistrations[tokenId].routingData.keyLength = keyLength;
+            pubkeyRegistrations[tokenId]
+                .routingData
+                .stakingContract = stakingContract;
+            pubkeyRegistrations[tokenId].routingData.keyType = keyType;
+
+            // set the threshold of votes to be the threshold of validators in the staking contract
+            pubkeyRegistrations[tokenId]
+                .nodeVoteThreshold = stakingContractInstance
+                .validatorCountForConsensus();
+        } else {
+            // if this is not the first registration, validate that everything matches
+            require(
+                keyPart1 == pubkeyRegistrations[tokenId].routingData.keyPart1 &&
+                    keyPart2 ==
+                    pubkeyRegistrations[tokenId].routingData.keyPart2,
+                "keyParts do not match"
+            );
+
+            // validate that the key length matches
+            require(
+                keyLength == pubkeyRegistrations[tokenId].routingData.keyLength,
+                "keyLength does not match"
+            );
+
+            // validate that the staking contract matches
+            require(
+                stakingContract ==
+                    pubkeyRegistrations[tokenId].routingData.stakingContract,
+                "stakingContract does not match"
+            );
+
+            // validate that the key type matches
+            require(
+                keyType == pubkeyRegistrations[tokenId].routingData.keyType,
+                "keyType does not match"
+            );
+        }
+
+        pubkeyRegistrations[tokenId].votedNodes[msg.sender] = true;
+        pubkeyRegistrations[tokenId].nodeVoteCount++;
+
+        // if nodeVoteCount is greater than nodeVoteThreshold, set the routing data
+        if (
+            pubkeyRegistrations[tokenId].nodeVoteCount >
+            pubkeyRegistrations[tokenId].nodeVoteThreshold &&
+            !isRouted(tokenId)
+        ) {
+            pubkeys[tokenId].keyPart1 = keyPart1;
+            pubkeys[tokenId].keyPart2 = keyPart2;
+            pubkeys[tokenId].keyLength = keyLength;
+            pubkeys[tokenId].stakingContract = stakingContract;
+            pubkeys[tokenId].keyType = keyType;
+
+            emit PubkeyRoutingDataSet(
+                tokenId,
+                keyPart1,
+                keyPart2,
+                keyLength,
+                stakingContract,
+                keyType
+            );
+        }
     }
 
     /// Add a permitted action for a given pubkey
