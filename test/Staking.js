@@ -506,6 +506,10 @@ describe("Staking", function () {
       await pkpNft.mint(pubkeyHash, transaction);
       owner = await pkpNft.ownerOf(pubkeyHash);
       expect(owner).to.equal(stakingAccount1.address);
+
+      // confirm that the getter that reassembles the pubkey returns a perfect match
+      let pubkeyFromRouter = await routerContract.getFullPubkey(pubkeyHash);
+      expect(pubkeyFromRouter).equal(fakePubkey);
     });
 
     it("leaves as a validator", async () => {
