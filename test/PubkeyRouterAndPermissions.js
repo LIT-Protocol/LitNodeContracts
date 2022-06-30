@@ -211,7 +211,12 @@ describe("PubkeyRouterAndPermissions", function () {
 
         // mint the PKP to the tester account
         pkpContract = await pkpContract.connect(tester);
-        await pkpContract.mint(tokenId);
+        // send eth with the txn
+        const mintCost = await pkpContract.mintCost();
+        const transaction = {
+          value: mintCost,
+        };
+        await pkpContract.mint(tokenId, transaction);
       });
 
       it("grants permission to an eth address and then revokes it", async () => {
