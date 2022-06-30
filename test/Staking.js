@@ -351,7 +351,7 @@ describe("Staking", function () {
 
       // validate that it's not routed yet
       const pubkeyHash = ethers.utils.keccak256(fakePubkey);
-      const [
+      let [
         keyPart1,
         keyPart2,
         keyLength,
@@ -378,8 +378,8 @@ describe("Staking", function () {
       const keyLengthInput = 48;
       const keyTypeInput = 1;
 
-      // vote to register it
-      for (let i = 0; i < stakingAccounts.length; i++) {
+      // vote to register it with 5 nodes
+      for (let i = 0; i < 5; i++) {
         const stakingAccount = stakingAccounts[i];
         const nodeAddress = stakingAccount.nodeAddress;
         routerContract = routerContract.connect(nodeAddress);
@@ -394,8 +394,70 @@ describe("Staking", function () {
         );
       }
 
-      // validate that it was set
-      const [
+      // validate that it was not set yet because the threshold of 6 have not voted yet
+      [keyPart1, keyPart2, keyLength, stakingContractAddressBefore, keyType] =
+        await routerContract.getRoutingData(pubkeyHash);
+      expect(keyPart1).equal(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      );
+      expect(keyPart2).equal(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      );
+      expect(keyLength).equal(0);
+      expect(stakingContractAddressBefore).equal(
+        "0x0000000000000000000000000000000000000000"
+      );
+      expect(keyType).equal(0);
+
+      // validate that the voting process is going as expected
+      let [routingData, nodeVoteCount, nodeVoteThreshold, votedNodes] =
+        await routerContract.pubkeyRegistrations(pubkeyHash);
+      expect(nodeVoteThreshold).equal(6);
+      expect(nodeVoteCount).equal(5);
+
+      // this data is the candidate data.  if the votes pass, this becomes the real routing data.  this should match what the nodes are voting for
+      [keyPart1, keyPart2, keyLength, stakingContractAddressBefore, keyType] =
+        routingData;
+      expect(keyPart1).equal(keyPart1Bytes);
+      expect(keyPart2).equal(keyPart2Bytes);
+      expect(keyLength).equal(keyLengthInput);
+      expect(stakingContractAddressBefore).equal(stakingContract.address);
+      expect(keyType).equal(keyTypeInput);
+
+      // now vote with the rest of the nodes
+      for (let i = 5; i < stakingAccounts.length; i++) {
+        const stakingAccount = stakingAccounts[i];
+        const nodeAddress = stakingAccount.nodeAddress;
+        routerContract = routerContract.connect(nodeAddress);
+        // console.log("voting with address ", nodeAddress.address);
+        await routerContract.voteForRoutingData(
+          pubkeyHash,
+          keyPart1Bytes,
+          keyPart2Bytes,
+          keyLengthInput,
+          stakingContract.address,
+          keyTypeInput
+        );
+        if (i === 6) {
+          // confirm that it was set after the 7th node has voted
+          // because it's set after the nodeVoteCount > nodeVoteThreshold which is 6.
+          let [
+            keyPart1After,
+            keyPart2After,
+            keyLengthAfter,
+            stakingContractAddressAfter,
+            keyTypeAfter,
+          ] = await routerContract.getRoutingData(pubkeyHash);
+          expect(keyPart1After).equal(keyPart1Bytes);
+          expect(keyPart2After).equal(keyPart2Bytes);
+          expect(keyLengthAfter).equal(keyLengthInput);
+          expect(stakingContractAddressAfter).equal(stakingContract.address);
+          expect(keyTypeAfter).equal(keyTypeInput);
+        }
+      }
+
+      // validate that it was set after all the voting finished
+      let [
         keyPart1After,
         keyPart2After,
         keyLengthAfter,
