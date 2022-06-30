@@ -14,31 +14,32 @@ import {PubkeyRouterAndPermissions} from "./PubkeyRouterAndPermissions.sol";
 /// Simply put, whomever owns a PKP NFT can ask that PKP to sign a message.
 /// The owner can also grant signing permissions to other eth addresses
 contract PKPNFT is ERC721("Programmable Keypair", "PKP"), Ownable {
-  /* ========== STATE VARIABLES ========== */
+    /* ========== STATE VARIABLES ========== */
 
-  PubkeyRouterAndPermissions public router;
+    PubkeyRouterAndPermissions public router;
 
     constructor() {}
 
-    // create a valid token for a given public key.   
-    function mint( bytes memory pubkey) public returns (uint) {    
-      uint256 tokenId = uint256(keccak256(pubkey));
+    // create a valid token for a given public key.
+    function mint(bytes memory pubkey) public returns (uint256) {
+        uint256 tokenId = uint256(keccak256(pubkey));
 
-      require(router.isRouted(tokenId), "This PKP has not been routed yet");
+        require(router.isRouted(tokenId), "This PKP has not been routed yet");
 
-      _mint(msg.sender, tokenId);
+        _mint(msg.sender, tokenId);
 
-      return tokenId;
-    } 
+        return tokenId;
+    }
 
-    function transfer(address from,
+    function transfer(
+        address from,
         address to,
-        uint256 tokenId) public {
-      _transfer(from, to, tokenId);
+        uint256 tokenId
+    ) public {
+        _transfer(from, to, tokenId);
     }
 
     function setRouterAddress(address routerAddress) public onlyOwner {
-      router = PubkeyRouterAndPermissions(routerAddress);
+        router = PubkeyRouterAndPermissions(routerAddress);
     }
-    
 }
