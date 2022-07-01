@@ -7,7 +7,7 @@ import {PubkeyRouterAndPermissions} from "./PubkeyRouterAndPermissions.sol";
 import {ERC721Burnable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 
 // TODO: Set up free minting for us by letting the mint methods take a signature.  We sign the tokenId and the contract checks it
-// TODO: tests for the mintAndBurn function, withdraw function, some of the setters, transfer function
+// TODO: tests for the mintGrantAndBurn function, withdraw function, some of the setters, transfer function, freeMint and freeMintGrantAndBurn
 
 /// @title Programmable Keypair NFT
 ///
