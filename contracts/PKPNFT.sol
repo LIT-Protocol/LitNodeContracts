@@ -47,6 +47,7 @@ contract PKPNFT is
         // if these don't match, the user could use any old signature
         // to mint any number of PKPs
         // and this would be vulnerable to replay attacks
+        // FIXME this needs the whole "ethereum signed message: \27" thingy prepended to actually work
         bytes32 expectedHash = keccak256(abi.encodePacked(tokenId));
         require(
             expectedHash == msgHash,
