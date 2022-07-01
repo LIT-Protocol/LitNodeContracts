@@ -4,14 +4,14 @@ const { ethers } = require("hardhat");
 describe("PKPNFT", function () {
   let deployer;
   let signers;
-  let token;
+  let pkpContract;
   let router;
 
-  let TokenFactory;
+  let PkpFactory;
   let RouterFactory;
 
   before(async () => {
-    TokenFactory = await ethers.getContractFactory("PKPNFT");
+    PkpFactory = await ethers.getContractFactory("PKPNFT");
     RouterFactory = await ethers.getContractFactory(
       "PubkeyRouterAndPermissions"
     );
@@ -22,16 +22,16 @@ describe("PKPNFT", function () {
   });
 
   beforeEach(async () => {
-    token = await TokenFactory.deploy();
-    router = await RouterFactory.deploy(token.address);
-    await token.setRouterAddress(router.address);
+    pkpContract = await PkpFactory.deploy();
+    router = await RouterFactory.deploy(pkpContract.address);
+    await pkpContract.setRouterAddress(router.address);
   });
 
   describe("Attempt to Mint PKP NFT", async () => {
     let minter;
 
     beforeEach(async () => ([minter, recipient, ...signers] = signers));
-    beforeEach(async () => (token = token.connect(minter)));
+    beforeEach(async () => (pkpContract = pkpContract.connect(minter)));
 
     let pubkey =
       "0x034319b040a81f78d14b8efcf73f3120b28d88ac5ca316dbd1a83797defcf20b5a";
@@ -39,8 +39,20 @@ describe("PKPNFT", function () {
     const tokenId = ethers.BigNumber.from(pubkeyHash);
     //console.log("PubkeyHash: " , pubkeyHash);
 
+    it("refuses to mint for free", async () => {
+      expect(pkpContract.mint(tokenId)).revertedWith(
+        "You must pay exactly mint cost"
+      );
+    });
+
     it("refuses to mint because the PKP isnt routed yet", async () => {
-      expect(token.mint(tokenId)).revertedWith(
+      // send eth with the txn
+      const mintCost = await pkpContract.mintCost();
+      const transaction = {
+        value: mintCost,
+      };
+
+      expect(pkpContract.mint(tokenId, transaction)).revertedWith(
         "This PKP has not been routed yet"
       );
     });
