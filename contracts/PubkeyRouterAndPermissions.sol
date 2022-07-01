@@ -68,6 +68,14 @@ contract PubkeyRouterAndPermissions is Ownable {
 
     /* ========== VIEWS ========== */
 
+    function getFullPubkey(uint256 tokenId) public view returns (bytes memory) {
+        return
+            abi.encodePacked(
+                pubkeys[tokenId].keyPart1,
+                stripLeadingZeros(pubkeys[tokenId].keyPart2)
+            );
+    }
+
     function stripLeadingZeros(bytes32 b) public pure returns (bytes memory) {
         uint256 i = 0;
         while (i < b.length && b[i] == 0) {
@@ -84,12 +92,12 @@ contract PubkeyRouterAndPermissions is Ownable {
     }
 
     /// get the routing data for a given key hash
-    function getRoutingData(uint256 pubkeyHash)
+    function getRoutingData(uint256 tokenId)
         external
         view
         returns (PubkeyRoutingData memory)
     {
-        return pubkeys[pubkeyHash];
+        return pubkeys[tokenId];
     }
 
     /// get if a Lit Action is permitted to use a given pubkey.  returns true if it is permitted to use the pubkey in the permittedActions[tokenId] struct.

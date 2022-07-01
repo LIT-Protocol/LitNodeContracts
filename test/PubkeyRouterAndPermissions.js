@@ -207,11 +207,16 @@ describe("PubkeyRouterAndPermissions", function () {
         expect(stakingContractAddressAfter).equal(stakingContract.address);
         expect(keyTypeAfter).equal(keyTypeInput);
 
+        tokenId = ethers.BigNumber.from(pubkeyHash);
+
         // mint the PKP to the tester account
         pkpContract = await pkpContract.connect(tester);
-        await pkpContract.mint(fakePubkey);
-
-        tokenId = ethers.BigNumber.from(pubkeyHash);
+        // send eth with the txn
+        const mintCost = await pkpContract.mintCost();
+        const transaction = {
+          value: mintCost,
+        };
+        await pkpContract.mint(tokenId, transaction);
       });
 
       it("grants permission to an eth address and then revokes it", async () => {

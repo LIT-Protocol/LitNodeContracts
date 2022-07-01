@@ -62,6 +62,8 @@ describe("Staking", function () {
     );
     routerContract = await RouterFactory.deploy(pkpNft.address);
 
+    await pkpNft.setRouterAddress(routerContract.address);
+
     // set epoch length to 1 so that we can test quickly
     await stakingContract.setEpochLength(1);
 
@@ -348,10 +350,11 @@ describe("Staking", function () {
     it("votes to register a PKP", async () => {
       const fakePubkey =
         "0x83709b8bcc865ce02b7a918909936c8fbc3520445634dcaf4a18cfa1f0218a5ca37173aa265defedad866a0ae7b6c301";
+      pkpNft = pkpNft.connect(stakingAccount1);
 
       // validate that it's not routed yet
       const pubkeyHash = ethers.utils.keccak256(fakePubkey);
-      const [
+      let [
         keyPart1,
         keyPart2,
         keyLength,
@@ -370,6 +373,18 @@ describe("Staking", function () {
       );
       expect(keyType).equal(0);
 
+      let isRouted = await routerContract.isRouted(pubkeyHash);
+      expect(isRouted).equal(false);
+
+      // validate that it can't be minted because it's not routed yet
+      let mintCost = await pkpNft.mintCost();
+      let transaction = {
+        value: mintCost,
+      };
+      expect(pkpNft.mint(pubkeyHash, transaction)).revertedWith(
+        "This PKP has not been routed yet"
+      );
+
       const keyPart1Bytes = ethers.utils.hexDataSlice(fakePubkey, 0, 32);
       const keyPart2Bytes = ethers.utils.hexZeroPad(
         ethers.utils.hexDataSlice(fakePubkey, 32),
@@ -378,8 +393,8 @@ describe("Staking", function () {
       const keyLengthInput = 48;
       const keyTypeInput = 1;
 
-      // vote to register it
-      for (let i = 0; i < stakingAccounts.length; i++) {
+      // vote to register it with 5 nodes
+      for (let i = 0; i < 5; i++) {
         const stakingAccount = stakingAccounts[i];
         const nodeAddress = stakingAccount.nodeAddress;
         routerContract = routerContract.connect(nodeAddress);
@@ -394,8 +409,76 @@ describe("Staking", function () {
         );
       }
 
-      // validate that it was set
-      const [
+      // validate that it was not set yet because the threshold of 6 have not voted yet
+      [keyPart1, keyPart2, keyLength, stakingContractAddressBefore, keyType] =
+        await routerContract.getRoutingData(pubkeyHash);
+      expect(keyPart1).equal(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      );
+      expect(keyPart2).equal(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      );
+      expect(keyLength).equal(0);
+      expect(stakingContractAddressBefore).equal(
+        "0x0000000000000000000000000000000000000000"
+      );
+      expect(keyType).equal(0);
+
+      isRouted = await routerContract.isRouted(pubkeyHash);
+      expect(isRouted).equal(false);
+
+      // validate that the voting process is going as expected
+      let [routingData, nodeVoteCount, nodeVoteThreshold, votedNodes] =
+        await routerContract.pubkeyRegistrations(pubkeyHash);
+      expect(nodeVoteThreshold).equal(6);
+      expect(nodeVoteCount).equal(5);
+
+      // this data is the candidate data.  if the votes pass, this becomes the real routing data.  this should match what the nodes are voting for
+      [keyPart1, keyPart2, keyLength, stakingContractAddressBefore, keyType] =
+        routingData;
+      expect(keyPart1).equal(keyPart1Bytes);
+      expect(keyPart2).equal(keyPart2Bytes);
+      expect(keyLength).equal(keyLengthInput);
+      expect(stakingContractAddressBefore).equal(stakingContract.address);
+      expect(keyType).equal(keyTypeInput);
+
+      // now vote with the rest of the nodes
+      for (let i = 5; i < stakingAccounts.length; i++) {
+        const stakingAccount = stakingAccounts[i];
+        const nodeAddress = stakingAccount.nodeAddress;
+        routerContract = routerContract.connect(nodeAddress);
+        // console.log("voting with address ", nodeAddress.address);
+        await routerContract.voteForRoutingData(
+          pubkeyHash,
+          keyPart1Bytes,
+          keyPart2Bytes,
+          keyLengthInput,
+          stakingContract.address,
+          keyTypeInput
+        );
+        if (i === 6) {
+          // confirm that it was set after the 7th node has voted
+          // because it's set after the nodeVoteCount > nodeVoteThreshold which is 6.
+          let [
+            keyPart1After,
+            keyPart2After,
+            keyLengthAfter,
+            stakingContractAddressAfter,
+            keyTypeAfter,
+          ] = await routerContract.getRoutingData(pubkeyHash);
+          expect(keyPart1After).equal(keyPart1Bytes);
+          expect(keyPart2After).equal(keyPart2Bytes);
+          expect(keyLengthAfter).equal(keyLengthInput);
+          expect(stakingContractAddressAfter).equal(stakingContract.address);
+          expect(keyTypeAfter).equal(keyTypeInput);
+
+          isRouted = await routerContract.isRouted(pubkeyHash);
+          expect(isRouted).equal(true);
+        }
+      }
+
+      // validate that it was set after all the voting finished
+      let [
         keyPart1After,
         keyPart2After,
         keyLengthAfter,
@@ -407,6 +490,26 @@ describe("Staking", function () {
       expect(keyLengthAfter).equal(keyLengthInput);
       expect(stakingContractAddressAfter).equal(stakingContract.address);
       expect(keyTypeAfter).equal(keyTypeInput);
+
+      isRouted = await routerContract.isRouted(pubkeyHash);
+      expect(isRouted).equal(true);
+
+      // confirm that we can now mint it
+      // send eth with the txn
+      // expect(pkpNft.ownerOf(pubkeyHash)).revertedWith(
+      //   "ERC721: owner query for nonexistent token"
+      // );
+      mintCost = await pkpNft.mintCost();
+      transaction = {
+        value: mintCost,
+      };
+      await pkpNft.mint(pubkeyHash, transaction);
+      owner = await pkpNft.ownerOf(pubkeyHash);
+      expect(owner).to.equal(stakingAccount1.address);
+
+      // confirm that the getter that reassembles the pubkey returns a perfect match
+      let pubkeyFromRouter = await routerContract.getFullPubkey(pubkeyHash);
+      expect(pubkeyFromRouter).equal(fakePubkey);
     });
 
     it("leaves as a validator", async () => {
