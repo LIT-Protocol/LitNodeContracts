@@ -15,7 +15,11 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 /// the deployer must revoke their admin role and minter role.
 ///
 /// This contract was initially borrowed from Alchemix, and modified extensively, from here: https://github.com/alchemix-finance/alchemix-protocol/blob/master/contracts/AlchemixToken.sol
-contract LITToken is AccessControl, ERC20("Lit Protocol", "LIT"), ERC20Burnable {
+contract LITToken is
+    AccessControl,
+    ERC20("Lit Protocol", "LIT"),
+    ERC20Burnable
+{
     /// @dev The identifier of the role which maintains other roles.
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
 

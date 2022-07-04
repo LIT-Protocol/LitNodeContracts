@@ -14,7 +14,9 @@ async function main () {
   // await hre.run('compile');
 
   // this can be removed if Ethernal isn't being used - it's handy to see validations.
-  hre.ethernalUploadAst = true; // allow contract uploading.
+  // Ethernal set up instructions:  https://www.tryethernal.com
+  // In the hardhat.config.js file >>>  require('hardhat-ethernal'); 
+  hre.ethernalUploadAst = true; // clean and reset the workspace - ie, forget about old contracts, and start fresh.
   await  hre.ethernal.resetWorkspace('LocalHardHat');  /// <<< your ethernal project name.
 
   let RouterContractFactory;
@@ -27,28 +29,30 @@ async function main () {
   RouterContractFactory = await ethers.getContractFactory("PubkeyRouterAndPermissions");
   TokenContractFactory = await ethers.getContractFactory("PKPNFT");
 
-  [deployer, ...signers] = await ethers.getSigners();
+  [deployer, holder, ...signers] = await ethers.getSigners();
 
+  // deploy the PKP contract
   TokenContract = await TokenContractFactory.deploy();
   await TokenContract.deployed();
   console.log('Contract for PKPNFT deployed to:', TokenContract.address)
 
   await TokenContract.connect(deployer);
+  
 
+  // Deploy the router contract.
+  routerContract = await RouterContractFactory.deploy(TokenContract.address);
+  await routerContract.deployed();
+  console.log('Contract for PubkeyRouterAndPermissions deployed to:', routerContract.address)
+
+  // mint a token
   const txn = await TokenContract.mint(pubkey);    
   const tx = await txn.wait(); 
   const event = tx.events[0];
   const tokenId = event.args[2];
   const token_address = event.address;
-  
-  routerContract = await RouterContractFactory.deploy(TokenContract.address);
-  await routerContract.deployed();
-  console.log('Contract for PubkeyRouterAndPermissions deployed to:', routerContract.address)
 
-
-   // Get contract ASTs into ethernal
-  await hre.ethernal.push({name:'PubkeyRouterAndPermissions', address: routerContract.address});
-  await hre.ethernal.push({name:'PKPNFT', address: TokenContract.address});
+  // transfer the token to a known wallet :
+  await TokenContract.transfer(deployer.address,  holder.address, tokenId);  // In this case using HardHat Accounnt #1
 
 
   const pubkeyHash = ethers.utils.keccak256(pubkey);
@@ -83,7 +87,15 @@ async function main () {
     keyTypeAfter,
   ] = await routerContract.getRoutingData(pubkeyHash);
 
-  console.log('keypart 1', keyPart1After);
+  console.log('Confirming that we have storage: ', keyPart1After);
+
+
+
+   // Get contract ASTs into ethernal
+   // Doing this at the end because it can be a bit slow, and we can validate other things at the same time.
+  await hre.ethernal.push({name:'PubkeyRouterAndPermissions', address: routerContract.address});
+  await hre.ethernal.push({name:'PKPNFT', address: TokenContract.address});
+
 
 }
 
