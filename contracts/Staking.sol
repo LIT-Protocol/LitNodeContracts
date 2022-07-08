@@ -145,7 +145,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             }
         }
         if (
-            (total > 6) && (total >= (validatorsInNextEpoch.length() / 3) * 2)
+            (total >= validatorCountForConsensus())
         ) {
             // 2/3 of validators must be ready
             return true;

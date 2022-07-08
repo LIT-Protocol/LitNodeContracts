@@ -1,4 +1,5 @@
 const bs58 = require("bs58");
+const ethers = require("ethers");
 
 function int2ip(ipInt) {
   return (

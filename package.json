@@ -5,7 +5,10 @@
   "license": "GPL-3.0-or-later",
   "scripts": {
     "test": "npx hardhat test",
-    "compile": "npx hardhat compile"
+    "compile": "npx hardhat compile",
+    "convertPubkey": "node pubkeyToRoutingData.js",
+    "convertIpfsId": "node ipfsIdToParts.js",
+    "hashIpfsId": "node ipfsIdToHash.js"
   },
   "devDependencies": {
     "@defi-wonderland/smock": "^2.1.0",
