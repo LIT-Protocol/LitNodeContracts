@@ -138,6 +138,23 @@ contract PubkeyRouterAndPermissions is Ownable {
             ipfsIds[ipfsId].size != 0;
     }
 
+    function getPermittedActions(uint256 tokenId)
+        external
+        view
+        returns (bytes32[] memory)
+    {
+        uint256 permittedActionsLength = permittedActions[tokenId].length();
+        bytes32[] memory allPermittedActions = new bytes32[](
+            permittedActionsLength
+        );
+
+        for (uint256 i = 0; i < permittedActionsLength; i++) {
+            allPermittedActions[i] = permittedActions[tokenId].at(i);
+        }
+
+        return allPermittedActions;
+    }
+
     function getPermittedAddresses(uint256 tokenId)
         external
         view
