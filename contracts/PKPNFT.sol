@@ -64,7 +64,7 @@ contract PKPNFT is
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    /// create a valid token for a given public key.
+    /// create a valid token for a given token key.
     function mint(uint256 tokenId) public payable {
         require(msg.value == mintCost, "You must pay exactly mint cost");
         _mintWithoutValueCheck(tokenId);
