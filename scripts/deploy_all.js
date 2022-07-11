@@ -6,6 +6,7 @@
 const hre = require('hardhat')
 const { ip2int, int2ip } = require("../utils.js");
 const fs = require('fs');
+require('hardhat-ethernal'); // required for ethernal - removing this will only break deploy scripts that are linked to ethernal .
 
 // quick & dirty config writing helper!
 const f = (n , v) =>  {
@@ -18,7 +19,9 @@ const f = (n , v) =>  {
 async function main () {
 
   // ethernal config
-  hre.ethernalUploadAst = true; // allow contract uploading.
+  hre.ethernalUploadAst = true;
+  hre.ethernal.UploadAst = true; // allow contract uploading.
+  hre.ethernal.AstUpload = true;
   await  hre.ethernal.resetWorkspace('LocalHardHat');  /// <<< your ethernal project name.
 
   // we really only need a single deployer & are using HH accounts, but could override this to deploy to a public chain.
@@ -52,18 +55,42 @@ async function main () {
   await c_conditionValidation.deployed()
   console.log('Contract for ConditionValidations deployed to:', c_conditionValidation.address)
 
-   // Get contract ASTs into ethernal
+  // deploy the PKP contract
+  const TokenContractFactory = await ethers.getContractFactory("PKPNFT");
+  const TokenContract = await TokenContractFactory.deploy();
+  await TokenContract.deployed();
+  console.log('Contract for PKPNFT deployed to:', TokenContract.address)
+  
+  //  Deploy the router contract.
+  const RouterContractFactory = await ethers.getContractFactory("PubkeyRouterAndPermissions");
+  const RouterContract = await RouterContractFactory.deploy(TokenContract.address);
+  await RouterContract.deployed();
+  console.log('Contract for PubkeyRouterAndPermissions deployed to:', RouterContract.address)
+
+
+  await TokenContract.setRouterAddress(RouterContract.address);
+
+   // Get contract ASTs into ethernal - note that this is slow.  But at least it's automatic.
   await hre.ethernal.push({name:'AccessControlConditions', address: c_AccessCtlConditions.address});
   await hre.ethernal.push({name:'LITToken', address: c_LITToken.address});
   await hre.ethernal.push({name:'Staking', address: c_Staking.address});
   await hre.ethernal.push({name:'ConditionValidations', address: c_conditionValidation.address});
+  await hre.ethernal.push({name:'PubkeyRouterAndPermissions', address: RouterContract.address});
+  await hre.ethernal.push({name:'PKPNFT', address: TokenContract.address});
+
 
   // Set this value for the number of nodes to create 
   // This is primarily useful for setting up test/dev environments. 
+  // The remainder of this script creates wallets for each of the nodes, deploys some ETH (for gas), and then deploys tokens.   
+  // With tokens in hand, the nodes can "stake & join" into the primary Staking contract and be run directly,
+  // either through a script or via command line arguments.
+  // During the deploy process, we also generate a config file for the scripts to use.
+  // TODO :: SWITCH CONFIG FILE from INI style TO .ENV format - 1 per node.
+  
   const nodeCount = 10;
   const initialMintAmount = 1000000;
   const nodeTransferAmount = 10000;
-  const staking_amount = 10;
+  const staking_amount = 100;
 
   // Mint some LIT Token! 
   await c_LITToken.mint(await deployer.getAddress() ,initialMintAmount);
@@ -86,6 +113,9 @@ async function main () {
   f('AccessControlConditions = ', c_AccessCtlConditions.address);
   f('LITToken = ', c_LITToken.address);
   f('Staking = ', c_Staking.address);
+  f('PubkeyRouterAndPermissions = ', RouterContract.address);
+  f('PKPNFT = ', TokenContract.address);
+  
   f('\n') ;
 
   const wallets = new Array(nodeCount);  
@@ -102,7 +132,7 @@ async function main () {
     const node_wallet = await hre.ethers.Wallet.createRandom().connect(hre.ethers.provider);
     
     console.log('Impersonation:' ,  ( await hre.network.provider.send('hardhat_impersonateAccount', [node_wallet.address]) ) );
-    console.log('Signer:' ,  ( await hre.ethers.provider.getSigner(node_wallet.address) ) );
+   // console.log('Signer:' ,  ( await hre.ethers.provider.getSigner(node_wallet.address) ) );
 
     wallets[i] = node_wallet;
 
@@ -145,6 +175,7 @@ async function main () {
     await node_staking.stakeAndJoin(
         staking_amount,
         ip2int(ipAddr),
+        0,
         port,
         node_wallet.address
       );
@@ -175,6 +206,9 @@ async function main () {
   // console.log("Current validators:", await c_Staking.getValidatorsInCurrentEpoch() )
 
  
+
+
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere
