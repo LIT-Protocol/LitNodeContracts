@@ -9,9 +9,10 @@ const fs = require('fs');
 require('hardhat-ethernal'); // required for ethernal - removing this will only break deploy scripts that are linked to ethernal .
 
 // quick & dirty config writing helper!
+let nodeFileId = 1;
 const f = (n , v) =>  {
   if (v) {  n = n + v };
-  fs.appendFileSync('node.config', n + '\n', err => { 
+  fs.appendFileSync('lit_config' + nodeFileId + '.env', n + '\n', err => { 
     if (err) { console.error(err)}}
     );
 }
@@ -86,7 +87,7 @@ async function main () {
   // either through a script or via command line arguments.
   // During the deploy process, we also generate a config file for the scripts to use.
   // TODO :: SWITCH CONFIG FILE from INI style TO .ENV format - 1 per node.
-  
+
   const nodeCount = 10;
   const initialMintAmount = 1000000;
   const nodeTransferAmount = 10000;
@@ -97,26 +98,6 @@ async function main () {
   const InitialLITbalance = await c_LITToken.balanceOf(deployer.address);
   console.log("Minted amount of LIT =" , InitialLITbalance.toNumber()   );     // this is a BigInt
 
-// Start building a configuration file!
-  console.log("\n\nCreating Node.Config file.... \n\n");
-
-// Chain for condition storage and minting/staking contracts
-
-  f('[Chain]');
-  f('Name = ', hre.network.name ); 
-  f('ChainId = ', hre.network.config.chainId );
-  f('RPC-URL =', hre.network.config.url  );
-
-// Contract addresses (Condition Validations may also appear in other chains)
-  f('\n[ContractAddress]');
-  f('ConditionValidations = ', c_conditionValidation.address);
-  f('AccessControlConditions = ', c_AccessCtlConditions.address);
-  f('LITToken = ', c_LITToken.address);
-  f('Staking = ', c_Staking.address);
-  f('PubkeyRouterAndPermissions = ', RouterContract.address);
-  f('PKPNFT = ', TokenContract.address);
-  
-  f('\n') ;
 
   const wallets = new Array(nodeCount);  
   let current_wallet;
@@ -124,9 +105,30 @@ async function main () {
   // in this case the nodes "own" their wallets - technically the 
 
   for (i = 0; i < nodeCount; i++)  {
-
     console.log('Processing Node#', i )
+
+    nodeFileId = i;
+  //  fs.unlinkSync('lit_config' + nodeFileId + '.env');
+
+
+    // Start building a configuration file!
+    console.log("\n\nCreating Node.Config file.... \n\n");
+  // Chain for condition storage and minting/staking contracts
     
+    f('LIT_CHAIN_NAME = ', hre.network.name ); 
+    f('LIT_CHAIN_ID = ', hre.network.config.chainId );
+    f('LIT_CHAIN_RPC_URL =', hre.network.config.url  );
+
+  // Contract addresses (Condition Validations may also appear in other chains)
+    f('\n');
+    f('LIT_CONTRACT_CONDITIONVALIDATIONS = ', c_conditionValidation.address);
+    f('LIT_CONTRACT_ACCESSCONTROLCONDITIONS = ', c_AccessCtlConditions.address);
+    f('LIT_CONTRACT_LITTOKEN = ', c_LITToken.address);
+    f('LIT_CONTRACT_STAKING = ', c_Staking.address);
+    f('LIT_CONTRACT_PUBKEYROUTERANDPERMISSIONS = ', RouterContract.address);
+    f('LIT_CONTRACT_PKPNFT = ', TokenContract.address);
+    f('\n') ;
+
     const ipAddr = "127.0.0.1";
     const port = 7470 + i;
     const node_wallet = await hre.ethers.Wallet.createRandom().connect(hre.ethers.provider);
@@ -144,15 +146,13 @@ async function main () {
 
     console.log("Node ETH Balance () =" ,  await hre.ethers.provider.getBalance(node_wallet.address)     );     // this is a BigInt
 
-
-     
-    // config file entry
-    f("[Node" + i + "]" );
-    f("address = " , node_wallet.address.toLowerCase());
-    f("privatekey = " , node_wallet.privateKey);  
-    f("publickey = " , node_wallet.publicKey);
-    f("url = " , ipAddr)
-    f("port = " , port)
+    // config file entry   
+    f("LIT_NODE_ADDRESS = " , node_wallet.address.toLowerCase());
+    f("LIT_NODE_PRIVATEKEY = " , node_wallet.privateKey);  
+    f("LIT_NODE_PUBLICKEY = " , node_wallet.publicKey);
+    f("LIT_NODE_DOMAIN_NAME = " , ipAddr)
+    f("LIT_NODE_PORT = " , port)
+    f("ROCKET_PORT = " , port)
     f("");
 
     
