@@ -7,6 +7,7 @@ const hre = require('hardhat')
 const { ip2int, int2ip } = require("../utils.js");
 const fs = require('fs');
 require('hardhat-ethernal'); // required for ethernal - removing this will only break deploy scripts that are linked to ethernal .
+require('dotenv').config();
 
 // quick & dirty config writing helper!
 let nodeFileId = 1;
