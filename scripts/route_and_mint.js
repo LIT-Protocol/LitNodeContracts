@@ -8,17 +8,18 @@ const ethers = hre.ethers; /// because if we run outside of HRE, we don't get th
 const { ip2int, int2ip } = require("../utils.js");
 const { ipfsIdToIpfsIdHash } = require("../utils.js");
 const { smock } = require("@defi-wonderland/smock");
-
+require('dotenv').config();
 require('hardhat-ethernal'); // required for ethernal - removing this will only break deploy scripts that are linked to ethernal .
 //const tokenContractJSON = require("../artifacts/contracts/LitToken.sol/LitToken.json");
 async function main () {
 
      [deployer, signer1, ...signers] = await hre.ethers.getSigners();
 
-    const PKPNFT_Address = "0xe8D2A1E88c91DCd5433208d4152Cc4F399a7e91d";
-    const LITToken_Address = "0xAA292E8611aDF267e563f334Ee42320aC96D0463";
-    const Router_Address = "0x5067457698Fd6Fa1C6964e416b3f42713513B3dD";
-    const Staking_Address = "0x5c74c94173F05dA1720953407cbb920F3DF9f887";
+
+    const PKPNFT_Address = process.env.LIT_CONTRACT_PKPNFT  ;
+    const LITToken_Address = process.env.LIT_CONTRACT_LITTOKEN;
+    const Router_Address = process.env.LIT_CONTRACT_PUBKEYROUTERANDPERMISSIONS ;
+    const Staking_Address = process.env.LIT_CONTRACT_STAKING;
 
     destAddress = await  signer1.address;
     console.log("dest: ", destAddress );
