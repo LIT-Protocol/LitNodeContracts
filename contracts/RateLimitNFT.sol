@@ -28,13 +28,21 @@ contract RateLimitNFT is
 {
     /* ========== STATE VARIABLES ========== */
 
-    uint256 public mintCost;
     uint256 public contractBalance;
     address public freeMintSigner;
+    uint256 public additionalRequestSecondCost;
+    uint256 public tokenIdCounter;
+
+    mapping(uint256 => RateLimit) public capacity;
+
+    struct RateLimit {
+        uint256 requestsPerWindow;
+        uint256 expiresAt;
+    }
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
-        mintCost = 1e14; // 0.0001 eth
+        additionalRequestSecondCost = 1e14; // 0.0001 eth
     }
 
     /* ========== VIEWS ========== */
@@ -87,25 +95,50 @@ contract RateLimitNFT is
         ERC721Enumerable._beforeTokenTransfer(from, to, tokenId);
     }
 
+    function calculateCost(uint256 requestsPerWindow, uint256 expiresAt)
+        public
+        view
+        returns (uint256)
+    {
+        // calculate the duration
+        uint256 duration = expiresAt - block.timestamp;
+
+        // calculate the cost
+        uint256 cost = requestsPerWindow *
+            duration *
+            additionalRequestSecondCost;
+
+        return cost;
+    }
+
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    /// create a valid token for a given public key.
-    function mint(uint256 tokenId) public payable {
-        require(msg.value == mintCost, "You must pay exactly mint cost");
+    /// mint a token with a certain number of requests per window and a certain expiration time
+    function mint(uint256 requestsPerWindow, uint256 expiresAt) public payable {
+        tokenIdCounter++;
+        uint256 tokenId = tokenIdCounter;
+
+        uint256 cost = calculateCost(requestsPerWindow, expiresAt);
+
+        require(
+            msg.value >= cost,
+            "You must pay the exact cost of this rate limit increase.  To check the cost, use the calculateCost function."
+        );
+
         _mintWithoutValueCheck(tokenId);
     }
 
-    function freeMint(
-        uint256 tokenId,
-        bytes32 msgHash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public {
-        // this will panic if the sig is bad
-        freeMintSigTest(tokenId, msgHash, v, r, s);
-        _mintWithoutValueCheck(tokenId);
-    }
+    // function freeMint(
+    //     uint256 tokenId,
+    //     bytes32 msgHash,
+    //     uint8 v,
+    //     bytes32 r,
+    //     bytes32 s
+    // ) public {
+    //     // this will panic if the sig is bad
+    //     freeMintSigTest(tokenId, msgHash, v, r, s);
+    //     _mintWithoutValueCheck(tokenId);
+    // }
 
     function _mintWithoutValueCheck(uint256 tokenId) internal {
         _safeMint(msg.sender, tokenId);
@@ -120,8 +153,10 @@ contract RateLimitNFT is
         _safeTransfer(from, to, tokenId, "");
     }
 
-    function setMintCost(uint256 newMintCost) public onlyOwner {
-        mintCost = newMintCost;
+    function setAdditionalRequestSecondCost(
+        uint256 newAdditionalRequestSecondCostt
+    ) public onlyOwner {
+        additionalRequestSecondCost = newAdditionalRequestSecondCostt;
     }
 
     function setFreeMintSigner(address newFreeMintSigner) public onlyOwner {
