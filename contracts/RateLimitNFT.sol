@@ -105,6 +105,11 @@ contract RateLimitNFT is
         view
         returns (uint256)
     {
+        require(
+            expiresAt > block.timestamp,
+            "The expiresAt must be in the future"
+        );
+
         // calculate the duration
         uint256 durationInMilliseconds = (expiresAt - block.timestamp) * 1000;
 
