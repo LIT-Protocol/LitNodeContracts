@@ -145,7 +145,7 @@ contract RateLimitNFT is
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    /// mint a token with a certain number of requests per window and a certain expiration time
+    /// mint a token with a certain number of requests per millisecond and a certain expiration time
     function mint(uint256 requestsPerMillisecond, uint256 expiresAt)
         public
         payable
