@@ -47,7 +47,7 @@ contract RateLimitNFT is
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
-        additionalRequestsPerMillisecondCost = 1e8; // 0.000000001 eth
+        additionalRequestsPerMillisecondCost = 1e18; // 1 wei
     }
 
     /* ========== VIEWS ========== */
@@ -121,6 +121,26 @@ contract RateLimitNFT is
         return cost;
     }
 
+    function calculateRequestsPerSecond(uint256 payingAmount, uint256 expiresAt)
+        public
+        view
+        returns (uint256)
+    {
+        require(
+            expiresAt > block.timestamp,
+            "The expiresAt must be in the future"
+        );
+
+        // calculate the duration
+        uint256 durationInMilliseconds = (expiresAt - block.timestamp) * 1000;
+
+        // calculate the cost
+        uint256 requestsPerSecond = payingAmount /
+            (durationInMilliseconds * additionalRequestsPerMillisecondCost);
+
+        return requestsPerSecond;
+    }
+
     function tokenURI(uint256 tokenId)
         public
         view
@@ -150,22 +170,25 @@ contract RateLimitNFT is
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    /// mint a token with a certain number of requests per millisecond and a certain expiration time
-    function mint(uint256 requestsPerMillisecond, uint256 expiresAt)
-        public
-        payable
-    {
+    /// mint a token with a certain number of requests per millisecond and a certain expiration time.  Requests per second is calculated from the msg.value amount.  You can find out the cost for a certain requests per second value by using the calculateCost() function.
+    function mint(uint256 expiresAt) public payable {
         tokenIdCounter++;
         uint256 tokenId = tokenIdCounter;
 
-        uint256 cost = calculateCost(requestsPerMillisecond, expiresAt);
+        uint256 requestsPerMillisecond = calculateRequestsPerSecond(
+            msg.value,
+            expiresAt
+        );
 
+        // sanity check
+        uint256 cost = calculateCost(requestsPerMillisecond, expiresAt);
         require(
             msg.value >= cost,
-            "You must pay the exact cost of this rate limit increase.  To check the cost, use the calculateCost function."
+            "You must send the cost of this rate limit increase.  To check the cost, use the calculateCost function."
         );
 
         _mintWithoutValueCheck(tokenId, requestsPerMillisecond, expiresAt);
+        contractBalance += msg.value;
     }
 
     // function freeMint(
@@ -187,7 +210,6 @@ contract RateLimitNFT is
     ) internal {
         _safeMint(msg.sender, tokenId);
         capacity[tokenId] = RateLimit(requestsPerMillisecond, expiresAt);
-        contractBalance += msg.value;
     }
 
     function transfer(
