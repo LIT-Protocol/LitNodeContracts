@@ -76,6 +76,16 @@ contract PubkeyRouterAndPermissions is Ownable {
             );
     }
 
+    function getEthAddress(uint256 tokenId) public view returns (address) {
+        // only return addresses for ECDSA keys so that people don't
+        // send funds to a BLS key that would be irretrieveably lost
+        if (pubkeys[tokenId].keyType != 2) {
+            return address(0);
+        }
+        bytes memory pubKey = getFullPubkey(tokenId);
+        return address(bytes20(keccak256(pubKey)));
+    }
+
     function stripLeadingZeros(bytes32 b) public pure returns (bytes memory) {
         uint256 i = 0;
         while (i < b.length && b[i] == 0) {

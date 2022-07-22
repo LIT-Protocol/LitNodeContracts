@@ -4,7 +4,6 @@ pragma solidity ^0.8.3;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {PubkeyRouterAndPermissions} from "./PubkeyRouterAndPermissions.sol";
 import {ERC721Burnable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
@@ -35,8 +34,9 @@ contract RateLimitNFT is
     address public freeMintSigner;
     uint256 public additionalRequestsPerMillisecondCost;
     uint256 public tokenIdCounter;
-    uint256 public defaultRateLimitWindowMilliseconds;
-    uint256 public RLIHolderRateLimitWindowMilliseconds;
+    uint256 public defaultRateLimitWindowMilliseconds = 60 * 60 * 1000; // 60 mins
+    uint256 public RLIHolderRateLimitWindowMilliseconds = 5 * 60 * 1000; // 5 mins
+    uint256 public freeRequestsPerRateLimitWindow = 10;
 
     mapping(uint256 => RateLimit) public capacity;
 
@@ -249,5 +249,11 @@ contract RateLimitNFT is
         uint256 newRLIHolderRateLimitWindowMilliseconds
     ) public onlyOwner {
         RLIHolderRateLimitWindowMilliseconds = newRLIHolderRateLimitWindowMilliseconds;
+    }
+
+    function setFreeRequestsPerRateLimitWindow(
+        uint256 newFreeRequestsPerRateLimitWindow
+    ) public onlyOwner {
+        freeRequestsPerRateLimitWindow = newFreeRequestsPerRateLimitWindow;
     }
 }
