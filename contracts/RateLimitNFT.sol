@@ -47,7 +47,7 @@ contract RateLimitNFT is
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
-        additionalRequestsPerMillisecondCost = 1e18; // 1 wei
+        additionalRequestsPerMillisecondCost = 1; // 1 wei
     }
 
     /* ========== VIEWS ========== */
