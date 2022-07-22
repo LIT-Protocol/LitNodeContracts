@@ -168,6 +168,10 @@ contract RateLimitNFT is
         return string(abi.encodePacked("data:application/json;base64,", json));
     }
 
+    function isExpired(uint256 tokenId) public view returns (bool) {
+        return capacity[tokenId].expiresAt <= block.timestamp;
+    }
+
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     /// mint a token with a certain number of requests per millisecond and a certain expiration time.  Requests per second is calculated from the msg.value amount.  You can find out the cost for a certain requests per second value by using the calculateCost() function.
