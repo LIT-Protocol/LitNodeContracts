@@ -421,6 +421,10 @@ contract PubkeyRouterAndPermissions is Ownable {
         emit PermittedAddressRemoved(tokenId, user);
     }
 
+    function setPkpNftAddress(address newPkpNftAddress) public onlyOwner {
+        pkpNFT = PKPNFT(newPkpNftAddress);
+    }
+
     /* ========== EVENTS ========== */
 
     event PubkeyRoutingDataSet(
