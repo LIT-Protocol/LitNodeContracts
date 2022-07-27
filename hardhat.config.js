@@ -5,6 +5,8 @@ require("@nomiclabs/hardhat-waffle");
 // Ethernal is a web based block explorer that syncs from any EVM chain - easy way to "view" hardhat data, and execute contracts!
 // https://www.tryethernal.com
 
+require("@nomiclabs/hardhat-etherscan");
+
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task("accounts", "Prints the list of accounts", async () => {
@@ -23,13 +25,37 @@ task("accounts", "Prints the list of accounts", async () => {
  */
 module.exports = {
   solidity: {
-    version: "0.8.4",
+    version: "0.8.7",
     settings: {
       outputSelection: {
         "*": {
           "*": ["storageLayout"],
         },
       },
+      optimizer: {
+        enabled: false,
+        runs: 200,
+      },
     },
+  },
+  networks: {
+    celo: {
+      url: "https://forno.celo.org",
+    },
+  },
+  etherscan: {
+    apiKey: {
+      celo: process.env.LIT_CELOSCAN_API_KEY,
+    },
+    customChains: [
+      {
+        network: "celo",
+        chainId: 42220,
+        urls: {
+          apiURL: "https://api.celoscan.io/api",
+          browserURL: "https://celoscan.io",
+        },
+      },
+    ],
   },
 };

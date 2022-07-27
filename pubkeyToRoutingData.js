@@ -1,7 +1,7 @@
 const ethers = require("ethers");
 
 const pubkey =
-  "0x0215fac2ee502b4b9354c83f4e57dca7d58acf52dbd1201adb00f464fe613963a2";
+  "0x0381bb0e93a94063d92fc4e5e22e91fc7ffa9335ae35c16d69341d1a35596594c9";
 
 const keyPart1Bytes = ethers.utils.hexDataSlice(pubkey, 0, 32);
 const keyPart2Bytes = ethers.utils.hexZeroPad(
