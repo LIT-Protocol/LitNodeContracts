@@ -48,7 +48,7 @@ async function main () {
     const pubkeyHash = ethers.utils.keccak256(fakePubkey);
     const [keyPart1, keyPart2, keyLength, stakingContractAddress, keyType] = await routerContract.getRoutingData(pubkeyHash);
 
-    console.log("keyPart1:" , keyPart1);
+
 
 
     //  set routing data
@@ -57,6 +57,11 @@ async function main () {
           ethers.utils.hexDataSlice(fakePubkey, 32),
           32
         );
+
+          console.log('keyPart1Bytes : ' , keyPart1Bytes);
+          console.log('keyPart2Bytes : ' , keyPart2Bytes);
+
+
 
         const keyLengthInput = 48;
         const keyTypeInput = 1;

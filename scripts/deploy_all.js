@@ -117,7 +117,7 @@ async function main () {
   // Chain for condition storage and minting/staking contracts
     
     f('LIT_CHAIN_NAME = ', hre.network.name ); 
-    f('LIT_CHAIN_ID = ', hre.network.config.chainId );
+    f('LIT_CHAIN_ID = 31337 ' );
     f('LIT_CHAIN_RPC_URL =', hre.network.config.url  );
 
   // Contract addresses (Condition Validations may also appear in other chains)
