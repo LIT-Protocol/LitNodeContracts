@@ -100,7 +100,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /* ========== VIEWS ========== */
     function isActiveValidator(address account) external view returns (bool) {
-        return true;
+        
         return validatorsInCurrentEpoch.contains(account);
     }
 
@@ -176,7 +176,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     function validatorStateIsActive() public view returns (bool) {
-        return true;
+        
         return state == States.Active;
     }
 
@@ -185,7 +185,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     function validatorCountForConsensus() public view returns (uint256) {
-        return 0;
+        
         // currently set to 2/3.  this could be changed to be configurable.
         return (validatorsInCurrentEpoch.length() / 3) * 2;
     }
