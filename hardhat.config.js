@@ -5,6 +5,8 @@ require('hardhat-ethernal'); // required for ethernal - removing this will only 
 // Ethernal is a web based block explorer that syncs from any EVM chain - easy way to "view" hardhat data, and execute contracts!
 // https://www.tryethernal.com
 
+require("@nomiclabs/hardhat-etherscan");
+
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task("accounts", "Prints the list of accounts", async () => {
@@ -24,17 +26,24 @@ const HARMONY_PRIVATE_KEY = "4cda7fa976be61950cb47a082eb3d479ccdf8fe5315480ddd59
  */
 module.exports = {
   solidity: {
-    version: "0.8.4",
+    version: "0.8.7",
     settings: {
       outputSelection: {
         "*": {
           "*": ["storageLayout"],
         },
       },
+      optimizer: {
+        enabled: false,
+        runs: 200,
+      },
     },
   },
-
   networks: {
+    celo: {
+      url: "https://forno.celo.org",
+    },
+
     testnet: {
       url: `https://api.s0.b.hmny.io`,
       accounts: [`0x${HARMONY_PRIVATE_KEY}`]
@@ -47,11 +56,21 @@ module.exports = {
       url: `http://127.0.0.1:8545`,
       gasPrice: 8000000000, // default is 'auto' which breaks chains without the london hardfork    
      },
-      hardhat: {
-   //   url: `http://127.0.0.1:8545`,
-      gasPrice: 8000000000, // default is 'auto' which breaks chains without the london hardfork    
-     }
-  
-  }
-
+    
+  },
+  etherscan: {
+    apiKey: {
+      celo: process.env.LIT_CELOSCAN_API_KEY,
+    },
+    customChains: [
+      {
+        network: "celo",
+        chainId: 42220,
+        urls: {
+          apiURL: "https://api.celoscan.io/api",
+          browserURL: "https://celoscan.io",
+        },
+      },
+    ],
+  },
 };

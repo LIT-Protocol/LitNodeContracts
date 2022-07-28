@@ -76,6 +76,16 @@ contract PubkeyRouterAndPermissions is Ownable {
             );
     }
 
+    function getEthAddress(uint256 tokenId) public view returns (address) {
+        // only return addresses for ECDSA keys so that people don't
+        // send funds to a BLS key that would be irretrieveably lost
+        if (pubkeys[tokenId].keyType != 2) {
+            return address(0);
+        }
+        bytes memory pubKey = getFullPubkey(tokenId);
+        return address(bytes20(keccak256(pubKey)));
+    }
+
     function stripLeadingZeros(bytes32 b) public pure returns (bytes memory) {
         uint256 i = 0;
         while (i < b.length && b[i] == 0) {
@@ -128,6 +138,31 @@ contract PubkeyRouterAndPermissions is Ownable {
             prd.keyLength != 0 &&
             prd.keyType != 0 &&
             prd.stakingContract != address(0);
+    }
+
+    /// get if a given pubkey has routing data associated with it or not
+    function isActionRegistered(bytes32 ipfsId) public view returns (bool) {
+        return
+            ipfsIds[ipfsId].digest != 0 &&
+            ipfsIds[ipfsId].hashFunction != 0 &&
+            ipfsIds[ipfsId].size != 0;
+    }
+
+    function getPermittedActions(uint256 tokenId)
+        external
+        view
+        returns (bytes32[] memory)
+    {
+        uint256 permittedActionsLength = permittedActions[tokenId].length();
+        bytes32[] memory allPermittedActions = new bytes32[](
+            permittedActionsLength
+        );
+
+        for (uint256 i = 0; i < permittedActionsLength; i++) {
+            allPermittedActions[i] = permittedActions[tokenId].at(i);
+        }
+
+        return allPermittedActions;
     }
 
     function getPermittedAddresses(uint256 tokenId)
@@ -303,6 +338,20 @@ contract PubkeyRouterAndPermissions is Ownable {
         }
     }
 
+    /// Save the full IPFS ID so we can go from hash(IPFS ID) -> IPFS ID
+    function registerAction(
+        bytes32 digest,
+        uint8 hashFunction,
+        uint8 size
+    ) public {
+        bytes32 ipfsIdHash = keccak256(
+            abi.encodePacked(digest, hashFunction, size)
+        );
+        ipfsIds[ipfsIdHash].digest = digest;
+        ipfsIds[ipfsIdHash].hashFunction = hashFunction;
+        ipfsIds[ipfsIdHash].size = size;
+    }
+
     /// Add a permitted action for a given pubkey
     function addPermittedAction(uint256 tokenId, bytes32 ipfsId) public {
         // check that user is allowed to set this
@@ -310,6 +359,11 @@ contract PubkeyRouterAndPermissions is Ownable {
         require(
             msg.sender == nftOwner,
             "Only the PKP NFT owner can add and remove permitted actions"
+        );
+
+        require(
+            isActionRegistered(ipfsId) == true,
+            "Please register your Lit Action IPFS ID with the registerAction() function before permitting it to use a PKP"
         );
 
         EnumerableSet.Bytes32Set storage newPermittedActions = permittedActions[
@@ -365,6 +419,10 @@ contract PubkeyRouterAndPermissions is Ownable {
         ];
         newPermittedUsers.remove(user);
         emit PermittedAddressRemoved(tokenId, user);
+    }
+
+    function setPkpNftAddress(address newPkpNftAddress) public onlyOwner {
+        pkpNFT = PKPNFT(newPkpNftAddress);
     }
 
     /* ========== EVENTS ========== */

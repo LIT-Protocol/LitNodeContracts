@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { ipfsIdToIpfsIdHash } = require("../utils.js");
+const { ipfsIdToIpfsIdHash, getBytes32FromMultihash } = require("../utils.js");
 const { smock } = require("@defi-wonderland/smock");
 
 describe("PubkeyRouterAndPermissions", function () {
@@ -261,6 +261,28 @@ describe("PubkeyRouterAndPermissions", function () {
           ipfsIdHash
         );
         expect(permitted).equal(false);
+
+        // attempt to permit it
+        routerContract = await routerContract.connect(tester);
+        expect(
+          routerContract.addPermittedAction(tokenId, ipfsIdHash)
+        ).revertedWith(
+          "Please register your Lit Action IPFS ID with the registerAction() function before permitting it to use a PKP"
+        );
+        permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
+        expect(permitted).equal(false);
+
+        // register the lit action
+        let registered = await routerContract.isActionRegistered(ipfsIdHash);
+        expect(registered).equal(false);
+        const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
+        await routerContract.registerAction(
+          multihashStruct.digest,
+          multihashStruct.hashFunction,
+          multihashStruct.size
+        );
+        registered = await routerContract.isActionRegistered(ipfsIdHash);
+        expect(registered).equal(true);
 
         // permit it
         routerContract = await routerContract.connect(tester);
