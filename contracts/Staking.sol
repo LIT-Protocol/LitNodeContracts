@@ -144,9 +144,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
                 total++;
             }
         }
-        if (
-            (total >= validatorCountForConsensus())
-        ) {
+        if ((total >= validatorCountForConsensus())) {
             // 2/3 of validators must be ready
             return true;
         }
@@ -182,8 +180,11 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return state == States.Unlocked;
     }
 
+    // currently set to 2/3.  this could be changed to be configurable.
     function validatorCountForConsensus() public view returns (uint256) {
-        // currently set to 2/3.  this could be changed to be configurable.
+        if (validatorsInCurrentEpoch.length() <= 2) {
+            return 1;
+        }
         return (validatorsInCurrentEpoch.length() / 3) * 2;
     }
 
