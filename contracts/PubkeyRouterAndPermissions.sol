@@ -86,7 +86,7 @@ contract PubkeyRouterAndPermissions is Ownable {
         return address(bytes20(keccak256(pubKey)));
     }
 
-    function stripLeadingZeros(bytes32 b) public pure returns (bytes memory) {
+    function stripLeadingZeros(bytes32 b) internal pure returns (bytes memory) {
         uint256 i = 0;
         while (i < b.length && b[i] == 0) {
             i++;

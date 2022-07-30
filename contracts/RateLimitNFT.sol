@@ -39,6 +39,7 @@ contract RateLimitNFT is
     uint256 public freeRequestsPerRateLimitWindow = 10;
 
     mapping(uint256 => RateLimit) public capacity;
+    mapping(bytes32 => bool) public redeemedFreeMints;
 
     struct RateLimit {
         uint256 requestsPerMillisecond;
@@ -54,7 +55,8 @@ contract RateLimitNFT is
 
     /// throws if the sig is bad or msg doesn't match
     function freeMintSigTest(
-        uint256 tokenId,
+        uint256 expiresAt,
+        uint256 requestsPerMillisecond,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
@@ -65,10 +67,12 @@ contract RateLimitNFT is
         // to mint any number of PKPs
         // and this would be vulnerable to replay attacks
         // FIXME this needs the whole "ethereum signed message: \27" thingy prepended to actually work
-        bytes32 expectedHash = keccak256(abi.encodePacked(tokenId));
+        bytes32 expectedHash = keccak256(
+            abi.encodePacked(expiresAt, requestsPerMillisecond)
+        );
         require(
             expectedHash == msgHash,
-            "The msgHash is not a hash of the tokenId.  Explain yourself!"
+            "The msgHash is not a hash of the expiresAt + requestsPerMillisecond.  Explain yourself!"
         );
 
         // make sure it was actually signed by freeMintSigner
@@ -76,6 +80,12 @@ contract RateLimitNFT is
         require(
             recovered == freeMintSigner,
             "This freeMint was not signed by freeMintSigner.  How embarassing."
+        );
+
+        // make sure it hasn't already been redeemed
+        require(
+            !redeemedFreeMints[msgHash],
+            "This freeMint has already been redeemed.  How embarassing."
         );
     }
 
@@ -187,7 +197,7 @@ contract RateLimitNFT is
         // sanity check
         uint256 cost = calculateCost(requestsPerMillisecond, expiresAt);
         require(
-            msg.value >= cost,
+            msg.value > 0 && msg.value >= cost,
             "You must send the cost of this rate limit increase.  To check the cost, use the calculateCost function."
         );
 
@@ -195,17 +205,23 @@ contract RateLimitNFT is
         contractBalance += msg.value;
     }
 
-    // function freeMint(
-    //     uint256 tokenId,
-    //     bytes32 msgHash,
-    //     uint8 v,
-    //     bytes32 r,
-    //     bytes32 s
-    // ) public {
-    //     // this will panic if the sig is bad
-    //     freeMintSigTest(tokenId, msgHash, v, r, s);
-    //     _mintWithoutValueCheck(tokenId);
-    // }
+    function freeMint(
+        uint256 expiresAt,
+        uint256 requestsPerMillisecond,
+        bytes32 msgHash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public {
+        tokenIdCounter++;
+        uint256 tokenId = tokenIdCounter;
+
+        // this will panic if the sig is bad
+        freeMintSigTest(expiresAt, requestsPerMillisecond, msgHash, v, r, s);
+        redeemedFreeMints[msgHash] = true;
+
+        _mintWithoutValueCheck(tokenId, requestsPerMillisecond, expiresAt);
+    }
 
     function _mintWithoutValueCheck(
         uint256 tokenId,
