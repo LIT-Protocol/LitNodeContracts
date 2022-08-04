@@ -77,6 +77,7 @@ describe("PKPNFT", function () {
       // test with empty sig
       expect(
         pkpContract.freeMint(
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
           tokenId,
           "0x0000000000000000000000000000000000000000000000000000000000000000",
           0,
