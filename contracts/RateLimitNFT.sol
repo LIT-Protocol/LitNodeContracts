@@ -11,16 +11,9 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-// TODO: Set up free minting for us by letting the mint methods take a signature.  We sign the tokenId and the contract checks it
-// TODO: tests for the mintGrantAndBurn function, withdraw function, some of the setters, transfer function, freeMint and freeMintGrantAndBurn
-
-/// @title Programmable Keypair NFT
+/// @title Rate Limit NFT
 ///
-/// @dev This is the contract for the PKP NFTs
-///
-/// Simply put, whomever owns a PKP NFT can ask that PKP to sign a message.
-/// The owner can also grant signing permissions to other eth addresses
-/// or lit actions
+/// @dev This is the contract for the Rate Limit NFTs
 contract RateLimitNFT is
     ERC721("Rate Limit Increases on Lit Protocol", "RLI"),
     Ownable,
@@ -67,8 +60,8 @@ contract RateLimitNFT is
         // to mint any number of PKPs
         // and this would be vulnerable to replay attacks
         // FIXME this needs the whole "ethereum signed message: \27" thingy prepended to actually work
-        bytes32 expectedHash = keccak256(
-            abi.encodePacked(expiresAt, requestsPerMillisecond)
+        bytes32 expectedHash = prefixed(
+            keccak256(abi.encodePacked(expiresAt, requestsPerMillisecond))
         );
         require(
             expectedHash == msgHash,
@@ -180,6 +173,14 @@ contract RateLimitNFT is
 
     function isExpired(uint256 tokenId) public view returns (bool) {
         return capacity[tokenId].expiresAt <= block.timestamp;
+    }
+
+    // Builds a prefixed hash to mimic the behavior of eth_sign.
+    function prefixed(bytes32 hash) public pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked("\x19Ethereum Signed Message:\n32", hash)
+            );
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */

@@ -12,7 +12,6 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-// TODO: Set up free minting for us by letting the mint methods take a signature.  We sign the tokenId and the contract checks it
 // TODO: tests for the mintGrantAndBurn function, withdraw function, some of the setters, transfer function, freeMint and freeMintGrantAndBurn
 
 /// @title Programmable Keypair NFT
@@ -39,7 +38,7 @@ contract PKPNFT is
     // maps keytype to array of unminted routed token ids
     mapping(uint => uint[]) public unmintedRoutedTokenIds;
 
-    mapping(uint => bool) public usedFreeMintIds;
+    mapping(uint => bool) public redeemedFreeMintIds;
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
@@ -56,11 +55,6 @@ contract PKPNFT is
         bytes32 r,
         bytes32 s
     ) public view {
-        // make sure the msgHash matches the tokenId
-        // if these don't match, the user could use any old signature
-        // to mint any number of PKPs
-        // and this would be vulnerable to replay attacks
-        // FIXME this needs the whole "ethereum signed message: \27" thingy prepended to actually work
         bytes32 expectedHash = prefixed(
             keccak256(abi.encodePacked(address(this), freeMintId))
         );
@@ -78,7 +72,7 @@ contract PKPNFT is
 
         // prevent reuse
         require(
-            usedFreeMintIds[freeMintId] == false,
+            redeemedFreeMintIds[freeMintId] == false,
             "This free mint ID has already been redeemed"
         );
     }
@@ -217,7 +211,7 @@ contract PKPNFT is
         // this will panic if the sig is bad
         freeMintSigTest(freeMintId, msgHash, v, r, s);
         _mintWithoutValueCheck(tokenId);
-        usedFreeMintIds[freeMintId] = true;
+        redeemedFreeMintIds[freeMintId] = true;
     }
 
     function freeMintGrantAndBurn(
