@@ -43,6 +43,7 @@ contract PKPNFT is
     /* ========== CONSTRUCTOR ========== */
     constructor() {
         mintCost = 1e14; // 0.0001 eth
+        freeMintSigner = msg.sender;
     }
 
     /* ========== VIEWS ========== */
