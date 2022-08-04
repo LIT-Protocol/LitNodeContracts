@@ -205,6 +205,8 @@ contract PubkeyRouterAndPermissions is Ownable {
         pubkeys[tokenId].stakingContract = stakingContract;
         pubkeys[tokenId].keyType = keyType;
 
+        pkpNFT.pkpRouted(tokenId, keyType);
+
         emit PubkeyRoutingDataSet(
             tokenId,
             keyPart1,
@@ -326,6 +328,8 @@ contract PubkeyRouterAndPermissions is Ownable {
             pubkeys[tokenId].keyLength = keyLength;
             pubkeys[tokenId].stakingContract = stakingContract;
             pubkeys[tokenId].keyType = keyType;
+
+            pkpNFT.pkpRouted(tokenId, keyType);
 
             emit PubkeyRoutingDataSet(
                 tokenId,

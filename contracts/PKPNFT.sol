@@ -28,13 +28,18 @@ contract PKPNFT is
     ERC721Burnable,
     ERC721Enumerable
 {
-    using Strings for uint256;
+    using Strings for uint;
     /* ========== STATE VARIABLES ========== */
 
     PubkeyRouterAndPermissions public router;
-    uint256 public mintCost;
-    uint256 public contractBalance;
+    uint public mintCost;
+    uint public contractBalance;
     address public freeMintSigner;
+
+    // maps keytype to array of unminted routed token ids
+    mapping(uint => uint[]) public unmintedRoutedTokenIds;
+
+    mapping(uint => bool) public usedFreeMintIds;
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
@@ -45,7 +50,7 @@ contract PKPNFT is
 
     /// throws if the sig is bad or msg doesn't match
     function freeMintSigTest(
-        uint256 tokenId,
+        uint freeMintId,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
@@ -56,7 +61,9 @@ contract PKPNFT is
         // to mint any number of PKPs
         // and this would be vulnerable to replay attacks
         // FIXME this needs the whole "ethereum signed message: \27" thingy prepended to actually work
-        bytes32 expectedHash = keccak256(abi.encodePacked(tokenId));
+        bytes32 expectedHash = prefixed(
+            keccak256(abi.encodePacked(address(this), freeMintId))
+        );
         require(
             expectedHash == msgHash,
             "The msgHash is not a hash of the tokenId.  Explain yourself!"
@@ -67,6 +74,12 @@ contract PKPNFT is
         require(
             recovered == freeMintSigner,
             "This freeMint was not signed by freeMintSigner.  How embarassing."
+        );
+
+        // prevent reuse
+        require(
+            usedFreeMintIds[freeMintId] == false,
+            "This free mint ID has already been redeemed"
         );
     }
 
@@ -86,12 +99,12 @@ contract PKPNFT is
     function _beforeTokenTransfer(
         address from,
         address to,
-        uint256 tokenId
+        uint tokenId
     ) internal virtual override(ERC721, ERC721Enumerable) {
         ERC721Enumerable._beforeTokenTransfer(from, to, tokenId);
     }
 
-    function tokenURI(uint256 tokenId)
+    function tokenURI(uint tokenId)
         public
         view
         override
@@ -121,10 +134,61 @@ contract PKPNFT is
         return string(abi.encodePacked("data:application/json;base64,", json));
     }
 
+    // Builds a prefixed hash to mimic the behavior of eth_sign.
+    function prefixed(bytes32 hash) public pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked("\x19Ethereum Signed Message:\n32", hash)
+            );
+    }
+
     /* ========== MUTATIVE FUNCTIONS ========== */
 
+    function mintNext(uint keyType) public payable returns (uint) {
+        uint tokenId = _getNextTokenIdToMint(keyType);
+        mint(tokenId);
+        return tokenId;
+    }
+
+    function mintGrantAndBurnNext(uint keyType, bytes32 ipfsId)
+        public
+        payable
+        returns (uint)
+    {
+        uint tokenId = _getNextTokenIdToMint(keyType);
+        mintGrantAndBurn(tokenId, ipfsId);
+        return tokenId;
+    }
+
+    function freeMintNext(
+        uint keyType,
+        uint freeMintId,
+        bytes32 msgHash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public returns (uint) {
+        uint tokenId = _getNextTokenIdToMint(keyType);
+        freeMint(freeMintId, tokenId, msgHash, v, r, s);
+        return tokenId;
+    }
+
+    function freeMintGrantAndBurnNext(
+        uint keyType,
+        uint freeMintId,
+        bytes32 ipfsId,
+        bytes32 msgHash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public returns (uint) {
+        uint tokenId = _getNextTokenIdToMint(keyType);
+        freeMintGrantAndBurn(freeMintId, tokenId, ipfsId, msgHash, v, r, s);
+        return tokenId;
+    }
+
     /// create a valid token for a given public key.
-    function mint(uint256 tokenId) public payable {
+    function mint(uint tokenId) public payable {
         require(msg.value == mintCost, "You must pay exactly mint cost");
         _mintWithoutValueCheck(tokenId);
     }
@@ -136,48 +200,66 @@ contract PKPNFT is
     /// where you could just trust the sig that a number is prime.
     /// without this function, a user could mint a PKP, sign a bunch of junk, and then burn the
     /// PKP to make it looks like only the Lit Action can use it.
-    function mintGrantAndBurn(uint256 tokenId, bytes32 ipfsId) public payable {
+    function mintGrantAndBurn(uint tokenId, bytes32 ipfsId) public payable {
         mint(tokenId);
         router.addPermittedAction(tokenId, ipfsId);
         burn(tokenId);
     }
 
     function freeMint(
-        uint256 tokenId,
+        uint freeMintId,
+        uint tokenId,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) public {
         // this will panic if the sig is bad
-        freeMintSigTest(tokenId, msgHash, v, r, s);
+        freeMintSigTest(freeMintId, msgHash, v, r, s);
         _mintWithoutValueCheck(tokenId);
+        usedFreeMintIds[freeMintId] = true;
     }
 
     function freeMintGrantAndBurn(
-        uint256 tokenId,
+        uint freeMintId,
+        uint tokenId,
         bytes32 ipfsId,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) public {
-        freeMint(tokenId, msgHash, v, r, s);
+        freeMint(freeMintId, tokenId, msgHash, v, r, s);
         router.addPermittedAction(tokenId, ipfsId);
         burn(tokenId);
     }
 
-    function _mintWithoutValueCheck(uint256 tokenId) internal {
+    function _mintWithoutValueCheck(uint tokenId) internal {
         require(router.isRouted(tokenId), "This PKP has not been routed yet");
 
         _safeMint(msg.sender, tokenId);
         contractBalance += msg.value;
     }
 
+    /// Take a tokenId off the stack
+    function _getNextTokenIdToMint(uint keyType) internal returns (uint) {
+        require(
+            unmintedRoutedTokenIds[keyType].length > 0,
+            "There are no unminted routed token ids to mint"
+        );
+        uint tokenId = unmintedRoutedTokenIds[keyType][
+            unmintedRoutedTokenIds[keyType].length - 1
+        ];
+
+        unmintedRoutedTokenIds[keyType].pop();
+
+        return tokenId;
+    }
+
     function transfer(
         address from,
         address to,
-        uint256 tokenId
+        uint tokenId
     ) public {
         _safeTransfer(from, to, tokenId, "");
     }
@@ -186,7 +268,7 @@ contract PKPNFT is
         router = PubkeyRouterAndPermissions(routerAddress);
     }
 
-    function setMintCost(uint256 newMintCost) public onlyOwner {
+    function setMintCost(uint newMintCost) public onlyOwner {
         mintCost = newMintCost;
     }
 
@@ -197,5 +279,14 @@ contract PKPNFT is
     function withdraw() public onlyOwner {
         payable(msg.sender).transfer(contractBalance);
         contractBalance = 0;
+    }
+
+    /// Push a tokenId onto the stack
+    function pkpRouted(uint tokenId, uint keyType) public {
+        require(
+            msg.sender == address(router),
+            "Only the routing contract can call this function"
+        );
+        unmintedRoutedTokenIds[keyType].push(tokenId);
     }
 }
