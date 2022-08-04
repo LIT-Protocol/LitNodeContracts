@@ -129,6 +129,10 @@ contract PKPNFT is
         return string(abi.encodePacked("data:application/json;base64,", json));
     }
 
+    function getUnmintedRoutedTokenIdCount(uint keyType) public view returns (uint) {
+        return unmintedRoutedTokenIds[keyType].length;
+    }
+
     // Builds a prefixed hash to mimic the behavior of eth_sign.
     function prefixed(bytes32 hash) public pure returns (bytes32) {
         return
