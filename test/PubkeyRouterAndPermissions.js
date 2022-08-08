@@ -182,7 +182,7 @@ describe("PubkeyRouterAndPermissions", function () {
         );
 
         const keyLengthInput = 64;
-        const keyTypeInput = 1;
+        const keyTypeInput = 2;
 
         await routerContract.voteForRoutingData(
           pubkeyHash,
@@ -216,7 +216,9 @@ describe("PubkeyRouterAndPermissions", function () {
         const transaction = {
           value: mintCost,
         };
-        await pkpContract.mint(tokenId, transaction);
+        await pkpContract.mintNext(2, transaction);
+        const owner = await pkpContract.ownerOf(pubkeyHash);
+        expect(owner).equal(tester.address);
       });
 
       it("grants permission to an eth address and then revokes it", async () => {

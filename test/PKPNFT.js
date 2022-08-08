@@ -39,7 +39,7 @@ describe("PKPNFT", function () {
     //console.log("PubkeyHash: " , pubkeyHash);
 
     it("refuses to mint for free", async () => {
-      expect(pkpContract.mint(tokenId)).revertedWith(
+      expect(pkpContract.mintNext(2)).revertedWith(
         "You must pay exactly mint cost"
       );
     });
@@ -51,8 +51,8 @@ describe("PKPNFT", function () {
         value: mintCost,
       };
 
-      expect(pkpContract.mint(tokenId, transaction)).revertedWith(
-        "This PKP has not been routed yet"
+      expect(pkpContract.mintNext(2, transaction)).revertedWith(
+        "There are no unminted routed token ids to mint"
       );
     });
   });
@@ -89,9 +89,9 @@ describe("PKPNFT", function () {
 
       // test with empty sig
       expect(
-        pkpContract.freeMint(
+        pkpContract.freeMintNext(
+          2,
           freeMintId,
-          tokenId,
           "0x0000000000000000000000000000000000000000000000000000000000000000",
           0,
           "0x0000000000000000000000000000000000000000000000000000000000000000",

@@ -129,7 +129,11 @@ contract PKPNFT is
         return string(abi.encodePacked("data:application/json;base64,", json));
     }
 
-    function getUnmintedRoutedTokenIdCount(uint keyType) public view returns (uint) {
+    function getUnmintedRoutedTokenIdCount(uint keyType)
+        public
+        view
+        returns (uint)
+    {
         return unmintedRoutedTokenIds[keyType].length;
     }
 
@@ -144,8 +148,9 @@ contract PKPNFT is
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     function mintNext(uint keyType) public payable returns (uint) {
+        require(msg.value == mintCost, "You must pay exactly mint cost");
         uint tokenId = _getNextTokenIdToMint(keyType);
-        mint(tokenId);
+        _mintWithoutValueCheck(tokenId);
         return tokenId;
     }
 
@@ -154,8 +159,9 @@ contract PKPNFT is
         payable
         returns (uint)
     {
-        uint tokenId = _getNextTokenIdToMint(keyType);
-        mintGrantAndBurn(tokenId, ipfsId);
+        uint tokenId = mintNext(keyType);
+        router.addPermittedAction(tokenId, ipfsId);
+        burn(tokenId);
         return tokenId;
     }
 
@@ -187,8 +193,7 @@ contract PKPNFT is
     }
 
     /// create a valid token for a given public key.
-    function mint(uint tokenId) public payable {
-        require(msg.value == mintCost, "You must pay exactly mint cost");
+    function mintSpecific(uint tokenId) public onlyOwner {
         _mintWithoutValueCheck(tokenId);
     }
 
@@ -199,8 +204,11 @@ contract PKPNFT is
     /// where you could just trust the sig that a number is prime.
     /// without this function, a user could mint a PKP, sign a bunch of junk, and then burn the
     /// PKP to make it looks like only the Lit Action can use it.
-    function mintGrantAndBurn(uint tokenId, bytes32 ipfsId) public payable {
-        mint(tokenId);
+    function mintGrantAndBurnSpecific(uint tokenId, bytes32 ipfsId)
+        public
+        onlyOwner
+    {
+        _mintWithoutValueCheck(tokenId);
         router.addPermittedAction(tokenId, ipfsId);
         burn(tokenId);
     }
@@ -212,7 +220,7 @@ contract PKPNFT is
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public {
+    ) internal {
         // this will panic if the sig is bad
         freeMintSigTest(freeMintId, msgHash, v, r, s);
         _mintWithoutValueCheck(tokenId);
@@ -227,7 +235,7 @@ contract PKPNFT is
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public {
+    ) internal {
         freeMint(freeMintId, tokenId, msgHash, v, r, s);
         router.addPermittedAction(tokenId, ipfsId);
         burn(tokenId);

@@ -350,7 +350,7 @@ describe("Staking", function () {
     it("votes to register a PKP", async () => {
       const fakePubkey =
         "0x83709b8bcc865ce02b7a918909936c8fbc3520445634dcaf4a18cfa1f0218a5ca37173aa265defedad866a0ae7b6c301";
-      pkpNft = pkpNft.connect(stakingAccount1);
+      pkpNft = pkpNft.connect(deployer);
 
       // validate that it's not routed yet
       const pubkeyHash = ethers.utils.keccak256(fakePubkey);
@@ -378,10 +378,8 @@ describe("Staking", function () {
 
       // validate that it can't be minted because it's not routed yet
       let mintCost = await pkpNft.mintCost();
-      let transaction = {
-        value: mintCost,
-      };
-      expect(pkpNft.mint(pubkeyHash, transaction)).revertedWith(
+
+      expect(pkpNft.mintSpecific(pubkeyHash)).revertedWith(
         "This PKP has not been routed yet"
       );
 
@@ -391,7 +389,7 @@ describe("Staking", function () {
         32
       );
       const keyLengthInput = 48;
-      const keyTypeInput = 1;
+      const keyTypeInput = 2;
 
       // vote to register it with 5 nodes
       for (let i = 0; i < 5; i++) {
@@ -499,11 +497,12 @@ describe("Staking", function () {
       // expect(pkpNft.ownerOf(pubkeyHash)).revertedWith(
       //   "ERC721: owner query for nonexistent token"
       // );
+      pkpNft = pkpNft.connect(stakingAccount1);
       mintCost = await pkpNft.mintCost();
       transaction = {
         value: mintCost,
       };
-      await pkpNft.mint(pubkeyHash, transaction);
+      await pkpNft.mintNext(2, transaction);
       owner = await pkpNft.ownerOf(pubkeyHash);
       expect(owner).to.equal(stakingAccount1.address);
 
