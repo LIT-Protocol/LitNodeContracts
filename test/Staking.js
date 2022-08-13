@@ -502,7 +502,10 @@ describe("Staking", function () {
       transaction = {
         value: mintCost,
       };
-      await pkpNft.mintNext(2, transaction);
+      const tx = await pkpNft.mintNext(2, transaction);
+      const ret = await tx.wait(); // 0ms, as tx is already confirmed
+      const tokenIdFromEvent = ret.events[0].topics[3];
+      expect(tokenIdFromEvent).to.equal(pubkeyHash);
       owner = await pkpNft.ownerOf(pubkeyHash);
       expect(owner).to.equal(stakingAccount1.address);
 
