@@ -263,14 +263,6 @@ contract PKPNFT is
         return tokenId;
     }
 
-    function transfer(
-        address from,
-        address to,
-        uint tokenId
-    ) public {
-        _safeTransfer(from, to, tokenId, "");
-    }
-
     function setRouterAddress(address routerAddress) public onlyOwner {
         router = PubkeyRouterAndPermissions(routerAddress);
     }

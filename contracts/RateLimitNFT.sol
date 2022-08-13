@@ -233,14 +233,6 @@ contract RateLimitNFT is
         capacity[tokenId] = RateLimit(requestsPerMillisecond, expiresAt);
     }
 
-    function transfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public {
-        _safeTransfer(from, to, tokenId, "");
-    }
-
     function setAdditionalRequestsPerSecondCost(
         uint256 newAdditionalRequestsPerMillisecondCost
     ) public onlyOwner {
