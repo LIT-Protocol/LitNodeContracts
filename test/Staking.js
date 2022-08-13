@@ -503,7 +503,7 @@ describe("Staking", function () {
         value: mintCost,
       };
       const tx = await pkpNft.mintNext(2, transaction);
-      const ret = await tx.wait(); // 0ms, as tx is already confirmed
+      const ret = await tx.wait();
       const tokenIdFromEvent = ret.events[0].topics[3];
       expect(tokenIdFromEvent).to.equal(pubkeyHash);
       owner = await pkpNft.ownerOf(pubkeyHash);
