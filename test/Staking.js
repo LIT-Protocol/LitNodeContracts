@@ -602,6 +602,9 @@ describe("Staking", function () {
       );
       const totalStakedBefore = await stakingContract.totalStaked();
 
+      // get epoch number
+      const epoch = await stakingContract.epoch();
+
       // vote to kick the last stakingAccount
       for (let i = 0; i < stakingAccounts.length - 1; i++) {
         const stakingAccount = stakingAccounts[i];
@@ -610,6 +613,15 @@ describe("Staking", function () {
         await stakingContract.kickValidatorInNextEpoch(
           toBeKicked.stakingAddress.getAddress()
         );
+
+        // assert votesToKickValidatorsInNextEpoch state
+        const [numVotes, didStakerVote] = await stakingContract.getVotingStatusToKickValidator(
+          epoch.number,
+          toBeKicked.stakingAddress.getAddress(),
+          stakingAccount.stakingAddress.getAddress(),
+        );
+        expect(numVotes).equal(i+1);
+        expect(didStakerVote).is.true;
       }
 
       const validatorsInNextEpochAfter =
