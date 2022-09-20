@@ -111,6 +111,15 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return validators[account].balance;
     }
 
+    function getVotingStatusToKickValidator(
+        uint256 epochNumber,
+        address validatorStakerAddress,
+        address voterStakerAddress
+    ) external view returns (uint256, bool) {
+        VoteToKickValidatorInNextEpoch storage votingStatus = votesToKickValidatorsInNextEpoch[epochNumber][validatorStakerAddress];
+        return (votingStatus.votes, votingStatus.voted[voterStakerAddress]);
+    }
+
     function getValidatorsInCurrentEpoch()
         external
         view
