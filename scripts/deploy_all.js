@@ -70,15 +70,22 @@ async function main () {
   console.log('Contract for PubkeyRouterAndPermissions deployed to:', RouterContract.address)
 
 
+  //  Deploy the RateLimitNFT contract.
+  const RateLimitNFTContractFactory = await ethers.getContractFactory("RateLimitNFT");
+  const RateLimitNFTContract = await RateLimitNFTContractFactory.deploy(TokenContract.address);
+  await RateLimitNFTContract.deployed();
+  console.log('Contract for PubkeyRouterAndPermissions deployed to:', RateLimitNFTContract.address)
+
+
   await TokenContract.setRouterAddress(RouterContract.address);
 
    // Get contract ASTs into ethernal - note that this is slow.  But at least it's automatic.
-  await hre.ethernal.push({name:'AccessControlConditions', address: c_AccessCtlConditions.address});
-  await hre.ethernal.push({name:'LITToken', address: c_LITToken.address});
-  await hre.ethernal.push({name:'Staking', address: c_Staking.address});
-  await hre.ethernal.push({name:'ConditionValidations', address: c_conditionValidation.address});
-  await hre.ethernal.push({name:'PubkeyRouterAndPermissions', address: RouterContract.address});
-  await hre.ethernal.push({name:'PKPNFT', address: TokenContract.address});
+  // await hre.ethernal.push({name:'AccessControlConditions', address: c_AccessCtlConditions.address});
+  // await hre.ethernal.push({name:'LITToken', address: c_LITToken.address});
+  // await hre.ethernal.push({name:'Staking', address: c_Staking.address});
+  // await hre.ethernal.push({name:'ConditionValidations', address: c_conditionValidation.address});
+  // await hre.ethernal.push({name:'PubkeyRouterAndPermissions', address: RouterContract.address});
+  // await hre.ethernal.push({name:'PKPNFT', address: TokenContract.address});
 
 
   // Set this value for the number of nodes to create 
@@ -128,21 +135,23 @@ async function main () {
     f('LIT_CONTRACT_STAKING = ', c_Staking.address);
     f('LIT_CONTRACT_PUBKEYROUTERANDPERMISSIONS = ', RouterContract.address);
     f('LIT_CONTRACT_PKPNFT = ', TokenContract.address);
+    f('LIT_CONTRACT_RATELIMITNFT = ', RateLimitNFTContract.address);
     f('\n') ;
 
     const ipAddr = "127.0.0.1";
     const port = 7470 + i;
     const node_wallet = await hre.ethers.Wallet.createRandom().connect(hre.ethers.provider);
     
-    console.log('Impersonation:' ,  ( await hre.network.provider.send('hardhat_impersonateAccount', [node_wallet.address]) ) );
+    // console.log('Impersonation:' ,  ( await hre.network.provider.send('hardhat_impersonateAccount', [node_wallet.address]) ) );
    // console.log('Signer:' ,  ( await hre.ethers.provider.getSigner(node_wallet.address) ) );
+  console.log('Wallet Address:' ,  ( node_wallet.address ) );
 
     wallets[i] = node_wallet;
 
     // using ETH as gas in Hardhat.
     await deployer.sendTransaction({  
       to: node_wallet.address,
-      value: hre.ethers.utils.parseEther("1.0"), // Sends exactly 1.0 ether
+      value: hre.ethers.utils.parseEther("0.001"), // Sends exactly 0.1 coin
     });
 
     console.log("Node ETH Balance () =" ,  await hre.ethers.provider.getBalance(node_wallet.address)     );     // this is a BigInt
@@ -167,7 +176,7 @@ async function main () {
     await token.approve(c_Staking.address, staking_amount);
 
     var node_balance = await c_LITToken.balanceOf(node_wallet.address);
-    console.log("Node Balance (initial) =" , node_balance.toNumber()   );     // this is a BigInt
+    //console.log("Node Balance (initial) =" , node_balance.toNumber()   );     // this is a BigInt
     console.log("Staking amount =" , staking_amount   );     // this is a BigInt
 
     // stake & join for the first epoch.
