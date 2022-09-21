@@ -69,14 +69,22 @@ async function main () {
   const keyLengthInput = 48;
   const keyTypeInput = 1;
 
-  await routerContract.setRoutingData(
-    pubkeyHash,
-    keyPart1Bytes,
-    keyPart2Bytes,
-    keyLengthInput,
-    stakingContractAddress,
-    keyTypeInput
-  );
+
+  console.log('Confirming that we have storage: ');
+  console.log('Confirming that we have kp1: ', keyPart1Bytes);
+  console.log('Confirming that we have kp2: ', keyPart2Bytes);
+
+
+
+  console.log('kp1')
+  // await routerContract.setRoutingData(
+  //   pubkeyHash,
+  //   keyPart1Bytes,
+  //   keyPart2Bytes,
+  //   keyLengthInput,
+  //   stakingContractAddress,
+  //   keyTypeInput
+  // );
 
   // validate that it was set
   const [
@@ -86,8 +94,6 @@ async function main () {
     stakingContractAfter,
     keyTypeAfter,
   ] = await routerContract.getRoutingData(pubkeyHash);
-
-  console.log('Confirming that we have storage: ', keyPart1After);
 
 
 
