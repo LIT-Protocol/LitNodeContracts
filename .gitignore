@@ -1,6 +1,7 @@
 node_modules
 
 #Hardhat files
+build
 cache
 artifacts
 .deps
