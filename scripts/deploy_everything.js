@@ -108,8 +108,7 @@ async function main() {
   console.log("Sending tokens to multisender");
   // 100m for stakers
   const amountForStakers = ethers.utils.parseUnits("100000000", 18);
-  const transferTx = await litToken.safeTransferFrom(
-    deployer.address,
+  let transferTx = await litToken.transfer(
     multisenderContract.address,
     amountForStakers
   );
@@ -117,11 +116,7 @@ async function main() {
 
   // *** 10. Send remaining tokens to newOwner
   const amountRemaining = await litToken.balanceOf(deployer.address);
-  transferTx = await litToken.safeTransferFrom(
-    deployer.address,
-    newOwner,
-    amountRemaining
-  );
+  transferTx = await litToken.transfer(newOwner, amountRemaining);
   await transferTx.wait();
 
   // *** 11. Set new owner of LITToken
