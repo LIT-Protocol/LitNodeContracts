@@ -41,6 +41,7 @@ module.exports = {
   networks: {
     celo: {
       url: "https://forno.celo.org",
+      accounts: [process.env.LIT_CELO_DEPLOYER_PRIVATE_KEY],
     },
   },
   etherscan: {
