@@ -11,8 +11,8 @@ const { ethers } = hre;
 // after deploy, the deployer will set this wallet as the owner for everything.  Make sure the private key for this is easy to access and secure.  I use a metamask wallet for this, so that I can use remix to run any functions as the owner.
 const newOwner = "0x50e2dac5e78B5905CB09495547452cEE64426db2";
 
-const verifyContractInBg = (address) => {
-  let verify = spawn("bash", ["./verifyOnCelo.sh", address], {
+const verifyContractInBg = (address, args = []) => {
+  let verify = spawn("bash", ["./verifyOnCelo.sh", address, ...args], {
     detached: true, // run in BG
   });
 
@@ -63,7 +63,7 @@ async function main() {
   let tx = await transferOwnershipToNewOwner(stakingContract);
   await tx.wait();
   console.log("New owner set.");
-  verifyContractInBg(stakingContract.address);
+  verifyContractInBg(stakingContract.address, [litToken.address]);
 
   // *** 3. Deploy AccessControlConditions Conttact
   const accessControlConditionsContract = await deployContract(
@@ -89,7 +89,9 @@ async function main() {
   tx = await transferOwnershipToNewOwner(pubkeyRouterAndPermissionsContract);
   await tx.wait();
   console.log("New owner set.");
-  verifyContractInBg(pubkeyRouterAndPermissionsContract.address);
+  verifyContractInBg(pubkeyRouterAndPermissionsContract.address, [
+    pkpNFTContract.address,
+  ]);
 
   // *** 7. Deploy Multisender Contract
   const multisenderContract = await deployContract("Multisender");
