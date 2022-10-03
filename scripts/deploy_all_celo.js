@@ -130,7 +130,7 @@ async function main () {
   // Chain for condition storage and minting/staking contracts
     
     f('LIT_CHAIN_NAME = ', hre.network.name ); 
-    f('LIT_CHAIN_ID = 31337 ' );
+    f('LIT_CHAIN_ID = ' , hre.network.config.chainId );
     f('LIT_CHAIN_RPC_URL =', hre.network.config.url  );
 
   // Contract addresses (Condition Validations may also appear in other chains)
@@ -154,6 +154,7 @@ async function main () {
     f("LIT_NODE_ADDRESS = " , node_wallet.address.toLowerCase());
     f("LIT_NODE_PRIVATEKEY = " , node_wallet.privateKey);  
     f("LIT_NODE_PUBLICKEY = " , node_wallet.publicKey);
+    f("LIT_STAKER_ADDRESS = " , node_wallet.address.toLowerCase());
     f("LIT_NODE_DOMAIN_NAME = " , ipAddr)
     f("LIT_NODE_PORT = " , port)
     f("ROCKET_PORT = " , port)
@@ -214,19 +215,19 @@ async function main () {
   // if we want to prep our first set of nodes...  >>>  
   // comment this out, if we want to run these commands from the nodes!
   
-  const node_staking = await c_Staking.connect(current_wallet);    
-  console.log('Locking for first epoch...');
-  await node_staking.lockValidatorsForNextEpoch();
+  // const node_staking = await c_Staking.connect(current_wallet);    
+  // console.log('Locking for first epoch...');
+  // await node_staking.lockValidatorsForNextEpoch();
 
-  for (i = 0; i < nodeCount; i++)  {
-    const wallet = wallets[i];
-    const node_staking = await c_Staking.connect(wallet);    
-    console.log('Signal Ready for first epoch :', wallet.address );
-    await node_staking.signalReadyForNextEpoch();
-  }
-  console.log('Advancing to first epoch...');
-  await node_staking.advanceEpoch();  
-  console.log("Current validators:", await c_Staking.getValidatorsInCurrentEpoch() );
+  // for (i = 0; i < nodeCount; i++)  {
+  //   const wallet = wallets[i];
+  //   const node_staking = await c_Staking.connect(wallet);    
+  //   console.log('Signal Ready for first epoch :', wallet.address );
+  //   await node_staking.signalReadyForNextEpoch();
+  // }
+  // console.log('Advancing to first epoch...');
+  // await node_staking.advanceEpoch();  
+  // console.log("Current validators:", await c_Staking.getValidatorsInCurrentEpoch() );
 
 
 
@@ -242,4 +243,4 @@ main()
   })
 
 
-  /// test deployed to : 7.355248197 CELO ($5.617 USD)
+  /// test deployed to : 7.355248197 CELO ($5.617 USD) //  6.3439029795 CELO ($4.860 USD)

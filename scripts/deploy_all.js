@@ -80,12 +80,13 @@ async function main () {
   await TokenContract.setRouterAddress(RouterContract.address);
 
    // Get contract ASTs into ethernal - note that this is slow.  But at least it's automatic.
-  // await hre.ethernal.push({name:'AccessControlConditions', address: c_AccessCtlConditions.address});
-  // await hre.ethernal.push({name:'LITToken', address: c_LITToken.address});
-  // await hre.ethernal.push({name:'Staking', address: c_Staking.address});
-  // await hre.ethernal.push({name:'ConditionValidations', address: c_conditionValidation.address});
-  // await hre.ethernal.push({name:'PubkeyRouterAndPermissions', address: RouterContract.address});
-  // await hre.ethernal.push({name:'PKPNFT', address: TokenContract.address});
+  await hre.ethernal.push({name:'AccessControlConditions', address: c_AccessCtlConditions.address});
+  await hre.ethernal.push({name:'LITToken', address: c_LITToken.address});
+  await hre.ethernal.push({name:'Staking', address: c_Staking.address});
+  await hre.ethernal.push({name:'ConditionValidations', address: c_conditionValidation.address});
+  await hre.ethernal.push({name:'PubkeyRouterAndPermissions', address: RouterContract.address});
+  await hre.ethernal.push({name:'PKPNFT', address: TokenContract.address});
+  await hre.ethernal.push({name:'RateLimitNFT', address: RateLimitNFTContract.address});
 
 
   // Set this value for the number of nodes to create 
@@ -207,16 +208,21 @@ async function main () {
 
 
   // if we want to prep our first set of nodes...  >>>  
+  // comment this out, if we want to run these commands from the nodes!
   
   // const node_staking = await c_Staking.connect(current_wallet);    
   // console.log('Locking for first epoch...');
   // await node_staking.lockValidatorsForNextEpoch();
+
+  // for (i = 0; i < nodeCount; i++)  {
+  //   const wallet = wallets[i];
+  //   const node_staking = await c_Staking.connect(wallet);    
+  //   console.log('Signal Ready for first epoch :', wallet.address );
+  //   await node_staking.signalReadyForNextEpoch();
+  // }
   // console.log('Advancing to first epoch...');
   // await node_staking.advanceEpoch();  
-  // console.log("Current validators:", await c_Staking.getValidatorsInCurrentEpoch() )
-
- 
-
+  // console.log("Current validators:", await c_Staking.getValidatorsInCurrentEpoch() );
 
 
 }

@@ -33,6 +33,8 @@ contract ConditionValidations is ReentrancyGuard {
         bool isValid;
     }
 
+    address whoami;
+
     /* ========== STATE VARIABLES ========== */
     mapping(bytes32 => ValidatedCondition) public validatedConditions;
     mapping(address => bool) public validAddresses;
@@ -90,6 +92,11 @@ contract ConditionValidations is ReentrancyGuard {
         return addrFromPublicKey;
     }
 
+    function whoamiNonMutative() external view returns (address) 
+    {
+        return msg.sender;
+    }
+
     /* ========== MUTATIVE FUNCTIONS ========== */
     function storeValidatedCondition(
         uint256 chainId,
@@ -116,6 +123,14 @@ contract ConditionValidations is ReentrancyGuard {
             msg.sender
         );
     }
+
+
+    function whoamiMutative() external  returns (address) 
+    {
+        whoami = msg.sender;
+        return msg.sender;
+    }
+
 
     /* ========== EVENTS ========== */
 

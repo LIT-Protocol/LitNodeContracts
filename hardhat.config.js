@@ -19,8 +19,8 @@ task("accounts", "Prints the list of accounts", async () => {
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
-const HARMONY_PRIVATE_KEY = "***";  // test account
-const CELO_TEST_PRIVATE_KEY = "****";
+const HARMONY_PRIVATE_KEY = '***';  // test account
+const CELO_TEST_PRIVATE_KEY = '***';
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
@@ -45,10 +45,6 @@ module.exports = {
     },
     alfajores: {
      url: "https://alfajores-forno.celo-testnet.org",
-    //  accounts: {
-    //    mnemonic: process.env.MNEMONIC,
-    //    path: "m/44'/52752'/0'/0"
-    //  },
       accounts: [`0x${CELO_TEST_PRIVATE_KEY}`],
      chainId: 44787,
   //    gasPrice: 8000000000, // default is 'auto' which breaks chains without the london hardfork    
