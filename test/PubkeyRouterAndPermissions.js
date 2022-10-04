@@ -144,7 +144,7 @@ describe("PubkeyRouterAndPermissions", function () {
     context("when the PKP grants permission to an ETH address", async () => {
       // 64 byte pubkey - the max size we support
       let fakePubkey =
-        "0xf3eff7fd71d9ed07417480dd1bf36487d426d9a17129a1aa72ef946dff7be4769fca165782f439f85d594dca927187b98c65e978509dcc581b0cbc42abb9100f";
+        "0x0c5ad8962e95ab57a97e27887682830dfc534133ebe7a31c944daf51b0558e13439740f06aab8e58367fa47daf8a039b2457d90c9c25a1613ecbdc490eeb72eb";
       let tester;
       let creator;
       let tokenId;
@@ -296,6 +296,17 @@ describe("PubkeyRouterAndPermissions", function () {
         await routerContract.removePermittedAction(tokenId, ipfsIdHash);
         permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
         expect(permitted).equal(false);
+      });
+
+      it("checks the PKP eth address", async () => {
+        // validate that the address matches what ethers calculates
+        const pubkeyWithPrefix = "0x04" + fakePubkey.substring(2);
+        console.log("pubkeyWithPrefix", pubkeyWithPrefix);
+        const ethersResult = ethers.utils.computeAddress(pubkeyWithPrefix);
+        const fullPubkey = await routerContract.getFullPubkey(tokenId);
+        console.log("fullPubkey", fullPubkey);
+        let ethAddressOfPKP = await routerContract.getEthAddress(tokenId);
+        expect(ethAddressOfPKP).equal(ethersResult);
       });
     });
   });

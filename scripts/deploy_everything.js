@@ -7,14 +7,29 @@
 const hre = require("hardhat");
 var spawn = require("child_process").spawn;
 const { ethers } = hre;
+const chainName = hre.network.name;
+const rpcUrl = hre.network.config.url;
+
+async function getChainId() {
+  const { chainId } = await ethers.provider.getNetwork();
+  return chainId;
+}
+
+console.log("Deploying contracts to network " + chainName);
+
+// process.exit(0);
 
 // after deploy, the deployer will set this wallet as the owner for everything.  Make sure the private key for this is easy to access and secure.  I use a metamask wallet for this, so that I can use remix to run any functions as the owner.
 const newOwner = "0x50e2dac5e78B5905CB09495547452cEE64426db2";
 
 const verifyContractInBg = (address, args = []) => {
-  let verify = spawn("bash", ["./verifyOnCelo.sh", address, ...args], {
-    detached: true, // run in BG
-  });
+  let verify = spawn(
+    "bash",
+    ["./verifyOnChain.sh", chainName, address, ...args],
+    {
+      detached: true, // run in BG
+    }
+  );
 
   verify.unref(); // don't wait for it to finish
 
@@ -141,6 +156,9 @@ async function main() {
   console.log("New owner set.");
   verifyContractInBg(pkpNFTContract.address);
 
+  // *** 13. get chain id
+  const chainId = await getChainId();
+
   const finalJson = {
     stakingContractAddress: stakingContract.address,
     multisenderContractAddress: multisenderContract.address,
@@ -152,9 +170,13 @@ async function main() {
       pubkeyRouterAndPermissionsContract.address,
     pkpNftContractAddress: pkpNFTContract.address,
     rateLimitNftContractAddress: rateLimitNftContract.address,
+    chainId,
+    rpcUrl,
+    chainName,
   };
 
-  console.log("final JSON: ", JSON.stringify(finalJson, null, 2));
+  console.log("final JSON: ");
+  console.log(JSON.stringify(finalJson, null, 2));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

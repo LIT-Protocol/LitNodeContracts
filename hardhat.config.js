@@ -43,10 +43,15 @@ module.exports = {
       url: "https://forno.celo.org",
       accounts: [process.env.LIT_CELO_DEPLOYER_PRIVATE_KEY],
     },
+    mumbai: {
+      url: "https://polygon-testnet.public.blastapi.io",
+      accounts: [process.env.LIT_MUMBAI_DEPLOYER_PRIVATE_KEY],
+    },
   },
   etherscan: {
     apiKey: {
       celo: process.env.LIT_CELOSCAN_API_KEY,
+      mumbai: process.env.LIT_POLYGONSCAN_API_KEY,
     },
     customChains: [
       {
@@ -55,6 +60,14 @@ module.exports = {
         urls: {
           apiURL: "https://api.celoscan.io/api",
           browserURL: "https://celoscan.io",
+        },
+      },
+      {
+        network: "mumbai",
+        chainId: 80001,
+        urls: {
+          apiURL: "https://api-testnet.polygonscan.com/api",
+          browserURL: "https://mumbai.polygonscan.com",
         },
       },
     ],

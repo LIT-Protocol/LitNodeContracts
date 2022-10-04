@@ -5,6 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {PKPNFT} from "./PKPNFT.sol";
 import {Staking} from "./Staking.sol";
+import "solidity-bytes-utils/contracts/BytesLib.sol";
 
 import "hardhat/console.sol";
 
@@ -15,6 +16,7 @@ import "hardhat/console.sol";
 contract PubkeyRouterAndPermissions is Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
+    using BytesLib for bytes;
 
     /* ========== STATE VARIABLES ========== */
 
@@ -69,11 +71,19 @@ contract PubkeyRouterAndPermissions is Ownable {
     /* ========== VIEWS ========== */
 
     function getFullPubkey(uint256 tokenId) public view returns (bytes memory) {
-        return
-            abi.encodePacked(
-                pubkeys[tokenId].keyPart1,
-                stripLeadingZeros(pubkeys[tokenId].keyPart2)
-            );
+        if (pubkeys[tokenId].keyLength < 64) {
+            return
+                abi.encodePacked(
+                    pubkeys[tokenId].keyPart1,
+                    stripLeadingZeros(pubkeys[tokenId].keyPart2)
+                );
+        } else {
+            return
+                abi.encodePacked(
+                    pubkeys[tokenId].keyPart1,
+                    pubkeys[tokenId].keyPart2
+                );
+        }
     }
 
     function getEthAddress(uint256 tokenId) public view returns (address) {
@@ -83,7 +93,8 @@ contract PubkeyRouterAndPermissions is Ownable {
             return address(0);
         }
         bytes memory pubKey = getFullPubkey(tokenId);
-        return address(bytes20(keccak256(pubKey)));
+        bytes memory hashed = abi.encodePacked(keccak256(pubKey));
+        return address(hashed.toAddress(12));
     }
 
     function stripLeadingZeros(bytes32 b) internal pure returns (bytes memory) {
