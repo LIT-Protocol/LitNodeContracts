@@ -55,6 +55,30 @@ describe("PKPNFT", function () {
         "There are no unminted routed token ids to mint"
       );
     });
+
+    it("mints successfully", async () => {
+      // route it
+      await router.setRoutingData(
+        tokenId,
+        "0x0000000000000000000000000000000000000000000000000000000000000001",
+        "0x0000000000000000000000000000000000000000000000000000000000000002",
+        48,
+        "0x0000000000000000000000000000000000000003",
+        2
+      );
+
+      // send eth with the txn
+      const mintCost = await pkpContract.mintCost();
+      const transaction = {
+        value: mintCost,
+      };
+
+      await pkpContract.mintNext(2, transaction);
+
+      // check the token was minted
+      const owner = await pkpContract.ownerOf(tokenId);
+      expect(owner).to.equal(minter.address);
+    });
   });
 
   describe("Test free minting of PKP NFT", async () => {
@@ -130,17 +154,5 @@ describe("PKPNFT", function () {
 
       await pkpContract.freeMintNext(2, freeMintId, msgHash, v, r, s);
     });
-
-    // it("refuses to mint because the PKP isnt routed yet", async () => {
-    //   // send eth with the txn
-    //   const mintCost = await pkpContract.mintCost();
-    //   const transaction = {
-    //     value: mintCost,
-    //   };
-
-    //   expect(pkpContract.mint(tokenId, transaction)).revertedWith(
-    //     "This PKP has not been routed yet"
-    //   );
-    // });
   });
 });
