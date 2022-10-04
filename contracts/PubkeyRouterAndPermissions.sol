@@ -353,6 +353,22 @@ contract PubkeyRouterAndPermissions is Ownable {
         }
     }
 
+    /// Register an action if needed, and then permit it
+    function registerAndAddPermittedAction(
+        uint256 tokenId,
+        bytes32 digest,
+        uint8 hashFunction,
+        uint8 size
+    ) public {
+        bytes32 ipfsIdHash = keccak256(
+            abi.encodePacked(digest, hashFunction, size)
+        );
+        if (!isActionRegistered(ipfsIdHash)) {
+            registerAction(digest, hashFunction, size);
+        }
+        addPermittedAction(tokenId, ipfsIdHash);
+    }
+
     /// Save the full IPFS ID so we can go from hash(IPFS ID) -> IPFS ID
     function registerAction(
         bytes32 digest,
