@@ -163,7 +163,7 @@ contract PKPNFT is
         uint tokenId = _getNextTokenIdToMint(keyType);
         _mintWithoutValueCheck(tokenId, address(this));
         router.addPermittedAction(tokenId, ipfsId);
-        burn(tokenId);
+        _burn(tokenId);
         return tokenId;
     }
 
@@ -212,7 +212,7 @@ contract PKPNFT is
     {
         _mintWithoutValueCheck(tokenId, address(this));
         router.addPermittedAction(tokenId, ipfsId);
-        burn(tokenId);
+        _burn(tokenId);
     }
 
     function freeMint(
@@ -243,13 +243,19 @@ contract PKPNFT is
         _mintWithoutValueCheck(tokenId, address(this));
         redeemedFreeMintIds[freeMintId] = true;
         router.addPermittedAction(tokenId, ipfsId);
-        burn(tokenId);
+        _burn(tokenId);
     }
 
     function _mintWithoutValueCheck(uint tokenId, address to) internal {
         require(router.isRouted(tokenId), "This PKP has not been routed yet");
 
-        _safeMint(to, tokenId);
+        if (to == address(this)) {
+            // permit unsafe transfer only to this contract, because it's going to be burned
+            _mint(to, tokenId);
+        } else {
+            _safeMint(to, tokenId);
+        }
+
         contractBalance += msg.value;
     }
 

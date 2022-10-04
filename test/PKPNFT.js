@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { smock } = require("@defi-wonderland/smock");
+const { ipfsIdToIpfsIdHash, getBytes32FromMultihash } = require("../utils.js");
 
 describe("PKPNFT", function () {
   let deployer;
@@ -153,6 +154,66 @@ describe("PKPNFT", function () {
       // mint ECDSA key
 
       await pkpContract.freeMintNext(2, freeMintId, msgHash, v, r, s);
+    });
+  });
+
+  describe("Test Mint Grant And Burn", async () => {
+    let minter;
+
+    beforeEach(async () => ([minter, recipient, ...signers] = signers));
+    beforeEach(async () => (pkpContract = pkpContract.connect(minter)));
+
+    let pubkey =
+      "0xb6505db66ceebb717d2b925660799c5fac6d8d14a4ed04c3dbeecffaf7a0d4c4c584dfddbbdeb8b80cb895af4b9eb61a216aa477f8ceb301c9c034b2239c2a08";
+    const pubkeyHash = ethers.utils.keccak256(pubkey);
+    const tokenId = ethers.BigNumber.from(pubkeyHash);
+    //console.log("PubkeyHash: " , pubkeyHash);
+
+    it("mints, grants, and burns successfully", async () => {
+      const keyPart1Bytes = ethers.utils.hexDataSlice(pubkey, 0, 32);
+      const keyPart2Bytes = ethers.utils.hexZeroPad(
+        ethers.utils.hexDataSlice(pubkey, 32),
+        32
+      );
+      // route it
+      await router.setRoutingData(
+        tokenId,
+        keyPart1Bytes,
+        keyPart2Bytes,
+        64,
+        "0x0000000000000000000000000000000000000003",
+        2
+      );
+
+      // send eth with the txn
+      const mintCost = await pkpContract.mintCost();
+      const transaction = {
+        value: mintCost,
+      };
+
+      const ipfsIdToPermit = "QmW6uH8p17DcfvZroULkdEDAKThWzEDeNtwi9oezURDeXN";
+      const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
+      const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
+
+      await router.registerAction(
+        multihashStruct.digest,
+        multihashStruct.hashFunction,
+        multihashStruct.size
+      );
+
+      await pkpContract.mintGrantAndBurnNext(2, ipfsIdHash, transaction);
+
+      // check the token was minted
+      expect(pkpContract.ownerOf(tokenId)).revertedWith(
+        "ERC721: invalid token ID"
+      );
+
+      const actionIsPermitted = await router.isPermittedAction(
+        tokenId,
+        ipfsIdHash
+      );
+
+      expect(actionIsPermitted).to.equal(true);
     });
   });
 });
