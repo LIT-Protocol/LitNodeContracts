@@ -45,21 +45,21 @@ contract PubkeyRouterAndPermissions is Ownable {
         uint8 size;
     }
 
-    // map the keccack256(compressed pubkey) -> PubkeyRoutingData
+    // map the keccack256(uncompressed pubkey) -> PubkeyRoutingData
     mapping(uint256 => PubkeyRoutingData) public pubkeys;
 
     // this is used to count the votes from the nodes to register a key
-    // map the keccack256(compressed pubkey) -> PubkeyRegistrationProgress
+    // map the keccack256(uncompressed pubkey) -> PubkeyRegistrationProgress
     mapping(uint256 => PubkeyRegistrationProgress) public pubkeyRegistrations;
 
-    // map the keccack256(compressed pubkey) -> set of addresses
+    // map the keccack256(uncompressed pubkey) -> set of addresses
     // the address is allowed to sign with the pubkey if it's in the set of permittedAddresses for that pubkey
     mapping(uint256 => EnumerableSet.AddressSet) permittedAddresses;
 
     // maps the keccack256(digest, hashFunction, size) -> Multihash
     mapping(bytes32 => Multihash) public ipfsIds;
 
-    // map the keccack256(compressed pubkey) -> set of hashes of IPFS IDs
+    // map the keccack256(uncompressed pubkey) -> set of hashes of IPFS IDs
     // the lit action is allowed to sign with the pubkey if it's IPFS ID is in the set of permittedActions for that pubkey
     mapping(uint256 => EnumerableSet.Bytes32Set) permittedActions;
 

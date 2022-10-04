@@ -150,7 +150,7 @@ contract PKPNFT is
     function mintNext(uint keyType) public payable returns (uint) {
         require(msg.value == mintCost, "You must pay exactly mint cost");
         uint tokenId = _getNextTokenIdToMint(keyType);
-        _mintWithoutValueCheck(tokenId);
+        _mintWithoutValueCheck(tokenId, msg.sender);
         return tokenId;
     }
 
@@ -159,7 +159,9 @@ contract PKPNFT is
         payable
         returns (uint)
     {
-        uint tokenId = mintNext(keyType);
+        require(msg.value == mintCost, "You must pay exactly mint cost");
+        uint tokenId = _getNextTokenIdToMint(keyType);
+        _mintWithoutValueCheck(tokenId, address(this));
         router.addPermittedAction(tokenId, ipfsId);
         burn(tokenId);
         return tokenId;
@@ -194,7 +196,7 @@ contract PKPNFT is
 
     /// create a valid token for a given public key.
     function mintSpecific(uint tokenId) public onlyOwner {
-        _mintWithoutValueCheck(tokenId);
+        _mintWithoutValueCheck(tokenId, msg.sender);
     }
 
     /// mint a PKP, grant access to a Lit Action, and then burn the PKP
@@ -208,7 +210,7 @@ contract PKPNFT is
         public
         onlyOwner
     {
-        _mintWithoutValueCheck(tokenId);
+        _mintWithoutValueCheck(tokenId, address(this));
         router.addPermittedAction(tokenId, ipfsId);
         burn(tokenId);
     }
@@ -223,7 +225,7 @@ contract PKPNFT is
     ) internal {
         // this will panic if the sig is bad
         freeMintSigTest(freeMintId, msgHash, v, r, s);
-        _mintWithoutValueCheck(tokenId);
+        _mintWithoutValueCheck(tokenId, msg.sender);
         redeemedFreeMintIds[freeMintId] = true;
     }
 
@@ -236,15 +238,18 @@ contract PKPNFT is
         bytes32 r,
         bytes32 s
     ) internal {
-        freeMint(freeMintId, tokenId, msgHash, v, r, s);
+        // this will panic if the sig is bad
+        freeMintSigTest(freeMintId, msgHash, v, r, s);
+        _mintWithoutValueCheck(tokenId, address(this));
+        redeemedFreeMintIds[freeMintId] = true;
         router.addPermittedAction(tokenId, ipfsId);
         burn(tokenId);
     }
 
-    function _mintWithoutValueCheck(uint tokenId) internal {
+    function _mintWithoutValueCheck(uint tokenId, address to) internal {
         require(router.isRouted(tokenId), "This PKP has not been routed yet");
 
-        _safeMint(msg.sender, tokenId);
+        _safeMint(to, tokenId);
         contractBalance += msg.value;
     }
 
