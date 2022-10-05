@@ -349,6 +349,64 @@ describe("PubkeyRouterAndPermissions", function () {
         permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
         expect(permitted).equal(false);
       });
+
+      it("registers and grants permission to a generic AuthMethod", async () => {
+        const authMethodType = 1;
+        const userId = "0xdeadbeef";
+
+        pkpContract = await pkpContract.connect(tester);
+
+        // validate that the auth method is not permitted
+        let permitted = await routerContract.isPermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId
+        );
+        expect(permitted).equal(false);
+
+        // attempt to permit it
+        routerContract = await routerContract.connect(tester);
+        await routerContract.addPermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId
+        );
+
+        permitted = await routerContract.isPermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId
+        );
+        expect(permitted).equal(true);
+
+        // do a reverse lookup
+        let pkpIds = await routerContract.getTokenIdsForAuthMethod(
+          authMethodType,
+          userId
+        );
+        expect(pkpIds.length).equal(1);
+        expect(pkpIds[0]).equal(tokenId);
+
+        // revoke
+        await routerContract.removePermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId
+        );
+        permitted = await routerContract.isPermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId
+        );
+        expect(permitted).equal(false);
+
+        // confirm that the reverse lookup is now empty
+        pkpIds = await routerContract.getTokenIdsForAuthMethod(
+          authMethodType,
+          userId
+        );
+        expect(pkpIds.length).equal(0);
+      });
     });
   });
 });
