@@ -44,7 +44,7 @@ module.exports = {
       accounts: [process.env.LIT_CELO_DEPLOYER_PRIVATE_KEY],
     },
     mumbai: {
-      url: "https://polygon-testnet.public.blastapi.io",
+      url: "https://polygon-mumbai.g.alchemy.com/v2/onvoLvV97DDoLkAmdi0Cj7sxvfglKqDh",
       accounts: [process.env.LIT_MUMBAI_DEPLOYER_PRIVATE_KEY],
     },
   },
