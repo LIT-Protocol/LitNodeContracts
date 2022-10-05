@@ -70,6 +70,19 @@ contract PubkeyRouterAndPermissions is Ownable {
 
     /* ========== VIEWS ========== */
 
+    /// includes the 0x04 prefix so you can pass this directly to ethers.utils.computeAddress
+    function getEcdsaPubkey(uint256 tokenId)
+        public
+        view
+        returns (bytes memory)
+    {
+        if (pubkeys[tokenId].keyType != 2) {
+            return new bytes(0);
+        }
+        return abi.encodePacked(bytes1(0x04), getFullPubkey(tokenId));
+    }
+
+    /// get the full public key for the keypair
     function getFullPubkey(uint256 tokenId) public view returns (bytes memory) {
         if (pubkeys[tokenId].keyLength < 64) {
             return
@@ -86,6 +99,7 @@ contract PubkeyRouterAndPermissions is Ownable {
         }
     }
 
+    // get the eth address for the keypair, as long as it's an ecdsa keypair
     function getEthAddress(uint256 tokenId) public view returns (address) {
         // only return addresses for ECDSA keys so that people don't
         // send funds to a BLS key that would be irretrieveably lost
@@ -264,23 +278,22 @@ contract PubkeyRouterAndPermissions is Ownable {
             // console.log("keypart2: ");
             // console.logBytes32(keyPart2);
 
-            // strip leading zeros because we added those to the keyPart2 when we stored them
-            bytes memory keyPart2WithoutLeadingZeros = stripLeadingZeros(
-                keyPart2
-            );
+            bytes memory keyPart2Fixed = new bytes(32);
 
-            // console.log("keyPart2WithoutLeadingZeros: ");
-            // console.logBytes(keyPart2WithoutLeadingZeros);
+            //
+            // strip leading zeros because we added those to the keyPart2 when we stored them
+            if (keyLength != 64) {
+                keyPart2Fixed = stripLeadingZeros(keyPart2);
+            } else {
+                for (uint256 i = 0; i < 32; i++) {
+                    keyPart2Fixed[i] = keyPart2[i];
+                }
+            }
 
             require(
                 tokenId ==
                     uint256(
-                        keccak256(
-                            abi.encodePacked(
-                                keyPart1,
-                                keyPart2WithoutLeadingZeros
-                            )
-                        )
+                        keccak256(abi.encodePacked(keyPart1, keyPart2Fixed))
                     ),
                 "tokenId does not match hashed keyParts"
             );

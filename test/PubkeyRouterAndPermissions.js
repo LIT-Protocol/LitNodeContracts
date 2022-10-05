@@ -144,7 +144,7 @@ describe("PubkeyRouterAndPermissions", function () {
     context("when the PKP grants permission to an ETH address", async () => {
       // 64 byte pubkey - the max size we support
       let fakePubkey =
-        "0x0c5ad8962e95ab57a97e27887682830dfc534133ebe7a31c944daf51b0558e13439740f06aab8e58367fa47daf8a039b2457d90c9c25a1613ecbdc490eeb72eb";
+        "0x54497d637068d190a9c4dacd92a0a49f0a6a1f30c5a7a5aecc939fce644ff4e6006d3bf73dbd671efbbcab075e6f2500ad69aa9ed1f517e256473b18e05d396d";
       let tester;
       let creator;
       let tokenId;
@@ -307,6 +307,10 @@ describe("PubkeyRouterAndPermissions", function () {
         console.log("fullPubkey", fullPubkey);
         let ethAddressOfPKP = await routerContract.getEthAddress(tokenId);
         expect(ethAddressOfPKP).equal(ethersResult);
+        const ecdsaPubkeyWithPrefix = await routerContract.getEcdsaPubkey(
+          tokenId
+        );
+        expect(pubkeyWithPrefix).equal(ecdsaPubkeyWithPrefix);
       });
 
       it("registers and grants permission to an IPFS id and then revokes it", async () => {
