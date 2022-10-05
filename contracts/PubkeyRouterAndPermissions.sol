@@ -70,6 +70,22 @@ contract PubkeyRouterAndPermissions is Ownable {
 
     /* ========== VIEWS ========== */
 
+    function combineKeyParts(
+        bytes32 keyPart1,
+        bytes32 keyPart2,
+        uint256 keyLength
+    ) internal pure returns (bytes memory) {
+        bytes memory key = new bytes(keyLength);
+        for (uint256 i = 0; i < keyLength; i++) {
+            if (i < 32) {
+                key[i] = keyPart1[i];
+            } else {
+                key[i] = keyPart2[i - 32];
+            }
+        }
+        return key;
+    }
+
     /// includes the 0x04 prefix so you can pass this directly to ethers.utils.computeAddress
     function getEcdsaPubkey(uint256 tokenId)
         public
@@ -84,19 +100,12 @@ contract PubkeyRouterAndPermissions is Ownable {
 
     /// get the full public key for the keypair
     function getFullPubkey(uint256 tokenId) public view returns (bytes memory) {
-        if (pubkeys[tokenId].keyLength < 64) {
-            return
-                abi.encodePacked(
-                    pubkeys[tokenId].keyPart1,
-                    stripLeadingZeros(pubkeys[tokenId].keyPart2)
-                );
-        } else {
-            return
-                abi.encodePacked(
-                    pubkeys[tokenId].keyPart1,
-                    pubkeys[tokenId].keyPart2
-                );
-        }
+        return
+            combineKeyParts(
+                pubkeys[tokenId].keyPart1,
+                pubkeys[tokenId].keyPart2,
+                pubkeys[tokenId].keyLength
+            );
     }
 
     // get the eth address for the keypair, as long as it's an ecdsa keypair
@@ -109,21 +118,6 @@ contract PubkeyRouterAndPermissions is Ownable {
         bytes memory pubKey = getFullPubkey(tokenId);
         bytes memory hashed = abi.encodePacked(keccak256(pubKey));
         return address(hashed.toAddress(12));
-    }
-
-    function stripLeadingZeros(bytes32 b) internal pure returns (bytes memory) {
-        uint256 i = 0;
-        while (i < b.length && b[i] == 0) {
-            i++;
-        }
-        // we now know there are i leading zeroes to remove
-        bytes memory result = new bytes(b.length - i);
-
-        // copy over the nonzero bytes
-        for (uint256 j = 0; j < result.length; j++) {
-            result[j] = b[j + i];
-        }
-        return result;
     }
 
     /// get the routing data for a given key hash
@@ -280,23 +274,14 @@ contract PubkeyRouterAndPermissions is Ownable {
             // console.log("keypart2: ");
             // console.logBytes32(keyPart2);
 
-            bytes memory keyPart2Fixed = new bytes(32);
-
-            //
-            // strip leading zeros because we added those to the keyPart2 when we stored them
-            if (keyLength != 64) {
-                keyPart2Fixed = stripLeadingZeros(keyPart2);
-            } else {
-                for (uint256 i = 0; i < 32; i++) {
-                    keyPart2Fixed[i] = keyPart2[i];
-                }
-            }
+            bytes memory fullKey = combineKeyParts(
+                keyPart1,
+                keyPart2,
+                keyLength
+            );
 
             require(
-                tokenId ==
-                    uint256(
-                        keccak256(abi.encodePacked(keyPart1, keyPart2Fixed))
-                    ),
+                tokenId == uint256(keccak256(fullKey)),
                 "tokenId does not match hashed keyParts"
             );
             pubkeyRegistrations[tokenId].routingData.keyPart1 = keyPart1;

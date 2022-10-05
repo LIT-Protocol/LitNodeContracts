@@ -93,23 +93,15 @@ describe("PubkeyRouterAndPermissions", function () {
 
         // set routing data
         const keyPart1Bytes = ethers.utils.hexDataSlice(fakePubkey, 0, 32);
-        const keyPart2Bytes = ethers.utils.hexZeroPad(
-          ethers.utils.hexDataSlice(fakePubkey, 32),
-          32
-        );
-
-        // console.log("full key: ", fakePubkey);
-
-        // console.log("keyPart1Bytes", keyPart1Bytes);
-        // console.log("keyPart2Bytes", keyPart2Bytes);
-
-        // console.log(
-        //   "packed with zeros stripped: ",
-        //   ethers.utils.solidityPack(
-        //     ["bytes32", "bytes"],
-        //     [keyPart1Bytes, ethers.utils.hexStripZeros(keyPart2Bytes)]
-        //   )
-        // );
+        let keyPart2Bytes = ethers.utils.hexDataSlice(fakePubkey, 32);
+        const keyPart2Length = ethers.utils.hexDataLength(keyPart2Bytes);
+        // console.log("keyPart2Bytes length", keyPart2Length);
+        // console.log("keyPart2Bytes before", keyPart2Bytes);
+        if (keyPart2Length < 32) {
+          // fill the rest with 0s
+          const zeroes = ethers.utils.hexZeroPad([], 32 - keyPart2Length);
+          keyPart2Bytes = ethers.utils.hexConcat([keyPart2Bytes, zeroes]);
+        }
 
         const keyLengthInput = 48;
         const keyTypeInput = 1;

@@ -383,13 +383,19 @@ describe("Staking", function () {
         "This PKP has not been routed yet"
       );
 
-      const keyPart1Bytes = ethers.utils.hexDataSlice(fakePubkey, 0, 32);
-      const keyPart2Bytes = ethers.utils.hexZeroPad(
-        ethers.utils.hexDataSlice(fakePubkey, 32),
-        32
-      );
       const keyLengthInput = 48;
       const keyTypeInput = 2;
+
+      const keyPart1Bytes = ethers.utils.hexDataSlice(fakePubkey, 0, 32);
+      let keyPart2Bytes = ethers.utils.hexDataSlice(fakePubkey, 32);
+      const keyPart2Length = ethers.utils.hexDataLength(keyPart2Bytes);
+      // console.log("keyPart2Bytes length", keyPart2Length);
+      // console.log("keyPart2Bytes before", keyPart2Bytes);
+      if (keyPart2Length < 32) {
+        // fill the rest with 0s
+        const zeroes = ethers.utils.hexZeroPad([], 32 - keyPart2Length);
+        keyPart2Bytes = ethers.utils.hexConcat([keyPart2Bytes, zeroes]);
+      }
 
       // vote to register it with 5 nodes
       for (let i = 0; i < 5; i++) {
@@ -615,12 +621,13 @@ describe("Staking", function () {
         );
 
         // assert votesToKickValidatorsInNextEpoch state
-        const [numVotes, didStakerVote] = await stakingContract.getVotingStatusToKickValidator(
-          epoch.number,
-          toBeKicked.stakingAddress.getAddress(),
-          stakingAccount.stakingAddress.getAddress(),
-        );
-        expect(numVotes).equal(i+1);
+        const [numVotes, didStakerVote] =
+          await stakingContract.getVotingStatusToKickValidator(
+            epoch.number,
+            toBeKicked.stakingAddress.getAddress(),
+            stakingAccount.stakingAddress.getAddress()
+          );
+        expect(numVotes).equal(i + 1);
         expect(didStakerVote).is.true;
       }
 
