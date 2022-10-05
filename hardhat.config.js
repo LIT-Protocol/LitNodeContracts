@@ -47,6 +47,11 @@ module.exports = {
       url: "https://polygon-mumbai.g.alchemy.com/v2/onvoLvV97DDoLkAmdi0Cj7sxvfglKqDh",
       accounts: [process.env.LIT_MUMBAI_DEPLOYER_PRIVATE_KEY],
     },
+    alfajores: {
+      url: " https://alfajores-forno.celo-testnet.org",
+      accounts: [process.env.LIT_ALFAJORES_DEPLOYER_PRIVATE_KEY],
+     
+    }
   },
   etherscan: {
     apiKey: {
@@ -60,6 +65,14 @@ module.exports = {
         urls: {
           apiURL: "https://api.celoscan.io/api",
           browserURL: "https://celoscan.io",
+        },
+      },
+      {
+        network: "alfajores",
+        chainId: 44787,
+        urls: {
+          apiURL: "https://api-alfajores.celoscan.io/api",
+          browserURL: "https://alfajores.celoscan.io/",
         },
       },
       {
