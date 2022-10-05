@@ -19,13 +19,13 @@
     "ethereum-waffle": "^3.0.0",
     "ethers": "^5.6.9",
     "hardhat": "^2.10.1",
-    "hardhat-ethernal": "^1.0.0",
     "prettier": "^2.7.1",
     "prettier-plugin-solidity": "^1.0.0-beta.19"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.0",
     "bs58": "^5.0.0",
+    "dotenv": "^16.0.3",
     "solidity-bytes-utils": "^0.8.0",
     "uuid": "^8.3.2"
   }

@@ -76,7 +76,7 @@ async function main () {
   await c_AccessCtlConditions.deployed()
   console.log('Contract for AccessControlConditions deployed to:', c_AccessCtlConditions.address)
 
-  // Deploy Condition Validations Contract 
+  // // Deploy Condition Validations Contract 
   const f_conditionValidation = await hre.ethers.getContractFactory('ConditionValidations', {signer : deployer} );
   const c_conditionValidation = await  f_conditionValidation.deploy('0x804C96C9750a57FB841f26a7bC9f2815782D8529');  /// currently the owner address is hardcoded.  To be replaced by public keys.
   await c_conditionValidation.deployed()
@@ -86,7 +86,7 @@ async function main () {
   const TokenContractFactory = await hre.ethers.getContractFactory("PKPNFT");
   const TokenContract = await TokenContractFactory.deploy();
   await TokenContract.deployed();
-  console.log('Contract for PKPNFT deployed to:', TokenContract.address)
+  console.log('Contract for PKPNFT deployed to:', TokenContract.address) 
   
   //  Deploy the router contract.
   const RouterContractFactory = await hre.ethers.getContractFactory("PubkeyRouterAndPermissions");
