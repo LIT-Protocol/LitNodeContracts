@@ -16,6 +16,7 @@ import "hardhat/console.sol";
 contract PubkeyRouterAndPermissions is Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
+    using EnumerableSet for EnumerableSet.UintSet;
     using BytesLib for bytes;
 
     /* ========== STATE VARIABLES ========== */
@@ -45,6 +46,11 @@ contract PubkeyRouterAndPermissions is Ownable {
         uint8 size;
     }
 
+    struct AuthMethod {
+        uint256 authMethodType; // 1 = WebAuthn, 2 = Discord.  Not doing this in an enum so that we can add more auth methods in the future without redeploying.
+        bytes userId;
+    }
+
     // map the keccack256(uncompressed pubkey) -> PubkeyRoutingData
     mapping(uint256 => PubkeyRoutingData) public pubkeys;
 
@@ -63,12 +69,24 @@ contract PubkeyRouterAndPermissions is Ownable {
     // the lit action is allowed to sign with the pubkey if it's IPFS ID is in the set of permittedActions for that pubkey
     mapping(uint256 => EnumerableSet.Bytes32Set) permittedActions;
 
+    mapping(uint256 => EnumerableSet.UintSet) permittedAuthMethods;
+
+    mapping(uint256 => AuthMethod) public authMethods;
+
     /* ========== CONSTRUCTOR ========== */
     constructor(address _pkpNft) {
         pkpNFT = PKPNFT(_pkpNft);
     }
 
     /* ========== VIEWS ========== */
+
+    function getAuthMethodId(uint256 authMethodType, bytes memory userId)
+        public
+        pure
+        returns (uint256)
+    {
+        return uint256(keccak256(abi.encode(authMethodType, userId)));
+    }
 
     function combineKeyParts(
         bytes32 keyPart1,
@@ -127,6 +145,16 @@ contract PubkeyRouterAndPermissions is Ownable {
         returns (PubkeyRoutingData memory)
     {
         return pubkeys[tokenId];
+    }
+
+    /// get if a user is permitted to use a given pubkey.  returns true if it is permitted to use the pubkey in the permittedAuthMethods[tokenId] struct.
+    function isPermittedAuthMethod(
+        uint256 tokenId,
+        uint authMethodType,
+        bytes memory userId
+    ) external view returns (bool) {
+        uint authMethodId = getAuthMethodId(authMethodType, userId);
+        return permittedAuthMethods[tokenId].contains(authMethodId);
     }
 
     /// get if a Lit Action is permitted to use a given pubkey.  returns true if it is permitted to use the pubkey in the permittedActions[tokenId] struct.
@@ -204,6 +232,24 @@ contract PubkeyRouterAndPermissions is Ownable {
         }
 
         return allPermittedAddresses;
+    }
+
+    function getPermittedAuthMethods(uint256 tokenId)
+        external
+        view
+        returns (uint[] memory)
+    {
+        uint256 permittedAuthMethodsLength = permittedAuthMethods[tokenId]
+            .length();
+        uint[] memory allPermittedAuthMethods = new uint[](
+            permittedAuthMethodsLength
+        );
+
+        for (uint256 i = 0; i < permittedAuthMethodsLength; i++) {
+            allPermittedAuthMethods[i] = permittedAuthMethods[tokenId].at(i);
+        }
+
+        return allPermittedAuthMethods;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -452,6 +498,50 @@ contract PubkeyRouterAndPermissions is Ownable {
         emit PermittedAddressRemoved(tokenId, user);
     }
 
+    /// Add a permitted auth method for a given pubkey
+    function addPermittedAuthMethod(
+        uint256 tokenId,
+        uint authMethodType,
+        bytes memory userId
+    ) public {
+        // check that user is allowed to set this
+        address nftOwner = pkpNFT.ownerOf(tokenId);
+        require(
+            msg.sender == nftOwner,
+            "Only the PKP NFT owner can add and remove permitted auth methods"
+        );
+
+        AuthMethod memory am = AuthMethod(authMethodType, userId);
+        uint authMethodId = getAuthMethodId(authMethodType, userId);
+        authMethods[authMethodId] = am;
+
+        EnumerableSet.UintSet
+            storage newPermittedAuthMethods = permittedAuthMethods[tokenId];
+        newPermittedAuthMethods.add(authMethodId);
+        emit PermittedAuthMethodAdded(tokenId, authMethodId);
+    }
+
+    // Remove a permitted auth method for a given pubkey
+    function removePermittedAuthMethod(
+        uint256 tokenId,
+        uint authMethodType,
+        bytes memory userId
+    ) public {
+        // check that user is allowed to set this
+        address nftOwner = pkpNFT.ownerOf(tokenId);
+        require(
+            msg.sender == nftOwner,
+            "Only the PKP NFT owner can add and remove permitted addresses"
+        );
+
+        uint authMethodId = getAuthMethodId(authMethodType, userId);
+
+        EnumerableSet.UintSet
+            storage newPermittedAuthMethods = permittedAuthMethods[tokenId];
+        newPermittedAuthMethods.remove(authMethodId);
+        emit PermittedAuthMethodRemoved(tokenId, authMethodId);
+    }
+
     function setPkpNftAddress(address newPkpNftAddress) public onlyOwner {
         pkpNFT = PKPNFT(newPkpNftAddress);
     }
@@ -470,4 +560,9 @@ contract PubkeyRouterAndPermissions is Ownable {
     event PermittedAddressRemoved(uint256 indexed tokenId, address user);
     event PermittedActionAdded(uint256 indexed tokenId, bytes32 ipfsId);
     event PermittedActionRemoved(uint256 indexed tokenId, bytes32 ipfsId);
+    event PermittedAuthMethodAdded(uint256 indexed tokenId, uint authMethodId);
+    event PermittedAuthMethodRemoved(
+        uint256 indexed tokenId,
+        uint authMethodId
+    );
 }
