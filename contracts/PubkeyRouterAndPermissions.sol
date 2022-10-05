@@ -267,6 +267,8 @@ contract PubkeyRouterAndPermissions is Ownable {
             "You have already voted for this key"
         );
 
+        require(keyLength <= 64, "Key length must be <= 64");
+
         // if this is the first registration, validate that the hashes match
         if (pubkeyRegistrations[tokenId].nodeVoteCount == 0) {
             // this is the only place where the tokenId could become decoupled from the keyParts.
