@@ -69,9 +69,15 @@ contract PubkeyRouterAndPermissions is Ownable {
     // the lit action is allowed to sign with the pubkey if it's IPFS ID is in the set of permittedActions for that pubkey
     mapping(uint256 => EnumerableSet.Bytes32Set) permittedActions;
 
+    // map the keccack256(uncompressed pubkey) -> set of auth methods
     mapping(uint256 => EnumerableSet.UintSet) permittedAuthMethods;
 
+    // map the keccack256(authMethodType, userId) -> the actual AuthMethod struct
     mapping(uint256 => AuthMethod) public authMethods;
+
+    // map the AuthMethod hash to the pubkeys that it's allowed to sign for
+    // this makes it possible to be given a discord id and then lookup all the pubkeys that are allowed to sign for that discord id
+    mapping(uint256 => EnumerableSet.UintSet) authMethodToPkpIds;
 
     /* ========== CONSTRUCTOR ========== */
     constructor(address _pkpNft) {
@@ -250,6 +256,22 @@ contract PubkeyRouterAndPermissions is Ownable {
         }
 
         return allPermittedAuthMethods;
+    }
+
+    function getTokenIdsForAuthMethod(
+        uint256 authMethodType,
+        bytes memory userId
+    ) external view returns (uint[] memory) {
+        uint authMethodId = getAuthMethodId(authMethodType, userId);
+
+        uint256 pkpIdsLength = authMethodToPkpIds[authMethodId].length();
+        uint[] memory allPkpIds = new uint[](pkpIdsLength);
+
+        for (uint256 i = 0; i < pkpIdsLength; i++) {
+            allPkpIds[i] = authMethodToPkpIds[authMethodId].at(i);
+        }
+
+        return allPkpIds;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -518,6 +540,12 @@ contract PubkeyRouterAndPermissions is Ownable {
         EnumerableSet.UintSet
             storage newPermittedAuthMethods = permittedAuthMethods[tokenId];
         newPermittedAuthMethods.add(authMethodId);
+
+        EnumerableSet.UintSet storage newPkpIds = authMethodToPkpIds[
+            authMethodId
+        ];
+        newPkpIds.add(tokenId);
+
         emit PermittedAuthMethodAdded(tokenId, authMethodId);
     }
 
@@ -539,6 +567,12 @@ contract PubkeyRouterAndPermissions is Ownable {
         EnumerableSet.UintSet
             storage newPermittedAuthMethods = permittedAuthMethods[tokenId];
         newPermittedAuthMethods.remove(authMethodId);
+
+        EnumerableSet.UintSet storage newPkpIds = authMethodToPkpIds[
+            authMethodId
+        ];
+        newPkpIds.remove(tokenId);
+
         emit PermittedAuthMethodRemoved(tokenId, authMethodId);
     }
 
