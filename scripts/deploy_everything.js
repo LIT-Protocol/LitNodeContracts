@@ -159,6 +159,16 @@ async function main() {
   // *** 13. get chain id
   const chainId = await getChainId();
 
+  // *** 14. Deploy PKPHelper Contract
+  console.log("Deploying PKP helper contract and then setting new owner");
+  const pkpHelperContract = await deployContract("PKPHelper", [
+    pkpNFTContract.address,
+    pubkeyRouterAndPermissionsContract.address,
+  ]);
+  tx = await transferOwnershipToNewOwner(pkpHelperContract);
+  await tx.wait();
+  console.log("New owner set.");
+
   const finalJson = {
     stakingContractAddress: stakingContract.address,
     multisenderContractAddress: multisenderContract.address,
@@ -170,6 +180,7 @@ async function main() {
       pubkeyRouterAndPermissionsContract.address,
     pkpNftContractAddress: pkpNFTContract.address,
     rateLimitNftContractAddress: rateLimitNftContract.address,
+    pkpHelperContractAddress: pkpHelperContract.address,
     chainId,
     rpcUrl,
     chainName,
