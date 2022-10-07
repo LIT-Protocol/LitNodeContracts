@@ -3682,7 +3682,7 @@ ethereumjs-wallet@^1.0.2:
     utf8 "^3.0.0"
     uuid "^8.3.2"
 
-ethers@^5.0.0, ethers@^5.0.1, ethers@^5.0.2, ethers@^5.6.9:
+ethers@^5.0.0, ethers@^5.0.1, ethers@^5.0.2:
   version "5.7.1"
   resolved "https://registry.npmjs.org/ethers/-/ethers-5.7.1.tgz"
   integrity sha512-5krze4dRLITX7FpU8J4WscXqADiKmyeNlylmmDLbS95DaZpBhDe2YSwRQwKXWNyXcox7a3gBgm/MkGXV1O1S/Q==
