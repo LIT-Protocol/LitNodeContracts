@@ -48,10 +48,9 @@ module.exports = {
       accounts: [process.env.LIT_MUMBAI_DEPLOYER_PRIVATE_KEY],
     },
     alfajores: {
-      url: " https://alfajores-forno.celo-testnet.org",
+      url: "https://alfajores-forno.celo-testnet.org",
       accounts: [process.env.LIT_ALFAJORES_DEPLOYER_PRIVATE_KEY],
-     
-    }
+    },
   },
   etherscan: {
     apiKey: {
