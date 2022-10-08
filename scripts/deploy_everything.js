@@ -165,6 +165,10 @@ async function main() {
     pkpNFTContract.address,
     pubkeyRouterAndPermissionsContract.address,
   ]);
+  verifyContractInBg(pkpHelperContract.address, [
+    pkpNFTContract.address,
+    pubkeyRouterAndPermissionsContract.address,
+  ]);
   tx = await transferOwnershipToNewOwner(pkpHelperContract);
   await tx.wait();
   console.log("New owner set.");
