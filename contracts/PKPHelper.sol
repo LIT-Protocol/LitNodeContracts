@@ -35,38 +35,37 @@ contract PKPHelper is Ownable, IERC721Receiver {
 
     function mintNextAndAddAuthMethods(
         uint keyType,
-        bytes32 permittedIpfsIdDigest,
-        uint8 permittedIpfsHashFunction,
-        uint8 permittedIpfsSize,
-        address permittedAddress,
-        uint permittedAuthMethodType,
-        bytes memory permittedAuthMethodId
+        bytes[] memory permittedIpfsCIDs,
+        address[] memory permittedAddresses,
+        uint[] memory permittedAuthMethodTypes,
+        bytes[] memory permittedAuthMethodIds
     ) public payable returns (uint) {
         // mint the nft and forward the funds
         uint tokenId = pkpNFT.mintNext{value: msg.value}(keyType);
 
         // permit the action
-        if (permittedIpfsIdDigest != 0) {
-            router.registerAndAddPermittedAction(
-                tokenId,
-                permittedIpfsIdDigest,
-                permittedIpfsHashFunction,
-                permittedIpfsSize
-            );
+        if (permittedIpfsCIDs.length != 0) {
+            for (uint i = 0; i < permittedIpfsCIDs.length; i++) {
+                router.addPermittedAction(tokenId, permittedIpfsCIDs[i]);
+            }
         }
 
         // permit the address
-        if (permittedAddress != address(0)) {
-            router.addPermittedAddress(tokenId, permittedAddress);
+        if (permittedAddresses.length != 0) {
+            for (uint i = 0; i < permittedAddresses.length; i++) {
+                router.addPermittedAddress(tokenId, permittedAddresses[i]);
+            }
         }
 
         // permit the auth method
-        if (permittedAuthMethodType != 0) {
-            router.addPermittedAuthMethod(
-                tokenId,
-                permittedAuthMethodType,
-                permittedAuthMethodId
-            );
+        if (permittedAuthMethodTypes.length != 0) {
+            for (uint i = 0; i < permittedAuthMethodTypes.length; i++) {
+                router.addPermittedAuthMethod(
+                    tokenId,
+                    permittedAuthMethodTypes[i],
+                    permittedAuthMethodIds[i]
+                );
+            }
         }
         pkpNFT.safeTransferFrom(address(this), msg.sender, tokenId);
         return tokenId;

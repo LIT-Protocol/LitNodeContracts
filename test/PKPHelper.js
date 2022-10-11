@@ -1,7 +1,11 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { smock } = require("@defi-wonderland/smock");
-const { ipfsIdToIpfsIdHash, getBytes32FromMultihash } = require("../utils.js");
+const {
+  ipfsIdToIpfsIdHash,
+  getBytes32FromMultihash,
+  getBytesFromMultihash,
+} = require("../utils.js");
 
 describe("PKPHelper", function () {
   let deployer;
@@ -62,8 +66,9 @@ describe("PKPHelper", function () {
 
       const addressToPermit = "0x75EdCdfb5A678290A8654979703bdb75C683B3dD";
       const ipfsIdToPermit = "QmPRjq7medLpjnFSZaiJ3xUudKteVFQDmaMZuhr644MQ4Z";
-      const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
-      const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
+      const ipfsIdBytes = getBytesFromMultihash(ipfsIdToPermit);
+      // const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
+      // const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
       const authMethodType = 1;
       const authMethodUserId = "0xdeadbeef";
       const authMethodId = ethers.utils.keccak256(
@@ -81,9 +86,7 @@ describe("PKPHelper", function () {
 
       await pkpHelper.mintNextAndAddAuthMethods(
         2,
-        multihashStruct.digest,
-        multihashStruct.hashFunction,
-        multihashStruct.size,
+        ipfsIdBytes,
         addressToPermit,
         authMethodType,
         authMethodUserId,
@@ -97,7 +100,7 @@ describe("PKPHelper", function () {
       // check the auth methods
       const actionIsPermitted = await router.isPermittedAction(
         tokenId,
-        ipfsIdHash
+        ipfsIdBytes
       );
       expect(actionIsPermitted).to.equal(true);
 
@@ -123,7 +126,8 @@ describe("PKPHelper", function () {
 
       // check all the getters
       const permittedActions = await router.getPermittedActions(tokenId);
-      expect(permittedActions).to.deep.equal([ipfsIdHash]);
+      // console.log("permittedActions: ", permittedActions);
+      expect(permittedActions).to.deep.equal([ipfsIdBytes]);
 
       const permittedAddresses = await router.getPermittedAddresses(tokenId);
       expect(permittedAddresses).to.deep.equal([

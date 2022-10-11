@@ -46,6 +46,18 @@ function getBytes32FromMultihash(multihash) {
 }
 
 /**
+ * Partition multihash string into object representing multihash
+ *
+ * @param {string} multihash A base58 encoded multihash string
+ * @returns {Multihash}
+ */
+function getBytesFromMultihash(multihash) {
+  const decoded = bs58.decode(multihash);
+
+  return `0x${Buffer.from(decoded).toString("hex")}`;
+}
+
+/**
  * Encode a multihash structure into base58 encoded multihash string
  *
  * @param {Multihash} multihash
@@ -110,4 +122,5 @@ module.exports = {
   parseMultihashContractResponse,
   getMultihashFromContractResponse,
   ipfsIdToIpfsIdHash,
+  getBytesFromMultihash,
 };
