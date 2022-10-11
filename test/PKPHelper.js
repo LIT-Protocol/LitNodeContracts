@@ -160,8 +160,12 @@ describe("PKPHelper", function () {
         tokenId
       );
       expect(permittedAuthMethods.length).to.equal(2);
+      // console.log("permittedAuthMethods: ", permittedAuthMethods);
       for (let i = 0; i < authMethodTypes.length; i++) {
-        expect(permittedAuthMethods[i]).to.equal(authMethodIdHashes[i]);
+        expect([
+          permittedAuthMethods[i][0].toNumber(),
+          permittedAuthMethods[i][1],
+        ]).to.deep.equal([authMethodTypes[i], authMethodUserIds[i]]);
       }
     });
   });

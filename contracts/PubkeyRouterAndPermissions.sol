@@ -245,16 +245,17 @@ contract PubkeyRouterAndPermissions is Ownable {
     function getPermittedAuthMethods(uint256 tokenId)
         external
         view
-        returns (uint[] memory)
+        returns (AuthMethod[] memory)
     {
         uint256 permittedAuthMethodsLength = permittedAuthMethods[tokenId]
             .length();
-        uint[] memory allPermittedAuthMethods = new uint[](
+        AuthMethod[] memory allPermittedAuthMethods = new AuthMethod[](
             permittedAuthMethodsLength
         );
 
         for (uint256 i = 0; i < permittedAuthMethodsLength; i++) {
-            allPermittedAuthMethods[i] = permittedAuthMethods[tokenId].at(i);
+            uint authMethodHash = permittedAuthMethods[tokenId].at(i);
+            allPermittedAuthMethods[i] = authMethods[authMethodHash];
         }
 
         return allPermittedAuthMethods;
