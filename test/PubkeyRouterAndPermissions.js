@@ -348,6 +348,17 @@ describe("PubkeyRouterAndPermissions", function () {
         await routerContract.removePermittedAction(tokenId, ipfsIdHash);
         permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
         expect(permitted).equal(false);
+
+        // add it back again to see if the gas is cheaper the second time
+        await routerContract.registerAndAddPermittedAction(
+          tokenId,
+          multihashStruct.digest,
+          multihashStruct.hashFunction,
+          multihashStruct.size
+        );
+
+        permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
+        expect(permitted).equal(true);
       });
 
       it("registers and grants permission to a generic AuthMethod", async () => {
