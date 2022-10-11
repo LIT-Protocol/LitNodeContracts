@@ -35,9 +35,7 @@ contract PKPHelper is Ownable, IERC721Receiver {
 
     function mintNextAndAddAuthMethods(
         uint keyType,
-        bytes32 permittedIpfsIdDigest,
-        uint8 permittedIpfsHashFunction,
-        uint8 permittedIpfsSize,
+        bytes memory permittedIpfsCID,
         address permittedAddress,
         uint permittedAuthMethodType,
         bytes memory permittedAuthMethodId
@@ -46,13 +44,8 @@ contract PKPHelper is Ownable, IERC721Receiver {
         uint tokenId = pkpNFT.mintNext{value: msg.value}(keyType);
 
         // permit the action
-        if (permittedIpfsIdDigest != 0) {
-            router.registerAndAddPermittedAction(
-                tokenId,
-                permittedIpfsIdDigest,
-                permittedIpfsHashFunction,
-                permittedIpfsSize
-            );
+        if (permittedIpfsCID.length != 0) {
+            router.addPermittedAction(tokenId, permittedIpfsCID);
         }
 
         // permit the address

@@ -40,11 +40,11 @@ contract PubkeyRouterAndPermissions is Ownable {
 
     // from https://github.com/saurfang/ipfs-multihash-on-solidity
     // for storing IPFS IDs
-    struct Multihash {
-        bytes32 digest;
-        uint8 hashFunction;
-        uint8 size;
-    }
+    // struct Multihash {
+    //     bytes32 digest;
+    //     uint8 hashFunction;
+    //     uint8 size;
+    // }
 
     struct AuthMethod {
         uint256 authMethodType; // 1 = WebAuthn, 2 = Discord.  Not doing this in an enum so that we can add more auth methods in the future without redeploying.
@@ -62,8 +62,8 @@ contract PubkeyRouterAndPermissions is Ownable {
     // the address is allowed to sign with the pubkey if it's in the set of permittedAddresses for that pubkey
     mapping(uint256 => EnumerableSet.AddressSet) permittedAddresses;
 
-    // maps the keccack256(digest, hashFunction, size) -> Multihash
-    mapping(bytes32 => Multihash) public ipfsIds;
+    // maps the keccack256(ipfsCID) -> ipfsCID
+    mapping(bytes32 => bytes) public ipfsIds;
 
     // map the keccack256(uncompressed pubkey) -> set of hashes of IPFS IDs
     // the lit action is allowed to sign with the pubkey if it's IPFS ID is in the set of permittedActions for that pubkey
@@ -164,11 +164,12 @@ contract PubkeyRouterAndPermissions is Ownable {
     }
 
     /// get if a Lit Action is permitted to use a given pubkey.  returns true if it is permitted to use the pubkey in the permittedActions[tokenId] struct.
-    function isPermittedAction(uint256 tokenId, bytes32 ipfsId)
+    function isPermittedAction(uint256 tokenId, bytes memory ipfsCID)
         external
         view
         returns (bool)
     {
+        bytes32 ipfsId = keccak256(ipfsCID);
         return permittedActions[tokenId].contains(ipfsId);
     }
 
@@ -194,25 +195,26 @@ contract PubkeyRouterAndPermissions is Ownable {
     }
 
     /// get if a given pubkey has routing data associated with it or not
-    function isActionRegistered(bytes32 ipfsId) public view returns (bool) {
-        return
-            ipfsIds[ipfsId].digest != 0 &&
-            ipfsIds[ipfsId].hashFunction != 0 &&
-            ipfsIds[ipfsId].size != 0;
-    }
+    // function isActionRegistered(bytes32 ipfsId) public view returns (bool) {
+    //     return
+    //         ipfsIds[ipfsId].digest != 0 &&
+    //         ipfsIds[ipfsId].hashFunction != 0 &&
+    //         ipfsIds[ipfsId].size != 0;
+    // }
 
     function getPermittedActions(uint256 tokenId)
         external
         view
-        returns (bytes32[] memory)
+        returns (bytes[] memory)
     {
         uint256 permittedActionsLength = permittedActions[tokenId].length();
-        bytes32[] memory allPermittedActions = new bytes32[](
+        bytes[] memory allPermittedActions = new bytes[](
             permittedActionsLength
         );
 
         for (uint256 i = 0; i < permittedActionsLength; i++) {
-            allPermittedActions[i] = permittedActions[tokenId].at(i);
+            bytes32 ipfsId = permittedActions[tokenId].at(i);
+            allPermittedActions[i] = ipfsIds[ipfsId];
         }
 
         return allPermittedActions;
@@ -422,37 +424,37 @@ contract PubkeyRouterAndPermissions is Ownable {
     }
 
     /// Register an action if needed, and then permit it
-    function registerAndAddPermittedAction(
-        uint256 tokenId,
-        bytes32 digest,
-        uint8 hashFunction,
-        uint8 size
-    ) public {
-        bytes32 ipfsIdHash = keccak256(
-            abi.encodePacked(digest, hashFunction, size)
-        );
-        if (!isActionRegistered(ipfsIdHash)) {
-            registerAction(digest, hashFunction, size);
-        }
-        addPermittedAction(tokenId, ipfsIdHash);
-    }
+    // function registerAndAddPermittedAction(
+    //     uint256 tokenId,
+    //     bytes32 digest,
+    //     uint8 hashFunction,
+    //     uint8 size
+    // ) public {
+    //     bytes32 ipfsIdHash = keccak256(
+    //         abi.encodePacked(digest, hashFunction, size)
+    //     );
+    //     if (!isActionRegistered(ipfsIdHash)) {
+    //         registerAction(digest, hashFunction, size);
+    //     }
+    //     addPermittedAction(tokenId, ipfsIdHash);
+    // }
 
-    /// Save the full IPFS ID so we can go from hash(IPFS ID) -> IPFS ID
-    function registerAction(
-        bytes32 digest,
-        uint8 hashFunction,
-        uint8 size
-    ) public {
-        bytes32 ipfsIdHash = keccak256(
-            abi.encodePacked(digest, hashFunction, size)
-        );
-        ipfsIds[ipfsIdHash].digest = digest;
-        ipfsIds[ipfsIdHash].hashFunction = hashFunction;
-        ipfsIds[ipfsIdHash].size = size;
-    }
+    // /// Save the full IPFS ID so we can go from hash(IPFS ID) -> IPFS ID
+    // function registerAction(
+    //     bytes32 digest,
+    //     uint8 hashFunction,
+    //     uint8 size
+    // ) public {
+    //     bytes32 ipfsIdHash = keccak256(
+    //         abi.encodePacked(digest, hashFunction, size)
+    //     );
+    //     ipfsIds[ipfsIdHash].digest = digest;
+    //     ipfsIds[ipfsIdHash].hashFunction = hashFunction;
+    //     ipfsIds[ipfsIdHash].size = size;
+    // }
 
     /// Add a permitted action for a given pubkey
-    function addPermittedAction(uint256 tokenId, bytes32 ipfsId) public {
+    function addPermittedAction(uint256 tokenId, bytes memory ipfsCID) public {
         // check that user is allowed to set this
         address nftOwner = pkpNFT.ownerOf(tokenId);
         require(
@@ -460,10 +462,13 @@ contract PubkeyRouterAndPermissions is Ownable {
             "Only the PKP NFT owner can add and remove permitted actions"
         );
 
-        require(
-            isActionRegistered(ipfsId) == true,
-            "Please register your Lit Action IPFS ID with the registerAction() function before permitting it to use a PKP"
-        );
+        // require(
+        //     isActionRegistered(ipfsId) == true,
+        //     "Please register your Lit Action IPFS ID with the registerAction() function before permitting it to use a PKP"
+        // );
+
+        bytes32 ipfsId = keccak256(ipfsCID);
+        ipfsIds[ipfsId] = ipfsCID;
 
         EnumerableSet.Bytes32Set storage newPermittedActions = permittedActions[
             tokenId
@@ -473,13 +478,17 @@ contract PubkeyRouterAndPermissions is Ownable {
     }
 
     // Remove a permitted address for a given pubkey
-    function removePermittedAction(uint256 tokenId, bytes32 ipfsId) public {
+    function removePermittedAction(uint256 tokenId, bytes memory ipfsCID)
+        public
+    {
         // check that user is allowed to set this
         address nftOwner = pkpNFT.ownerOf(tokenId);
         require(
             msg.sender == nftOwner,
             "Only the PKP NFT owner can add and remove permitted actions"
         );
+
+        bytes32 ipfsId = keccak256(ipfsCID);
 
         EnumerableSet.Bytes32Set storage newPermittedActions = permittedActions[
             tokenId

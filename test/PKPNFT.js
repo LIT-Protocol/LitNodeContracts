@@ -1,7 +1,11 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { smock } = require("@defi-wonderland/smock");
-const { ipfsIdToIpfsIdHash, getBytes32FromMultihash } = require("../utils.js");
+const {
+  ipfsIdToIpfsIdHash,
+  getBytes32FromMultihash,
+  getBytesFromMultihash,
+} = require("../utils.js");
 
 describe("PKPNFT", function () {
   let deployer;
@@ -192,16 +196,17 @@ describe("PKPNFT", function () {
       };
 
       const ipfsIdToPermit = "QmW6uH8p17DcfvZroULkdEDAKThWzEDeNtwi9oezURDeXN";
-      const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
-      const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
+      // const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
+      const ipfsIdBytes = getBytesFromMultihash(ipfsIdToPermit);
+      // const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
 
-      await router.registerAction(
-        multihashStruct.digest,
-        multihashStruct.hashFunction,
-        multihashStruct.size
-      );
+      // await router.registerAction(
+      //   multihashStruct.digest,
+      //   multihashStruct.hashFunction,
+      //   multihashStruct.size
+      // );
 
-      await pkpContract.mintGrantAndBurnNext(2, ipfsIdHash, transaction);
+      await pkpContract.mintGrantAndBurnNext(2, ipfsIdBytes, transaction);
 
       // check the token was minted
       expect(pkpContract.ownerOf(tokenId)).revertedWith(
@@ -210,7 +215,7 @@ describe("PKPNFT", function () {
 
       const actionIsPermitted = await router.isPermittedAction(
         tokenId,
-        ipfsIdHash
+        ipfsIdBytes
       );
 
       expect(actionIsPermitted).to.equal(true);

@@ -154,7 +154,7 @@ contract PKPNFT is
         return tokenId;
     }
 
-    function mintGrantAndBurnNext(uint keyType, bytes32 ipfsId)
+    function mintGrantAndBurnNext(uint keyType, bytes memory ipfsCID)
         public
         payable
         returns (uint)
@@ -162,7 +162,7 @@ contract PKPNFT is
         require(msg.value == mintCost, "You must pay exactly mint cost");
         uint tokenId = _getNextTokenIdToMint(keyType);
         _mintWithoutValueCheck(tokenId, address(this));
-        router.addPermittedAction(tokenId, ipfsId);
+        router.addPermittedAction(tokenId, ipfsCID);
         _burn(tokenId);
         return tokenId;
     }
@@ -183,14 +183,14 @@ contract PKPNFT is
     function freeMintGrantAndBurnNext(
         uint keyType,
         uint freeMintId,
-        bytes32 ipfsId,
+        bytes memory ipfsCID,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) public returns (uint) {
         uint tokenId = _getNextTokenIdToMint(keyType);
-        freeMintGrantAndBurn(freeMintId, tokenId, ipfsId, msgHash, v, r, s);
+        freeMintGrantAndBurn(freeMintId, tokenId, ipfsCID, msgHash, v, r, s);
         return tokenId;
     }
 
@@ -206,12 +206,12 @@ contract PKPNFT is
     /// where you could just trust the sig that a number is prime.
     /// without this function, a user could mint a PKP, sign a bunch of junk, and then burn the
     /// PKP to make it looks like only the Lit Action can use it.
-    function mintGrantAndBurnSpecific(uint tokenId, bytes32 ipfsId)
+    function mintGrantAndBurnSpecific(uint tokenId, bytes memory ipfsCID)
         public
         onlyOwner
     {
         _mintWithoutValueCheck(tokenId, address(this));
-        router.addPermittedAction(tokenId, ipfsId);
+        router.addPermittedAction(tokenId, ipfsCID);
         _burn(tokenId);
     }
 
@@ -232,7 +232,7 @@ contract PKPNFT is
     function freeMintGrantAndBurn(
         uint freeMintId,
         uint tokenId,
-        bytes32 ipfsId,
+        bytes memory ipfsCID,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
@@ -242,7 +242,7 @@ contract PKPNFT is
         freeMintSigTest(freeMintId, msgHash, v, r, s);
         _mintWithoutValueCheck(tokenId, address(this));
         redeemedFreeMintIds[freeMintId] = true;
-        router.addPermittedAction(tokenId, ipfsId);
+        router.addPermittedAction(tokenId, ipfsCID);
         _burn(tokenId);
     }
 

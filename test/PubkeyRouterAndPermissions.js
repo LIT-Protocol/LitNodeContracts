@@ -1,5 +1,9 @@
 const { expect } = require("chai");
-const { ipfsIdToIpfsIdHash, getBytes32FromMultihash } = require("../utils.js");
+const {
+  ipfsIdToIpfsIdHash,
+  getBytes32FromMultihash,
+  getBytesFromMultihash,
+} = require("../utils.js");
 const { smock } = require("@defi-wonderland/smock");
 
 describe("PubkeyRouterAndPermissions", function () {
@@ -245,48 +249,55 @@ describe("PubkeyRouterAndPermissions", function () {
 
       it("grants permission to an IPFS id and then revokes it", async () => {
         const ipfsIdToPermit = "QmPRjq7medLpjnFSZaiJ3xUudKteVFQDmaMZuhr644MQ4Z";
-        const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
+        // const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
+        const ipfsIdBytes = getBytesFromMultihash(ipfsIdToPermit);
 
         pkpContract = await pkpContract.connect(tester);
 
         // validate that the ipfs ID is not permitted
         let permitted = await routerContract.isPermittedAction(
           tokenId,
-          ipfsIdHash
+          ipfsIdBytes
         );
         expect(permitted).equal(false);
 
         // attempt to permit it
-        routerContract = await routerContract.connect(tester);
-        expect(
-          routerContract.addPermittedAction(tokenId, ipfsIdHash)
-        ).revertedWith(
-          "Please register your Lit Action IPFS ID with the registerAction() function before permitting it to use a PKP"
-        );
-        permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
-        expect(permitted).equal(false);
+        // routerContract = await routerContract.connect(tester);
+        // expect(
+        //   routerContract.addPermittedAction(tokenId, ipfsIdBytes)
+        // ).revertedWith(
+        //   "Please register your Lit Action IPFS ID with the registerAction() function before permitting it to use a PKP"
+        // );
+        // permitted = await routerContract.isPermittedAction(tokenId, ipfsIdBytes);
+        // expect(permitted).equal(false);
 
         // register the lit action
-        let registered = await routerContract.isActionRegistered(ipfsIdHash);
-        expect(registered).equal(false);
-        const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
-        await routerContract.registerAction(
-          multihashStruct.digest,
-          multihashStruct.hashFunction,
-          multihashStruct.size
-        );
-        registered = await routerContract.isActionRegistered(ipfsIdHash);
-        expect(registered).equal(true);
+        // let registered = await routerContract.isActionRegistered(ipfsIdBytes);
+        // expect(registered).equal(false);
+        // const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
+        // await routerContract.registerAction(
+        //   multihashStruct.digest,
+        //   multihashStruct.hashFunction,
+        //   multihashStruct.size
+        // );
+        // registered = await routerContract.isActionRegistered(ipfsIdBytes);
+        // expect(registered).equal(true);
 
         // permit it
         routerContract = await routerContract.connect(tester);
-        await routerContract.addPermittedAction(tokenId, ipfsIdHash);
-        permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
+        await routerContract.addPermittedAction(tokenId, ipfsIdBytes);
+        permitted = await routerContract.isPermittedAction(
+          tokenId,
+          ipfsIdBytes
+        );
         expect(permitted).equal(true);
 
         // revoke
-        await routerContract.removePermittedAction(tokenId, ipfsIdHash);
-        permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
+        await routerContract.removePermittedAction(tokenId, ipfsIdBytes);
+        permitted = await routerContract.isPermittedAction(
+          tokenId,
+          ipfsIdBytes
+        );
         expect(permitted).equal(false);
       });
 
@@ -319,34 +330,43 @@ describe("PubkeyRouterAndPermissions", function () {
         expect(permitted).equal(false);
 
         // attempt to permit it
-        routerContract = await routerContract.connect(tester);
-        expect(
-          routerContract.addPermittedAction(tokenId, ipfsIdHash)
-        ).revertedWith(
-          "Please register your Lit Action IPFS ID with the registerAction() function before permitting it to use a PKP"
-        );
-        permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
-        expect(permitted).equal(false);
+        // routerContract = await routerContract.connect(tester);
+        // expect(
+        //   routerContract.addPermittedAction(tokenId, ipfsIdHash)
+        // ).revertedWith(
+        //   "Please register your Lit Action IPFS ID with the registerAction() function before permitting it to use a PKP"
+        // );
+        // permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
+        // expect(permitted).equal(false);
 
-        // register and permit the lit action all at once
-        let registered = await routerContract.isActionRegistered(ipfsIdHash);
-        expect(registered).equal(false);
-        const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
-        await routerContract.registerAndAddPermittedAction(
+        // // register and permit the lit action all at once
+        // let registered = await routerContract.isActionRegistered(ipfsIdHash);
+        // expect(registered).equal(false);
+        // const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
+        // await routerContract.registerAndAddPermittedAction(
+        //   tokenId,
+        //   multihashStruct.digest,
+        //   multihashStruct.hashFunction,
+        //   multihashStruct.size
+        // );
+        // registered = await routerContract.isActionRegistered(ipfsIdHash);
+        // expect(registered).equal(true);
+
+        const ipfsIdBytes = getBytesFromMultihash(ipfsIdToPermit);
+        await routerContract.addPermittedAction(tokenId, ipfsIdBytes);
+
+        permitted = await routerContract.isPermittedAction(
           tokenId,
-          multihashStruct.digest,
-          multihashStruct.hashFunction,
-          multihashStruct.size
+          ipfsIdBytes
         );
-        registered = await routerContract.isActionRegistered(ipfsIdHash);
-        expect(registered).equal(true);
-
-        permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
         expect(permitted).equal(true);
 
         // revoke
-        await routerContract.removePermittedAction(tokenId, ipfsIdHash);
-        permitted = await routerContract.isPermittedAction(tokenId, ipfsIdHash);
+        await routerContract.removePermittedAction(tokenId, ipfsIdBytes);
+        permitted = await routerContract.isPermittedAction(
+          tokenId,
+          ipfsIdBytes
+        );
         expect(permitted).equal(false);
       });
 
