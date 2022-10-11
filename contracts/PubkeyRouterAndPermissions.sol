@@ -38,14 +38,6 @@ contract PubkeyRouterAndPermissions is Ownable {
         mapping(address => bool) votedNodes;
     }
 
-    // from https://github.com/saurfang/ipfs-multihash-on-solidity
-    // for storing IPFS IDs
-    // struct Multihash {
-    //     bytes32 digest;
-    //     uint8 hashFunction;
-    //     uint8 size;
-    // }
-
     struct AuthMethod {
         uint256 authMethodType; // 1 = WebAuthn, 2 = Discord.  Not doing this in an enum so that we can add more auth methods in the future without redeploying.
         bytes userId;
@@ -193,14 +185,6 @@ contract PubkeyRouterAndPermissions is Ownable {
             prd.keyType != 0 &&
             prd.stakingContract != address(0);
     }
-
-    /// get if a given pubkey has routing data associated with it or not
-    // function isActionRegistered(bytes32 ipfsId) public view returns (bool) {
-    //     return
-    //         ipfsIds[ipfsId].digest != 0 &&
-    //         ipfsIds[ipfsId].hashFunction != 0 &&
-    //         ipfsIds[ipfsId].size != 0;
-    // }
 
     function getPermittedActions(uint256 tokenId)
         external
@@ -423,36 +407,6 @@ contract PubkeyRouterAndPermissions is Ownable {
             );
         }
     }
-
-    /// Register an action if needed, and then permit it
-    // function registerAndAddPermittedAction(
-    //     uint256 tokenId,
-    //     bytes32 digest,
-    //     uint8 hashFunction,
-    //     uint8 size
-    // ) public {
-    //     bytes32 ipfsIdHash = keccak256(
-    //         abi.encodePacked(digest, hashFunction, size)
-    //     );
-    //     if (!isActionRegistered(ipfsIdHash)) {
-    //         registerAction(digest, hashFunction, size);
-    //     }
-    //     addPermittedAction(tokenId, ipfsIdHash);
-    // }
-
-    // /// Save the full IPFS ID so we can go from hash(IPFS ID) -> IPFS ID
-    // function registerAction(
-    //     bytes32 digest,
-    //     uint8 hashFunction,
-    //     uint8 size
-    // ) public {
-    //     bytes32 ipfsIdHash = keccak256(
-    //         abi.encodePacked(digest, hashFunction, size)
-    //     );
-    //     ipfsIds[ipfsIdHash].digest = digest;
-    //     ipfsIds[ipfsIdHash].hashFunction = hashFunction;
-    //     ipfsIds[ipfsIdHash].size = size;
-    // }
 
     /// Add a permitted action for a given pubkey
     function addPermittedAction(uint256 tokenId, bytes memory ipfsCID) public {
