@@ -64,19 +64,32 @@ describe("PKPHelper", function () {
         2
       );
 
-      const addressToPermit = "0x75EdCdfb5A678290A8654979703bdb75C683B3dD";
-      const ipfsIdToPermit = "QmPRjq7medLpjnFSZaiJ3xUudKteVFQDmaMZuhr644MQ4Z";
-      const ipfsIdBytes = getBytesFromMultihash(ipfsIdToPermit);
+      const addressesToPermit = [
+        "0x75EdCdfb5A678290A8654979703bdb75C683B3dD",
+        "0xeb250b8DA8021fE09Ea2D0121e20eDa65D523aA6",
+      ];
+      const ipfsIdsToPermit = [
+        "QmPRjq7medLpjnFSZaiJ3xUudKteVFQDmaMZuhr644MQ4Z",
+        "QmSX1eaPhZjxb8rJtejunop8Sq41FMSUVv9HfqtPNtVi7j",
+      ];
+      const ipfsIdsBytes = ipfsIdsToPermit.map((f) => getBytesFromMultihash(f));
       // const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
       // const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
-      const authMethodType = 1;
-      const authMethodUserId = "0xdeadbeef";
-      const authMethodId = ethers.utils.keccak256(
-        ethers.utils.defaultAbiCoder.encode(
-          ["uint256", "bytes"],
-          [authMethodType, authMethodUserId]
+      const authMethodTypes = [1, 2];
+      const authMethodUserIds = [
+        "0xdeadbeef",
+        "0x7ce7b7b6766949f0bf8552a0db7117de4e5628321ae8c589e67e5839ee3c1912402dfd0ed9be127812d0d2c16df2ac2c319ebed0927b0de98a3b946767577ad7",
+      ];
+      const authMethodIdHashes = authMethodUserIds.map((f, idx) =>
+        ethers.utils.keccak256(
+          ethers.utils.defaultAbiCoder.encode(
+            ["uint256", "bytes"],
+            [authMethodTypes[idx], f]
+          )
         )
       );
+
+      // confirm that they aren't already permitted
 
       // send eth with the txn
       const mintCost = await pkpContract.mintCost();
@@ -86,10 +99,10 @@ describe("PKPHelper", function () {
 
       await pkpHelper.mintNextAndAddAuthMethods(
         2,
-        ipfsIdBytes,
-        addressToPermit,
-        authMethodType,
-        authMethodUserId,
+        ipfsIdsBytes,
+        addressesToPermit,
+        authMethodTypes,
+        authMethodUserIds,
         transaction
       );
 
@@ -98,48 +111,58 @@ describe("PKPHelper", function () {
       expect(owner).to.equal(minter.address);
 
       // check the auth methods
-      const actionIsPermitted = await router.isPermittedAction(
-        tokenId,
-        ipfsIdBytes
-      );
-      expect(actionIsPermitted).to.equal(true);
+      for (let i = 0; i < addressesToPermit.length; i++) {
+        const actionIsPermitted = await router.isPermittedAction(
+          tokenId,
+          ipfsIdsBytes[i]
+        );
+        expect(actionIsPermitted).to.equal(true);
+      }
 
-      const addressIsPermitted = await router.isPermittedAddress(
-        tokenId,
-        addressToPermit
-      );
-      expect(addressIsPermitted).to.equal(true);
+      for (let i = 0; i < addressesToPermit.length; i++) {
+        const addressIsPermitted = await router.isPermittedAddress(
+          tokenId,
+          addressesToPermit[i]
+        );
+        expect(addressIsPermitted).to.equal(true);
+      }
 
-      const authMethodIsPermitted = await router.isPermittedAuthMethod(
-        tokenId,
-        authMethodType,
-        authMethodUserId
-      );
-      expect(authMethodIsPermitted).to.equal(true);
+      for (let i = 0; i < authMethodTypes.length; i++) {
+        const authMethodIsPermitted = await router.isPermittedAuthMethod(
+          tokenId,
+          authMethodTypes[i],
+          authMethodUserIds[i]
+        );
+        expect(authMethodIsPermitted).to.equal(true);
+      }
 
       // check the reverse mapping of the auth method
-      const authedTokenIds = await router.getTokenIdsForAuthMethod(
-        authMethodType,
-        authMethodUserId
-      );
-      expect(authedTokenIds).to.deep.equal([tokenId]);
+      for (let i = 0; i < authMethodTypes.length; i++) {
+        const authedTokenIds = await router.getTokenIdsForAuthMethod(
+          authMethodTypes[i],
+          authMethodUserIds[i]
+        );
+        expect(authedTokenIds).to.deep.equal([tokenId]);
+      }
 
       // check all the getters
       const permittedActions = await router.getPermittedActions(tokenId);
       // console.log("permittedActions: ", permittedActions);
-      expect(permittedActions).to.deep.equal([ipfsIdBytes]);
+      expect(permittedActions).to.deep.equal(ipfsIdsBytes);
 
       const permittedAddresses = await router.getPermittedAddresses(tokenId);
       expect(permittedAddresses).to.deep.equal([
         minter.address,
-        addressToPermit,
+        ...addressesToPermit,
       ]);
 
       const permittedAuthMethods = await router.getPermittedAuthMethods(
         tokenId
       );
-      expect(permittedAuthMethods.length).to.equal(1);
-      expect(permittedAuthMethods[0]).to.equal(authMethodId);
+      expect(permittedAuthMethods.length).to.equal(2);
+      for (let i = 0; i < authMethodTypes.length; i++) {
+        expect(permittedAuthMethods[i]).to.equal(authMethodIdHashes[i]);
+      }
     });
   });
 });
