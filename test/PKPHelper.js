@@ -80,6 +80,10 @@ describe("PKPHelper", function () {
         "0xdeadbeef",
         "0x7ce7b7b6766949f0bf8552a0db7117de4e5628321ae8c589e67e5839ee3c1912402dfd0ed9be127812d0d2c16df2ac2c319ebed0927b0de98a3b946767577ad7",
       ];
+      const authMethodPubkeys = [
+        "0xacbe9af83570da302d072984c4938bd7d9dd86186ebedf53d693171d48dbf5e60e2ae9dc9f72ee9592b054ec0a9de5d3bac6a35b9f658b5183c40990e588ffea",
+        "0x00",
+      ];
       const authMethodIdHashes = authMethodUserIds.map((f, idx) =>
         ethers.utils.keccak256(
           ethers.utils.defaultAbiCoder.encode(
@@ -103,6 +107,7 @@ describe("PKPHelper", function () {
         addressesToPermit,
         authMethodTypes,
         authMethodUserIds,
+        authMethodPubkeys,
         transaction
       );
 
@@ -131,7 +136,8 @@ describe("PKPHelper", function () {
         const authMethodIsPermitted = await router.isPermittedAuthMethod(
           tokenId,
           authMethodTypes[i],
-          authMethodUserIds[i]
+          authMethodUserIds[i],
+          authMethodPubkeys[i]
         );
         expect(authMethodIsPermitted).to.equal(true);
       }
@@ -165,7 +171,12 @@ describe("PKPHelper", function () {
         expect([
           permittedAuthMethods[i][0].toNumber(),
           permittedAuthMethods[i][1],
-        ]).to.deep.equal([authMethodTypes[i], authMethodUserIds[i]]);
+          permittedAuthMethods[i][2],
+        ]).to.deep.equal([
+          authMethodTypes[i],
+          authMethodUserIds[i],
+          authMethodPubkeys[i],
+        ]);
       }
     });
   });

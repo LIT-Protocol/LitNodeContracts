@@ -38,7 +38,8 @@ contract PKPHelper is Ownable, IERC721Receiver {
         bytes[] memory permittedIpfsCIDs,
         address[] memory permittedAddresses,
         uint[] memory permittedAuthMethodTypes,
-        bytes[] memory permittedAuthMethodIds
+        bytes[] memory permittedAuthMethodIds,
+        bytes[] memory permittedAuthMethodPubkeys
     ) public payable returns (uint) {
         // mint the nft and forward the funds
         uint tokenId = pkpNFT.mintNext{value: msg.value}(keyType);
@@ -63,7 +64,8 @@ contract PKPHelper is Ownable, IERC721Receiver {
                 router.addPermittedAuthMethod(
                     tokenId,
                     permittedAuthMethodTypes[i],
-                    permittedAuthMethodIds[i]
+                    permittedAuthMethodIds[i],
+                    permittedAuthMethodPubkeys[i]
                 );
             }
         }

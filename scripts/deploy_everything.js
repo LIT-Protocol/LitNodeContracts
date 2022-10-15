@@ -129,6 +129,7 @@ async function main() {
     multisenderContract.address,
     amountForStakers
   );
+  console.log("Transfer tx hash: " + transferTx.hash);
   await transferTx.wait();
 
   // *** 10. Send remaining tokens to newOwner

@@ -93,7 +93,7 @@ describe("PKPNFT", function () {
     let pubkey =
       "0x79ad3ad10f47993173e69e040a2e5299060bd531f4d5632b45a1b56f6dc17f9d";
     const pubkeyHash = ethers.utils.keccak256(pubkey);
-    console.log("pubkeyhash: ", pubkeyHash);
+    // console.log("pubkeyhash: ", pubkeyHash);
     const tokenId = ethers.BigNumber.from(pubkeyHash);
     //console.log("PubkeyHash: " , pubkeyHash);
 

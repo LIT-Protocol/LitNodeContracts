@@ -41,6 +41,7 @@ contract PubkeyRouterAndPermissions is Ownable {
     struct AuthMethod {
         uint256 authMethodType; // 1 = WebAuthn, 2 = Discord.  Not doing this in an enum so that we can add more auth methods in the future without redeploying.
         bytes userId;
+        bytes userPubkey;
     }
 
     // map the keccack256(uncompressed pubkey) -> PubkeyRoutingData
@@ -66,6 +67,12 @@ contract PubkeyRouterAndPermissions is Ownable {
 
     // map the keccack256(authMethodType, userId) -> the actual AuthMethod struct
     mapping(uint256 => AuthMethod) public authMethods;
+
+    // map the keccack256(uncompressed pubkey) -> set of webAuthn users
+    mapping(uint256 => EnumerableSet.UintSet) permittedWebAuthnUsers;
+
+    // map the keccack256(uncompressed pubkey) -> WebAuthnUser
+    mapping(uint256 => AuthMethod) public webAuthnUsers;
 
     // map the AuthMethod hash to the pubkeys that it's allowed to sign for
     // this makes it possible to be given a discord id and then lookup all the pubkeys that are allowed to sign for that discord id
@@ -145,14 +152,34 @@ contract PubkeyRouterAndPermissions is Ownable {
         return pubkeys[tokenId];
     }
 
+    /// get the user's pubkey given their authMethodType and userId
+    function getUserPubkeyForAuthMethod(
+        uint authMethodType,
+        bytes memory userId
+    ) external view returns (bytes memory) {
+        uint authMethodId = getAuthMethodId(authMethodType, userId);
+        AuthMethod memory am = authMethods[authMethodId];
+        return am.userPubkey;
+    }
+
     /// get if a user is permitted to use a given pubkey.  returns true if it is permitted to use the pubkey in the permittedAuthMethods[tokenId] struct.
     function isPermittedAuthMethod(
         uint256 tokenId,
         uint authMethodType,
-        bytes memory userId
+        bytes memory userId,
+        bytes memory userPubkey
     ) external view returns (bool) {
         uint authMethodId = getAuthMethodId(authMethodType, userId);
-        return permittedAuthMethods[tokenId].contains(authMethodId);
+        AuthMethod memory am = authMethods[authMethodId];
+        bool permitted = permittedAuthMethods[tokenId].contains(authMethodId);
+        if (!permitted) {
+            return false;
+        }
+        require(
+            keccak256(am.userPubkey) == keccak256(userPubkey),
+            "The pubkey you submitted does not match the one stored"
+        );
+        return true;
     }
 
     /// get if a Lit Action is permitted to use a given pubkey.  returns true if it is permitted to use the pubkey in the permittedActions[tokenId] struct.
@@ -488,7 +515,8 @@ contract PubkeyRouterAndPermissions is Ownable {
     function addPermittedAuthMethod(
         uint256 tokenId,
         uint authMethodType,
-        bytes memory userId
+        bytes memory userId,
+        bytes memory userPubkey
     ) public {
         // check that user is allowed to set this
         address nftOwner = pkpNFT.ownerOf(tokenId);
@@ -497,7 +525,7 @@ contract PubkeyRouterAndPermissions is Ownable {
             "Only the PKP NFT owner can add and remove permitted auth methods"
         );
 
-        AuthMethod memory am = AuthMethod(authMethodType, userId);
+        AuthMethod memory am = AuthMethod(authMethodType, userId, userPubkey);
         uint authMethodId = getAuthMethodId(authMethodType, userId);
         authMethods[authMethodId] = am;
 

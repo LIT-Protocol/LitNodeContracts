@@ -304,10 +304,10 @@ describe("PubkeyRouterAndPermissions", function () {
       it("checks the PKP eth address", async () => {
         // validate that the address matches what ethers calculates
         const pubkeyWithPrefix = "0x04" + fakePubkey.substring(2);
-        console.log("pubkeyWithPrefix", pubkeyWithPrefix);
+        // console.log("pubkeyWithPrefix", pubkeyWithPrefix);
         const ethersResult = ethers.utils.computeAddress(pubkeyWithPrefix);
         const fullPubkey = await routerContract.getFullPubkey(tokenId);
-        console.log("fullPubkey", fullPubkey);
+        // console.log("fullPubkey", fullPubkey);
         let ethAddressOfPKP = await routerContract.getEthAddress(tokenId);
         expect(ethAddressOfPKP).equal(ethersResult);
         const ecdsaPubkeyWithPrefix = await routerContract.getEcdsaPubkey(
@@ -357,7 +357,8 @@ describe("PubkeyRouterAndPermissions", function () {
 
       it("registers and grants permission to a generic AuthMethod", async () => {
         const authMethodType = 1;
-        const userId = "0xdeadbeef";
+        const userId = "0xdeadbeef1234";
+        const userPubkey = "0x9876543210";
 
         pkpContract = await pkpContract.connect(tester);
 
@@ -365,7 +366,8 @@ describe("PubkeyRouterAndPermissions", function () {
         let permitted = await routerContract.isPermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId
+          userId,
+          userPubkey
         );
         expect(permitted).equal(false);
 
@@ -374,13 +376,24 @@ describe("PubkeyRouterAndPermissions", function () {
         await routerContract.addPermittedAuthMethod(
           tokenId,
           authMethodType,
+          userId,
+          userPubkey
+        );
+
+        // lookup the pubkey by the user id
+        let pubkey = await routerContract.getUserPubkeyForAuthMethod(
+          authMethodType,
           userId
         );
+        // console.log("pubkey stored in contract", pubkey);
+        // console.log("userPubkey", userPubkey);
+        expect(pubkey).equal(userPubkey);
 
         permitted = await routerContract.isPermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId
+          userId,
+          userPubkey
         );
         expect(permitted).equal(true);
 
@@ -392,6 +405,18 @@ describe("PubkeyRouterAndPermissions", function () {
         expect(pkpIds.length).equal(1);
         expect(pkpIds[0]).equal(tokenId);
 
+        // try a check with the wrong pubkey
+        await expect(
+          routerContract.isPermittedAuthMethod(
+            tokenId,
+            authMethodType,
+            userId,
+            "0x55"
+          )
+        ).revertedWith(
+          "The pubkey you submitted does not match the one stored"
+        );
+
         // revoke
         await routerContract.removePermittedAuthMethod(
           tokenId,
@@ -401,7 +426,8 @@ describe("PubkeyRouterAndPermissions", function () {
         permitted = await routerContract.isPermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId
+          userId,
+          userPubkey
         );
         expect(permitted).equal(false);
 
