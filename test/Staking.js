@@ -349,25 +349,14 @@ describe("Staking", function () {
 
     it("votes to register a PKP", async () => {
       const fakePubkey =
-        "0x83709b8bcc865ce02b7a918909936c8fbc3520445634dcaf4a18cfa1f0218a5ca37173aa265defedad866a0ae7b6c301";
+        "0x04acbe9af83570da302d072984c4938bd7d9dd86186ebedf53d693171d48dbf5e60e2ae9dc9f72ee9592b054ec0a9de5d3bac6a35b9f658b5183c40990e588ffea";
       pkpNft = pkpNft.connect(deployer);
 
       // validate that it's not routed yet
       const pubkeyHash = ethers.utils.keccak256(fakePubkey);
-      let [
-        keyPart1,
-        keyPart2,
-        keyLength,
-        stakingContractAddressBefore,
-        keyType,
-      ] = await routerContract.getRoutingData(pubkeyHash);
-      expect(keyPart1).equal(
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
-      );
-      expect(keyPart2).equal(
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
-      );
-      expect(keyLength).equal(0);
+      let [pubkeyBefore, stakingContractAddressBefore, keyType] =
+        await routerContract.getRoutingData(pubkeyHash);
+      expect(pubkeyBefore).equal("0x");
       expect(stakingContractAddressBefore).equal(
         "0x0000000000000000000000000000000000000000"
       );
@@ -383,19 +372,7 @@ describe("Staking", function () {
         "This PKP has not been routed yet"
       );
 
-      const keyLengthInput = 48;
       const keyTypeInput = 2;
-
-      const keyPart1Bytes = ethers.utils.hexDataSlice(fakePubkey, 0, 32);
-      let keyPart2Bytes = ethers.utils.hexDataSlice(fakePubkey, 32);
-      const keyPart2Length = ethers.utils.hexDataLength(keyPart2Bytes);
-      // console.log("keyPart2Bytes length", keyPart2Length);
-      // console.log("keyPart2Bytes before", keyPart2Bytes);
-      if (keyPart2Length < 32) {
-        // fill the rest with 0s
-        const zeroes = ethers.utils.hexZeroPad([], 32 - keyPart2Length);
-        keyPart2Bytes = ethers.utils.hexConcat([keyPart2Bytes, zeroes]);
-      }
 
       // vote to register it with 5 nodes
       for (let i = 0; i < 5; i++) {
@@ -405,24 +382,16 @@ describe("Staking", function () {
         // console.log("voting with address ", nodeAddress.address);
         await routerContract.voteForRoutingData(
           pubkeyHash,
-          keyPart1Bytes,
-          keyPart2Bytes,
-          keyLengthInput,
+          fakePubkey,
           stakingContract.address,
           keyTypeInput
         );
       }
 
       // validate that it was not set yet because the threshold of 6 have not voted yet
-      [keyPart1, keyPart2, keyLength, stakingContractAddressBefore, keyType] =
+      [pubkeyBefore, stakingContractAddressBefore, keyType] =
         await routerContract.getRoutingData(pubkeyHash);
-      expect(keyPart1).equal(
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
-      );
-      expect(keyPart2).equal(
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
-      );
-      expect(keyLength).equal(0);
+      expect(pubkeyBefore).equal("0x");
       expect(stakingContractAddressBefore).equal(
         "0x0000000000000000000000000000000000000000"
       );
@@ -438,11 +407,8 @@ describe("Staking", function () {
       expect(nodeVoteCount).equal(5);
 
       // this data is the candidate data.  if the votes pass, this becomes the real routing data.  this should match what the nodes are voting for
-      [keyPart1, keyPart2, keyLength, stakingContractAddressBefore, keyType] =
-        routingData;
-      expect(keyPart1).equal(keyPart1Bytes);
-      expect(keyPart2).equal(keyPart2Bytes);
-      expect(keyLength).equal(keyLengthInput);
+      [pubkeyBefore, stakingContractAddressBefore, keyType] = routingData;
+      expect(pubkeyBefore).equal(fakePubkey);
       expect(stakingContractAddressBefore).equal(stakingContract.address);
       expect(keyType).equal(keyTypeInput);
 
@@ -454,25 +420,16 @@ describe("Staking", function () {
         // console.log("voting with address ", nodeAddress.address);
         await routerContract.voteForRoutingData(
           pubkeyHash,
-          keyPart1Bytes,
-          keyPart2Bytes,
-          keyLengthInput,
+          fakePubkey,
           stakingContract.address,
           keyTypeInput
         );
         if (i === 6) {
           // confirm that it was set after the 7th node has voted
           // because it's set after the nodeVoteCount > nodeVoteThreshold which is 6.
-          let [
-            keyPart1After,
-            keyPart2After,
-            keyLengthAfter,
-            stakingContractAddressAfter,
-            keyTypeAfter,
-          ] = await routerContract.getRoutingData(pubkeyHash);
-          expect(keyPart1After).equal(keyPart1Bytes);
-          expect(keyPart2After).equal(keyPart2Bytes);
-          expect(keyLengthAfter).equal(keyLengthInput);
+          let [pubkeyAfter, stakingContractAddressAfter, keyTypeAfter] =
+            await routerContract.getRoutingData(pubkeyHash);
+          expect(pubkeyAfter).equal(fakePubkey);
           expect(stakingContractAddressAfter).equal(stakingContract.address);
           expect(keyTypeAfter).equal(keyTypeInput);
 
@@ -482,16 +439,9 @@ describe("Staking", function () {
       }
 
       // validate that it was set after all the voting finished
-      let [
-        keyPart1After,
-        keyPart2After,
-        keyLengthAfter,
-        stakingContractAddressAfter,
-        keyTypeAfter,
-      ] = await routerContract.getRoutingData(pubkeyHash);
-      expect(keyPart1After).equal(keyPart1Bytes);
-      expect(keyPart2After).equal(keyPart2Bytes);
-      expect(keyLengthAfter).equal(keyLengthInput);
+      let [pubkeyAfter, stakingContractAddressAfter, keyTypeAfter] =
+        await routerContract.getRoutingData(pubkeyHash);
+      expect(pubkeyAfter).equal(fakePubkey);
       expect(stakingContractAddressAfter).equal(stakingContract.address);
       expect(keyTypeAfter).equal(keyTypeInput);
 
@@ -516,7 +466,7 @@ describe("Staking", function () {
       expect(owner).to.equal(stakingAccount1.address);
 
       // confirm that the getter that reassembles the pubkey returns a perfect match
-      let pubkeyFromRouter = await routerContract.getFullPubkey(pubkeyHash);
+      let pubkeyFromRouter = await routerContract.getPubkey(pubkeyHash);
       expect(pubkeyFromRouter).equal(fakePubkey);
     });
 

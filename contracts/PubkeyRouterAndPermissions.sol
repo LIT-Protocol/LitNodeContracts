@@ -24,9 +24,7 @@ contract PubkeyRouterAndPermissions is Ownable {
     PKPNFT public pkpNFT;
 
     struct PubkeyRoutingData {
-        bytes32 keyPart1; // pubkeys are larger than 32 bytes
-        bytes32 keyPart2; // so we pack them into these two 32 byte chunks
-        uint256 keyLength; // length in bytes of the key
+        bytes pubkey;
         address stakingContract;
         uint256 keyType; // 1 = BLS, 2 = ECDSA.  Not doing this in an enum so we can add more keytypes in the future without redeploying.
     }
@@ -93,42 +91,9 @@ contract PubkeyRouterAndPermissions is Ownable {
         return uint256(keccak256(abi.encode(authMethodType, userId)));
     }
 
-    function combineKeyParts(
-        bytes32 keyPart1,
-        bytes32 keyPart2,
-        uint256 keyLength
-    ) internal pure returns (bytes memory) {
-        bytes memory key = new bytes(keyLength);
-        for (uint256 i = 0; i < keyLength; i++) {
-            if (i < 32) {
-                key[i] = keyPart1[i];
-            } else {
-                key[i] = keyPart2[i - 32];
-            }
-        }
-        return key;
-    }
-
     /// includes the 0x04 prefix so you can pass this directly to ethers.utils.computeAddress
-    function getEcdsaPubkey(uint256 tokenId)
-        public
-        view
-        returns (bytes memory)
-    {
-        if (pubkeys[tokenId].keyType != 2) {
-            return new bytes(0);
-        }
-        return abi.encodePacked(bytes1(0x04), getFullPubkey(tokenId));
-    }
-
-    /// get the full public key for the keypair
-    function getFullPubkey(uint256 tokenId) public view returns (bytes memory) {
-        return
-            combineKeyParts(
-                pubkeys[tokenId].keyPart1,
-                pubkeys[tokenId].keyPart2,
-                pubkeys[tokenId].keyLength
-            );
+    function getPubkey(uint256 tokenId) public view returns (bytes memory) {
+        return pubkeys[tokenId].pubkey;
     }
 
     // get the eth address for the keypair, as long as it's an ecdsa keypair
@@ -138,9 +103,10 @@ contract PubkeyRouterAndPermissions is Ownable {
         if (pubkeys[tokenId].keyType != 2) {
             return address(0);
         }
-        bytes memory pubKey = getFullPubkey(tokenId);
-        bytes memory hashed = abi.encodePacked(keccak256(pubKey));
-        return address(hashed.toAddress(12));
+        // remove 0x04 prefix
+        bytes memory pubkey = pubkeys[tokenId].pubkey.slice(1, 64);
+        bytes32 hashed = keccak256(pubkey);
+        return address(uint160(uint256(hashed)));
     }
 
     /// get the routing data for a given key hash
@@ -207,8 +173,7 @@ contract PubkeyRouterAndPermissions is Ownable {
     function isRouted(uint256 tokenId) public view returns (bool) {
         PubkeyRoutingData memory prd = pubkeys[tokenId];
         return
-            prd.keyPart1 != 0 &&
-            prd.keyLength != 0 &&
+            prd.pubkey.length != 0 &&
             prd.keyType != 0 &&
             prd.stakingContract != address(0);
     }
@@ -294,28 +259,17 @@ contract PubkeyRouterAndPermissions is Ownable {
     // this is only used by an admin in case of emergency.  can prob be removed.
     function setRoutingData(
         uint256 tokenId,
-        bytes32 keyPart1,
-        bytes32 keyPart2,
-        uint256 keyLength,
+        bytes memory pubkey,
         address stakingContract,
         uint256 keyType
     ) public onlyOwner {
-        pubkeys[tokenId].keyPart1 = keyPart1;
-        pubkeys[tokenId].keyPart2 = keyPart2;
-        pubkeys[tokenId].keyLength = keyLength;
+        pubkeys[tokenId].pubkey = pubkey;
         pubkeys[tokenId].stakingContract = stakingContract;
         pubkeys[tokenId].keyType = keyType;
 
         pkpNFT.pkpRouted(tokenId, keyType);
 
-        emit PubkeyRoutingDataSet(
-            tokenId,
-            keyPart1,
-            keyPart2,
-            keyLength,
-            stakingContract,
-            keyType
-        );
+        emit PubkeyRoutingDataSet(tokenId, pubkey, stakingContract, keyType);
     }
 
     /// vote to set the pubkey and routing data for a given key
@@ -323,9 +277,7 @@ contract PubkeyRouterAndPermissions is Ownable {
     // FIXME this is also vulnerable to an attack where someone sets up their own staking contract with a threshold of 1 and then goes around claiming tokenIds and filling them with junk.  we probably need to verify that the staking contract is legit.  i'm not sure how to do that though.  like we can check various things from the staking contract, that the staked token is the real Lit token, and that the user has staked a significant amount.  But how do we know that staking contract isn't a custom fork that lies about all that stuff?  Maybe we need a mapping of valid staking contracts somewhere, and when we deploy a new one we add it manually.
     function voteForRoutingData(
         uint256 tokenId,
-        bytes32 keyPart1,
-        bytes32 keyPart2,
-        uint256 keyLength,
+        bytes memory pubkey,
         address stakingContract,
         uint256 keyType
     ) public {
@@ -343,8 +295,6 @@ contract PubkeyRouterAndPermissions is Ownable {
             "You have already voted for this key"
         );
 
-        require(keyLength <= 64, "Key length must be <= 64");
-
         // if this is the first registration, validate that the hashes match
         if (pubkeyRegistrations[tokenId].nodeVoteCount == 0) {
             // this is the only place where the tokenId could become decoupled from the keyParts.
@@ -356,19 +306,11 @@ contract PubkeyRouterAndPermissions is Ownable {
             // console.log("keypart2: ");
             // console.logBytes32(keyPart2);
 
-            bytes memory fullKey = combineKeyParts(
-                keyPart1,
-                keyPart2,
-                keyLength
-            );
-
             require(
-                tokenId == uint256(keccak256(fullKey)),
+                tokenId == uint256(keccak256(pubkey)),
                 "tokenId does not match hashed keyParts"
             );
-            pubkeyRegistrations[tokenId].routingData.keyPart1 = keyPart1;
-            pubkeyRegistrations[tokenId].routingData.keyPart2 = keyPart2;
-            pubkeyRegistrations[tokenId].routingData.keyLength = keyLength;
+            pubkeyRegistrations[tokenId].routingData.pubkey = pubkey;
             pubkeyRegistrations[tokenId]
                 .routingData
                 .stakingContract = stakingContract;
@@ -381,16 +323,11 @@ contract PubkeyRouterAndPermissions is Ownable {
         } else {
             // if this is not the first registration, validate that everything matches
             require(
-                keyPart1 == pubkeyRegistrations[tokenId].routingData.keyPart1 &&
-                    keyPart2 ==
-                    pubkeyRegistrations[tokenId].routingData.keyPart2,
-                "keyParts do not match"
-            );
-
-            // validate that the key length matches
-            require(
-                keyLength == pubkeyRegistrations[tokenId].routingData.keyLength,
-                "keyLength does not match"
+                pubkey.length ==
+                    pubkeyRegistrations[tokenId].routingData.pubkey.length &&
+                    keccak256(pubkey) ==
+                    keccak256(pubkeyRegistrations[tokenId].routingData.pubkey),
+                "pubkey does not match previous registrations"
             );
 
             // validate that the staking contract matches
@@ -416,9 +353,7 @@ contract PubkeyRouterAndPermissions is Ownable {
             pubkeyRegistrations[tokenId].nodeVoteThreshold &&
             !isRouted(tokenId)
         ) {
-            pubkeys[tokenId].keyPart1 = keyPart1;
-            pubkeys[tokenId].keyPart2 = keyPart2;
-            pubkeys[tokenId].keyLength = keyLength;
+            pubkeys[tokenId].pubkey = pubkey;
             pubkeys[tokenId].stakingContract = stakingContract;
             pubkeys[tokenId].keyType = keyType;
 
@@ -426,9 +361,7 @@ contract PubkeyRouterAndPermissions is Ownable {
 
             emit PubkeyRoutingDataSet(
                 tokenId,
-                keyPart1,
-                keyPart2,
-                keyLength,
+                pubkey,
                 stakingContract,
                 keyType
             );
@@ -576,9 +509,7 @@ contract PubkeyRouterAndPermissions is Ownable {
 
     event PubkeyRoutingDataSet(
         uint256 indexed tokenId,
-        bytes32 keyPart1,
-        bytes32 keyPart2,
-        uint256 keyLength,
+        bytes pubkey,
         address stakingContract,
         uint256 keyType
     );

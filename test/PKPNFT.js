@@ -65,9 +65,7 @@ describe("PKPNFT", function () {
       // route it
       await router.setRoutingData(
         tokenId,
-        "0x0000000000000000000000000000000000000000000000000000000000000001",
-        "0x0000000000000000000000000000000000000000000000000000000000000002",
-        48,
+        pubkey,
         "0x0000000000000000000000000000000000000003",
         2
       );
@@ -101,9 +99,7 @@ describe("PKPNFT", function () {
     beforeEach(async () => {
       await router.setRoutingData(
         tokenId,
-        "0x0000000000000000000000000000000000000000000000000000000000000001",
-        "0x0000000000000000000000000000000000000000000000000000000000000002",
-        48,
+        pubkey,
         "0x0000000000000000000000000000000000000003",
         2
       );
@@ -174,17 +170,10 @@ describe("PKPNFT", function () {
     //console.log("PubkeyHash: " , pubkeyHash);
 
     it("mints, grants, and burns successfully", async () => {
-      const keyPart1Bytes = ethers.utils.hexDataSlice(pubkey, 0, 32);
-      const keyPart2Bytes = ethers.utils.hexZeroPad(
-        ethers.utils.hexDataSlice(pubkey, 32),
-        32
-      );
       // route it
       await router.setRoutingData(
         tokenId,
-        keyPart1Bytes,
-        keyPart2Bytes,
-        64,
+        pubkey,
         "0x0000000000000000000000000000000000000003",
         2
       );

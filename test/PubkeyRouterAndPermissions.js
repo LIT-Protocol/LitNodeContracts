@@ -50,15 +50,9 @@ describe("PubkeyRouterAndPermissions", function () {
 
       it("retrieves empty routing data", async () => {
         const pubkeyHash = ethers.utils.keccak256(fakePubkey);
-        const [keyPart1, keyPart2, keyLength, stakingContract, keyType] =
+        const [pubkey, stakingContract, keyType] =
           await routerContract.getRoutingData(pubkeyHash);
-        expect(keyPart1).equal(
-          "0x0000000000000000000000000000000000000000000000000000000000000000"
-        );
-        expect(keyPart2).equal(
-          "0x0000000000000000000000000000000000000000000000000000000000000000"
-        );
-        expect(keyLength).equal(0);
+        expect(pubkey).equal("0x");
         expect(stakingContract).equal(
           "0x0000000000000000000000000000000000000000"
         );
@@ -76,60 +70,28 @@ describe("PubkeyRouterAndPermissions", function () {
         const pubkeyHash = ethers.utils.keccak256(fakePubkey);
 
         // validate that it's unset
-        const [
-          keyPart1,
-          keyPart2,
-          keyLength,
-          stakingContractAddressBefore,
-          keyType,
-        ] = await routerContract.getRoutingData(pubkeyHash);
-        expect(keyPart1).equal(
-          "0x0000000000000000000000000000000000000000000000000000000000000000"
-        );
-        expect(keyPart2).equal(
-          "0x0000000000000000000000000000000000000000000000000000000000000000"
-        );
-        expect(keyLength).equal(0);
+        const [pubkeyBefore, stakingContractAddressBefore, keyType] =
+          await routerContract.getRoutingData(pubkeyHash);
+        expect(pubkeyBefore).equal("0x");
         expect(stakingContractAddressBefore).equal(
           "0x0000000000000000000000000000000000000000"
         );
         expect(keyType).equal(0);
 
         // set routing data
-        const keyPart1Bytes = ethers.utils.hexDataSlice(fakePubkey, 0, 32);
-        let keyPart2Bytes = ethers.utils.hexDataSlice(fakePubkey, 32);
-        const keyPart2Length = ethers.utils.hexDataLength(keyPart2Bytes);
-        // console.log("keyPart2Bytes length", keyPart2Length);
-        // console.log("keyPart2Bytes before", keyPart2Bytes);
-        if (keyPart2Length < 32) {
-          // fill the rest with 0s
-          const zeroes = ethers.utils.hexZeroPad([], 32 - keyPart2Length);
-          keyPart2Bytes = ethers.utils.hexConcat([keyPart2Bytes, zeroes]);
-        }
-
-        const keyLengthInput = 48;
         const keyTypeInput = 1;
 
         await routerContract.voteForRoutingData(
           pubkeyHash,
-          keyPart1Bytes,
-          keyPart2Bytes,
-          keyLengthInput,
+          fakePubkey,
           stakingContract.address,
           keyTypeInput
         );
 
         // validate that it was set
-        const [
-          keyPart1After,
-          keyPart2After,
-          keyLengthAfter,
-          stakingContractAddressAfter,
-          keyTypeAfter,
-        ] = await routerContract.getRoutingData(pubkeyHash);
-        expect(keyPart1After).equal(keyPart1Bytes);
-        expect(keyPart2After).equal(keyPart2Bytes);
-        expect(keyLengthAfter).equal(keyLengthInput);
+        const [pubkeyAfter, stakingContractAddressAfter, keyTypeAfter] =
+          await routerContract.getRoutingData(pubkeyHash);
+        expect(pubkeyAfter).equal(fakePubkey);
         expect(stakingContractAddressAfter).equal(stakingContract.address);
         expect(keyTypeAfter).equal(keyTypeInput);
       });
@@ -140,7 +102,7 @@ describe("PubkeyRouterAndPermissions", function () {
     context("when the PKP grants permission to an ETH address", async () => {
       // 64 byte pubkey - the max size we support
       let fakePubkey =
-        "0x54497d637068d190a9c4dacd92a0a49f0a6a1f30c5a7a5aecc939fce644ff4e6006d3bf73dbd671efbbcab075e6f2500ad69aa9ed1f517e256473b18e05d396d";
+        "0x046db7b0736408e7874b746f6d54aa6e4d04fd8902b520af69493f62757e77e0b5247355f925af2b382b64c71fcb3ff3ad26469ca65b4d2945d6e6379a4f285b93";
       let tester;
       let creator;
       let tokenId;
@@ -152,54 +114,27 @@ describe("PubkeyRouterAndPermissions", function () {
 
         // check that the routing data for this pubkey is empty
         const pubkeyHash = ethers.utils.keccak256(fakePubkey);
-        const [
-          keyPart1,
-          keyPart2,
-          keyLength,
-          stakingContractAddressBefore,
-          keyType,
-        ] = await routerContract.getRoutingData(pubkeyHash);
-        expect(keyPart1).equal(
-          "0x0000000000000000000000000000000000000000000000000000000000000000"
-        );
-        expect(keyPart2).equal(
-          "0x0000000000000000000000000000000000000000000000000000000000000000"
-        );
-        expect(keyLength).equal(0);
+        const [pubkeyBefore, stakingContractAddressBefore, keyType] =
+          await routerContract.getRoutingData(pubkeyHash);
+        expect(pubkeyBefore).equal("0x");
         expect(stakingContractAddressBefore).equal(
           "0x0000000000000000000000000000000000000000"
         );
         expect(keyType).equal(0);
 
-        const keyPart1Bytes = ethers.utils.hexDataSlice(fakePubkey, 0, 32);
-        const keyPart2Bytes = ethers.utils.hexZeroPad(
-          ethers.utils.hexDataSlice(fakePubkey, 32),
-          32
-        );
-
-        const keyLengthInput = 64;
         const keyTypeInput = 2;
 
         await routerContract.voteForRoutingData(
           pubkeyHash,
-          keyPart1Bytes,
-          keyPart2Bytes,
-          keyLengthInput,
+          fakePubkey,
           stakingContract.address,
           keyTypeInput
         );
 
         // validate that it was set
-        const [
-          keyPart1After,
-          keyPart2After,
-          keyLengthAfter,
-          stakingContractAddressAfter,
-          keyTypeAfter,
-        ] = await routerContract.getRoutingData(pubkeyHash);
-        expect(keyPart1After).equal(keyPart1Bytes);
-        expect(keyPart2After).equal(keyPart2Bytes);
-        expect(keyLengthAfter).equal(keyLengthInput);
+        const [pubkeyAfter, stakingContractAddressAfter, keyTypeAfter] =
+          await routerContract.getRoutingData(pubkeyHash);
+        expect(pubkeyAfter).equal(fakePubkey);
         expect(stakingContractAddressAfter).equal(stakingContract.address);
         expect(keyTypeAfter).equal(keyTypeInput);
 
@@ -303,17 +238,15 @@ describe("PubkeyRouterAndPermissions", function () {
 
       it("checks the PKP eth address", async () => {
         // validate that the address matches what ethers calculates
-        const pubkeyWithPrefix = "0x04" + fakePubkey.substring(2);
-        // console.log("pubkeyWithPrefix", pubkeyWithPrefix);
-        const ethersResult = ethers.utils.computeAddress(pubkeyWithPrefix);
-        const fullPubkey = await routerContract.getFullPubkey(tokenId);
-        // console.log("fullPubkey", fullPubkey);
+        console.log("fakePubkey", fakePubkey);
+        const ethersResult = ethers.utils.computeAddress(fakePubkey);
+        console.log("ethersResult", ethersResult);
+        const pubkeyFromContract = await routerContract.getPubkey(tokenId);
+        console.log("pubkeyFromContract", pubkeyFromContract);
         let ethAddressOfPKP = await routerContract.getEthAddress(tokenId);
+        console.log("ethAddressOfPKP", ethAddressOfPKP);
         expect(ethAddressOfPKP).equal(ethersResult);
-        const ecdsaPubkeyWithPrefix = await routerContract.getEcdsaPubkey(
-          tokenId
-        );
-        expect(pubkeyWithPrefix).equal(ecdsaPubkeyWithPrefix);
+        expect(fakePubkey).equal(pubkeyFromContract);
       });
 
       it("grants permission to an IPFS id and then revokes it", async () => {
