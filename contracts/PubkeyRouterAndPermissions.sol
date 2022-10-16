@@ -76,6 +76,9 @@ contract PubkeyRouterAndPermissions is Ownable {
     // this makes it possible to be given a discord id and then lookup all the pubkeys that are allowed to sign for that discord id
     mapping(uint256 => EnumerableSet.UintSet) authMethodToPkpIds;
 
+    // map the eth address to a pkp id
+    mapping(address => uint256) public ethAddressToPkpId;
+
     /* ========== CONSTRUCTOR ========== */
     constructor(address _pkpNft) {
         pkpNFT = PKPNFT(_pkpNft);
@@ -356,6 +359,12 @@ contract PubkeyRouterAndPermissions is Ownable {
             pubkeys[tokenId].pubkey = pubkey;
             pubkeys[tokenId].stakingContract = stakingContract;
             pubkeys[tokenId].keyType = keyType;
+
+            // if this is an ECSDA key, then store the eth address reverse mapping
+            if (keyType == 2) {
+                address pkpAddress = getEthAddress(tokenId);
+                ethAddressToPkpId[pkpAddress] = tokenId;
+            }
 
             pkpNFT.pkpRouted(tokenId, keyType);
 

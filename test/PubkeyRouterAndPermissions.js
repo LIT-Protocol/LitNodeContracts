@@ -236,7 +236,7 @@ describe("PubkeyRouterAndPermissions", function () {
         expect(permitted).equal(false);
       });
 
-      it("checks the PKP eth address", async () => {
+      it("checks the PKP eth address and the reverse mapping", async () => {
         // validate that the address matches what ethers calculates
         console.log("fakePubkey", fakePubkey);
         const ethersResult = ethers.utils.computeAddress(fakePubkey);
@@ -247,6 +247,12 @@ describe("PubkeyRouterAndPermissions", function () {
         console.log("ethAddressOfPKP", ethAddressOfPKP);
         expect(ethAddressOfPKP).equal(ethersResult);
         expect(fakePubkey).equal(pubkeyFromContract);
+
+        // check the reverse mapping
+        const tokenIdFromContract = await routerContract.ethAddressToPkpId(
+          ethAddressOfPKP
+        );
+        expect(tokenIdFromContract).equal(tokenId);
       });
 
       it("grants permission to an IPFS id and then revokes it", async () => {

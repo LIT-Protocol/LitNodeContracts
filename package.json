@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "GPL-3.0-or-later",
   "scripts": {
-    "test": "npx hardhat test",
+    "test": "npx hardhat test | tee gas_costs.txt",
     "compile": "npx hardhat compile",
     "convertPubkey": "node pubkeyToRoutingData.js",
     "convertIpfsId": "node ipfsIdToParts.js",
