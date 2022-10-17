@@ -4,7 +4,8 @@ pragma solidity ^0.8.3;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {PubkeyRouterAndPermissions} from "./PubkeyRouterAndPermissions.sol";
+import {PubkeyRouter} from "./PubkeyRouter.sol";
+import {PKPPermissions} from "./PKPPermissions.sol";
 import {ERC721Burnable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
@@ -30,7 +31,8 @@ contract PKPNFT is
     using Strings for uint;
     /* ========== STATE VARIABLES ========== */
 
-    PubkeyRouterAndPermissions public router;
+    PubkeyRouter public router;
+    PKPPermissions public pkpPermissions;
     uint public mintCost;
     uint public contractBalance;
     address public freeMintSigner;
@@ -162,7 +164,7 @@ contract PKPNFT is
         require(msg.value == mintCost, "You must pay exactly mint cost");
         uint tokenId = _getNextTokenIdToMint(keyType);
         _mintWithoutValueCheck(tokenId, address(this));
-        router.addPermittedAction(tokenId, ipfsCID);
+        pkpPermissions.addPermittedAction(tokenId, ipfsCID);
         _burn(tokenId);
         return tokenId;
     }
@@ -211,7 +213,7 @@ contract PKPNFT is
         onlyOwner
     {
         _mintWithoutValueCheck(tokenId, address(this));
-        router.addPermittedAction(tokenId, ipfsCID);
+        pkpPermissions.addPermittedAction(tokenId, ipfsCID);
         _burn(tokenId);
     }
 
@@ -242,7 +244,7 @@ contract PKPNFT is
         freeMintSigTest(freeMintId, msgHash, v, r, s);
         _mintWithoutValueCheck(tokenId, address(this));
         redeemedFreeMintIds[freeMintId] = true;
-        router.addPermittedAction(tokenId, ipfsCID);
+        pkpPermissions.addPermittedAction(tokenId, ipfsCID);
         _burn(tokenId);
     }
 
@@ -275,7 +277,14 @@ contract PKPNFT is
     }
 
     function setRouterAddress(address routerAddress) public onlyOwner {
-        router = PubkeyRouterAndPermissions(routerAddress);
+        router = PubkeyRouter(routerAddress);
+    }
+
+    function setPkpPermissionsAddress(address pkpPermissionsAddress)
+        public
+        onlyOwner
+    {
+        pkpPermissions = PKPPermissions(pkpPermissionsAddress);
     }
 
     function setMintCost(uint newMintCost) public onlyOwner {

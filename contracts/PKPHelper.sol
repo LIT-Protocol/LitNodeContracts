@@ -2,7 +2,7 @@
 pragma solidity ^0.8.3;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {PubkeyRouterAndPermissions} from "./PubkeyRouterAndPermissions.sol";
+import {PKPPermissions} from "./PKPPermissions.sol";
 import {PKPNFT} from "./PKPNFT.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
@@ -21,12 +21,12 @@ contract PKPHelper is Ownable, IERC721Receiver {
     /* ========== STATE VARIABLES ========== */
 
     PKPNFT public pkpNFT;
-    PubkeyRouterAndPermissions public router;
+    PKPPermissions public pkpPermissions;
 
     /* ========== CONSTRUCTOR ========== */
-    constructor(address _pkpNft, address _router) {
+    constructor(address _pkpNft, address _pkpPermissions) {
         pkpNFT = PKPNFT(_pkpNft);
-        router = PubkeyRouterAndPermissions(_router);
+        pkpPermissions = PKPPermissions(_pkpPermissions);
     }
 
     /* ========== VIEWS ========== */
@@ -47,21 +47,27 @@ contract PKPHelper is Ownable, IERC721Receiver {
         // permit the action
         if (permittedIpfsCIDs.length != 0) {
             for (uint i = 0; i < permittedIpfsCIDs.length; i++) {
-                router.addPermittedAction(tokenId, permittedIpfsCIDs[i]);
+                pkpPermissions.addPermittedAction(
+                    tokenId,
+                    permittedIpfsCIDs[i]
+                );
             }
         }
 
         // permit the address
         if (permittedAddresses.length != 0) {
             for (uint i = 0; i < permittedAddresses.length; i++) {
-                router.addPermittedAddress(tokenId, permittedAddresses[i]);
+                pkpPermissions.addPermittedAddress(
+                    tokenId,
+                    permittedAddresses[i]
+                );
             }
         }
 
         // permit the auth method
         if (permittedAuthMethodTypes.length != 0) {
             for (uint i = 0; i < permittedAuthMethodTypes.length; i++) {
-                router.addPermittedAuthMethod(
+                pkpPermissions.addPermittedAuthMethod(
                     tokenId,
                     permittedAuthMethodTypes[i],
                     permittedAuthMethodIds[i],
@@ -77,8 +83,11 @@ contract PKPHelper is Ownable, IERC721Receiver {
         pkpNFT = PKPNFT(newPkpNftAddress);
     }
 
-    function setRouterAddress(address newRouterAddress) public onlyOwner {
-        router = PubkeyRouterAndPermissions(newRouterAddress);
+    function setPkpPermissionsAddress(address newPkpPermissionsAddress)
+        public
+        onlyOwner
+    {
+        pkpPermissions = PKPPermissions(newPkpPermissionsAddress);
     }
 
     function onERC721Received(
