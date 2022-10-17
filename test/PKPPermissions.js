@@ -6,22 +6,26 @@ const {
 } = require("../utils.js");
 const { smock } = require("@defi-wonderland/smock");
 
-describe("PubkeyRouterAndPermissions", function () {
+describe("PKPPermissions", function () {
   let deployer;
   let signers;
   let routerContract;
   let pkpContract;
   let stakingContract;
   let tokenContract;
+  let pkpPermissions;
 
   before(async () => {
     const RouterContractFactory = await ethers.getContractFactory(
-      "PubkeyRouterAndPermissions"
+      "PubkeyRouter"
     );
     const PKPContractFactory = await ethers.getContractFactory("PKPNFT");
     // mock the staking contract so we can get it into the state we need
     const StakingContractFactory = await smock.mock("Staking");
     const TokenContractFactory = await ethers.getContractFactory("LITToken");
+    const PKPPermissionsFactory = await ethers.getContractFactory(
+      "PKPPermissions"
+    );
 
     [deployer, ...signers] = await ethers.getSigners();
 
@@ -31,71 +35,17 @@ describe("PubkeyRouterAndPermissions", function () {
 
     await pkpContract.setRouterAddress(routerContract.address);
 
+    pkpPermissions = await PKPPermissionsFactory.deploy(
+      pkpContract.address,
+      routerContract.address
+    );
+
     stakingContract = await StakingContractFactory.deploy(
       tokenContract.address
     );
 
     stakingContract.isActiveValidator.returns(true);
     stakingContract.validatorCountForConsensus.returns(0);
-  });
-
-  describe("store and retrieve routing data", async () => {
-    let fakePubkey =
-      "0x83709b8bcc865ce02b7a918909936c8fbc3520445634dcaf4a18cfa1f0218a5ca37173aa265defedad866a0ae7b6c301";
-
-    context("when routing data is unset", async () => {
-      beforeEach(async () => {
-        routerContract = routerContract.connect(deployer);
-      });
-
-      it("retrieves empty routing data", async () => {
-        const pubkeyHash = ethers.utils.keccak256(fakePubkey);
-        const [pubkey, stakingContract, keyType] =
-          await routerContract.getRoutingData(pubkeyHash);
-        expect(pubkey).equal("0x");
-        expect(stakingContract).equal(
-          "0x0000000000000000000000000000000000000000"
-        );
-        expect(keyType).equal(0);
-      });
-    });
-
-    context("when routing data is set", async () => {
-      beforeEach(async () => {
-        routerContract = await routerContract.connect(deployer);
-        pkpContract = await pkpContract.connect(deployer);
-      });
-
-      it("sets and retrieves routing data", async () => {
-        const pubkeyHash = ethers.utils.keccak256(fakePubkey);
-
-        // validate that it's unset
-        const [pubkeyBefore, stakingContractAddressBefore, keyType] =
-          await routerContract.getRoutingData(pubkeyHash);
-        expect(pubkeyBefore).equal("0x");
-        expect(stakingContractAddressBefore).equal(
-          "0x0000000000000000000000000000000000000000"
-        );
-        expect(keyType).equal(0);
-
-        // set routing data
-        const keyTypeInput = 1;
-
-        await routerContract.voteForRoutingData(
-          pubkeyHash,
-          fakePubkey,
-          stakingContract.address,
-          keyTypeInput
-        );
-
-        // validate that it was set
-        const [pubkeyAfter, stakingContractAddressAfter, keyTypeAfter] =
-          await routerContract.getRoutingData(pubkeyHash);
-        expect(pubkeyAfter).equal(fakePubkey);
-        expect(stakingContractAddressAfter).equal(stakingContract.address);
-        expect(keyTypeAfter).equal(keyTypeInput);
-      });
-    });
   });
 
   describe("register a PKP and set routing permissions", async () => {
@@ -158,24 +108,24 @@ describe("PubkeyRouterAndPermissions", function () {
         pkpContract = await pkpContract.connect(tester);
 
         // validate that the address is not permitted
-        let permitted = await routerContract.isPermittedAddress(
+        let permitted = await pkpPermissions.isPermittedAddress(
           tokenId,
           addressToPermit
         );
         expect(permitted).equal(false);
 
         // permit it
-        routerContract = await routerContract.connect(tester);
-        await routerContract.addPermittedAddress(tokenId, addressToPermit);
-        permitted = await routerContract.isPermittedAddress(
+        pkpPermissions = await pkpPermissions.connect(tester);
+        await pkpPermissions.addPermittedAddress(tokenId, addressToPermit);
+        permitted = await pkpPermissions.isPermittedAddress(
           tokenId,
           addressToPermit
         );
         expect(permitted).equal(true);
 
         // revoke
-        await routerContract.removePermittedAddress(tokenId, addressToPermit);
-        permitted = await routerContract.isPermittedAddress(
+        await pkpPermissions.removePermittedAddress(tokenId, addressToPermit);
+        permitted = await pkpPermissions.isPermittedAddress(
           tokenId,
           addressToPermit
         );
@@ -190,69 +140,50 @@ describe("PubkeyRouterAndPermissions", function () {
         pkpContract = await pkpContract.connect(tester);
 
         // validate that the ipfs ID is not permitted
-        let permitted = await routerContract.isPermittedAction(
+        let permitted = await pkpPermissions.isPermittedAction(
           tokenId,
           ipfsIdBytes
         );
         expect(permitted).equal(false);
 
         // attempt to permit it
-        // routerContract = await routerContract.connect(tester);
+        // pkpPermissions = await pkpPermissions.connect(tester);
         // expect(
-        //   routerContract.addPermittedAction(tokenId, ipfsIdBytes)
+        //   pkpPermissions.addPermittedAction(tokenId, ipfsIdBytes)
         // ).revertedWith(
         //   "Please register your Lit Action IPFS ID with the registerAction() function before permitting it to use a PKP"
         // );
-        // permitted = await routerContract.isPermittedAction(tokenId, ipfsIdBytes);
+        // permitted = await pkpPermissions.isPermittedAction(tokenId, ipfsIdBytes);
         // expect(permitted).equal(false);
 
         // register the lit action
-        // let registered = await routerContract.isActionRegistered(ipfsIdBytes);
+        // let registered = await pkpPermissions.isActionRegistered(ipfsIdBytes);
         // expect(registered).equal(false);
         // const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
-        // await routerContract.registerAction(
+        // await pkpPermissions.registerAction(
         //   multihashStruct.digest,
         //   multihashStruct.hashFunction,
         //   multihashStruct.size
         // );
-        // registered = await routerContract.isActionRegistered(ipfsIdBytes);
+        // registered = await pkpPermissions.isActionRegistered(ipfsIdBytes);
         // expect(registered).equal(true);
 
         // permit it
-        routerContract = await routerContract.connect(tester);
-        await routerContract.addPermittedAction(tokenId, ipfsIdBytes);
-        permitted = await routerContract.isPermittedAction(
+        pkpPermissions = await pkpPermissions.connect(tester);
+        await pkpPermissions.addPermittedAction(tokenId, ipfsIdBytes);
+        permitted = await pkpPermissions.isPermittedAction(
           tokenId,
           ipfsIdBytes
         );
         expect(permitted).equal(true);
 
         // revoke
-        await routerContract.removePermittedAction(tokenId, ipfsIdBytes);
-        permitted = await routerContract.isPermittedAction(
+        await pkpPermissions.removePermittedAction(tokenId, ipfsIdBytes);
+        permitted = await pkpPermissions.isPermittedAction(
           tokenId,
           ipfsIdBytes
         );
         expect(permitted).equal(false);
-      });
-
-      it("checks the PKP eth address and the reverse mapping", async () => {
-        // validate that the address matches what ethers calculates
-        console.log("fakePubkey", fakePubkey);
-        const ethersResult = ethers.utils.computeAddress(fakePubkey);
-        console.log("ethersResult", ethersResult);
-        const pubkeyFromContract = await routerContract.getPubkey(tokenId);
-        console.log("pubkeyFromContract", pubkeyFromContract);
-        let ethAddressOfPKP = await routerContract.getEthAddress(tokenId);
-        console.log("ethAddressOfPKP", ethAddressOfPKP);
-        expect(ethAddressOfPKP).equal(ethersResult);
-        expect(fakePubkey).equal(pubkeyFromContract);
-
-        // check the reverse mapping
-        const tokenIdFromContract = await routerContract.ethAddressToPkpId(
-          ethAddressOfPKP
-        );
-        expect(tokenIdFromContract).equal(tokenId);
       });
 
       it("grants permission to an IPFS id and then revokes it", async () => {
@@ -262,32 +193,32 @@ describe("PubkeyRouterAndPermissions", function () {
         pkpContract = await pkpContract.connect(tester);
 
         // validate that the ipfs ID is not permitted
-        let permitted = await routerContract.isPermittedAction(
+        let permitted = await pkpPermissions.isPermittedAction(
           tokenId,
           ipfsIdHash
         );
         expect(permitted).equal(false);
 
         const ipfsIdBytes = getBytesFromMultihash(ipfsIdToPermit);
-        await routerContract.addPermittedAction(tokenId, ipfsIdBytes);
+        await pkpPermissions.addPermittedAction(tokenId, ipfsIdBytes);
 
-        permitted = await routerContract.isPermittedAction(
+        permitted = await pkpPermissions.isPermittedAction(
           tokenId,
           ipfsIdBytes
         );
         expect(permitted).equal(true);
 
         // revoke
-        await routerContract.removePermittedAction(tokenId, ipfsIdBytes);
-        permitted = await routerContract.isPermittedAction(
+        await pkpPermissions.removePermittedAction(tokenId, ipfsIdBytes);
+        permitted = await pkpPermissions.isPermittedAction(
           tokenId,
           ipfsIdBytes
         );
         expect(permitted).equal(false);
 
-        await routerContract.addPermittedAction(tokenId, ipfsIdBytes);
+        await pkpPermissions.addPermittedAction(tokenId, ipfsIdBytes);
 
-        permitted = await routerContract.isPermittedAction(
+        permitted = await pkpPermissions.isPermittedAction(
           tokenId,
           ipfsIdBytes
         );
@@ -302,7 +233,7 @@ describe("PubkeyRouterAndPermissions", function () {
         pkpContract = await pkpContract.connect(tester);
 
         // validate that the auth method is not permitted
-        let permitted = await routerContract.isPermittedAuthMethod(
+        let permitted = await pkpPermissions.isPermittedAuthMethod(
           tokenId,
           authMethodType,
           userId,
@@ -311,8 +242,8 @@ describe("PubkeyRouterAndPermissions", function () {
         expect(permitted).equal(false);
 
         // attempt to permit it
-        routerContract = await routerContract.connect(tester);
-        await routerContract.addPermittedAuthMethod(
+        pkpPermissions = await pkpPermissions.connect(tester);
+        await pkpPermissions.addPermittedAuthMethod(
           tokenId,
           authMethodType,
           userId,
@@ -320,7 +251,7 @@ describe("PubkeyRouterAndPermissions", function () {
         );
 
         // lookup the pubkey by the user id
-        let pubkey = await routerContract.getUserPubkeyForAuthMethod(
+        let pubkey = await pkpPermissions.getUserPubkeyForAuthMethod(
           authMethodType,
           userId
         );
@@ -328,7 +259,7 @@ describe("PubkeyRouterAndPermissions", function () {
         // console.log("userPubkey", userPubkey);
         expect(pubkey).equal(userPubkey);
 
-        permitted = await routerContract.isPermittedAuthMethod(
+        permitted = await pkpPermissions.isPermittedAuthMethod(
           tokenId,
           authMethodType,
           userId,
@@ -337,7 +268,7 @@ describe("PubkeyRouterAndPermissions", function () {
         expect(permitted).equal(true);
 
         // do a reverse lookup
-        let pkpIds = await routerContract.getTokenIdsForAuthMethod(
+        let pkpIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodType,
           userId
         );
@@ -346,7 +277,7 @@ describe("PubkeyRouterAndPermissions", function () {
 
         // try a check with the wrong pubkey
         await expect(
-          routerContract.isPermittedAuthMethod(
+          pkpPermissions.isPermittedAuthMethod(
             tokenId,
             authMethodType,
             userId,
@@ -357,12 +288,12 @@ describe("PubkeyRouterAndPermissions", function () {
         );
 
         // revoke
-        await routerContract.removePermittedAuthMethod(
+        await pkpPermissions.removePermittedAuthMethod(
           tokenId,
           authMethodType,
           userId
         );
-        permitted = await routerContract.isPermittedAuthMethod(
+        permitted = await pkpPermissions.isPermittedAuthMethod(
           tokenId,
           authMethodType,
           userId,
@@ -371,7 +302,7 @@ describe("PubkeyRouterAndPermissions", function () {
         expect(permitted).equal(false);
 
         // confirm that the reverse lookup is now empty
-        pkpIds = await routerContract.getTokenIdsForAuthMethod(
+        pkpIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodType,
           userId
         );
