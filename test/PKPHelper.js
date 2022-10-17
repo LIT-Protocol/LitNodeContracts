@@ -53,13 +53,12 @@ describe("PKPHelper", function () {
       pkpHelper = pkpHelper.connect(minter);
     });
 
-    let pubkey =
-      "0x034319b040a81f78d14b8efcf73f3120b28d88ac5ca316dbd1a83797defcf20b5a";
-    const pubkeyHash = ethers.utils.keccak256(pubkey);
-    const tokenId = ethers.BigNumber.from(pubkeyHash);
-    //console.log("PubkeyHash: " , pubkeyHash);
-
     it("mints successfully with permitted auth methods", async () => {
+      let pubkey =
+        "0x0478a6d8579e7b595d2c4c04b8d822f2a0fd8801ab352443db93da793383766e0bee476b8a8ab2f72754237b3e31d6ee0e000646642c7b50757f8645f26d802336";
+      const pubkeyHash = ethers.utils.keccak256(pubkey);
+      const tokenId = ethers.BigNumber.from(pubkeyHash);
+      //console.log("PubkeyHash: " , pubkeyHash);
       // route it
       await router.setRoutingData(
         tokenId,
@@ -97,8 +96,6 @@ describe("PKPHelper", function () {
         )
       );
 
-      // confirm that they aren't already permitted
-
       // send eth with the txn
       const mintCost = await pkpContract.mintCost();
       const transaction = {
@@ -112,12 +109,15 @@ describe("PKPHelper", function () {
         authMethodTypes,
         authMethodUserIds,
         authMethodPubkeys,
+        true, //addPkpEthAddressAsPermittedAddress,
         transaction
       );
 
       // check the token was minted
       const owner = await pkpContract.ownerOf(tokenId);
       expect(owner).to.equal(minter.address);
+
+      const pkpEthAddress = await pkpPermissions.getEthAddress(tokenId);
 
       // check the auth methods
       for (let i = 0; i < addressesToPermit.length; i++) {
@@ -135,6 +135,20 @@ describe("PKPHelper", function () {
         );
         expect(addressIsPermitted).to.equal(true);
       }
+
+      // confirm that the owner is also permitted
+      const ownerIsPermitted = await pkpPermissions.isPermittedAddress(
+        tokenId,
+        minter.address
+      );
+      expect(ownerIsPermitted).to.equal(true);
+
+      // confirm that the pkp eth address is permitted
+      const pkpEthAddressIsPermitted = await pkpPermissions.isPermittedAddress(
+        tokenId,
+        pkpEthAddress
+      );
+      expect(pkpEthAddressIsPermitted).to.equal(true);
 
       for (let i = 0; i < authMethodTypes.length; i++) {
         const authMethodIsPermitted =
@@ -169,6 +183,7 @@ describe("PKPHelper", function () {
       expect(permittedAddresses).to.deep.equal([
         minter.address,
         ...addressesToPermit,
+        pkpEthAddress,
       ]);
 
       const permittedAuthMethods = await pkpPermissions.getPermittedAuthMethods(
@@ -187,6 +202,60 @@ describe("PKPHelper", function () {
           authMethodPubkeys[i],
         ]);
       }
+    });
+
+    it("mints without setting the pkp nft address as permitted", async () => {
+      let pubkey =
+        "0x04aae08ba986cf0c2e41b367e452751c9efb81170adb9c5e5a96cb0359f592c2b6fa5b12c752a501fdaf4701b4b6b2edd3ecb852c8c36b3759e802c45988dad84b";
+      const pubkeyHash = ethers.utils.keccak256(pubkey);
+      const tokenId = ethers.BigNumber.from(pubkeyHash);
+      //console.log("PubkeyHash: " , pubkeyHash);
+
+      // route it
+      await router.setRoutingData(
+        tokenId,
+        pubkey,
+        "0x0000000000000000000000000000000000000003",
+        2
+      );
+
+      // send eth with the txn
+      const mintCost = await pkpContract.mintCost();
+      const transaction = {
+        value: mintCost,
+      };
+
+      await pkpHelper.mintNextAndAddAuthMethods(
+        2,
+        [],
+        [],
+        [],
+        [],
+        [],
+        false, //addPkpEthAddressAsPermittedAddress,
+        transaction
+      );
+
+      // check the token was minted
+      const owner = await pkpContract.ownerOf(tokenId);
+      expect(owner).to.equal(minter.address);
+
+      // check all the getters
+      const permittedActions = await pkpPermissions.getPermittedActions(
+        tokenId
+      );
+      // console.log("permittedActions: ", permittedActions);
+      expect(permittedActions).to.deep.equal([]);
+
+      const permittedAddresses = await pkpPermissions.getPermittedAddresses(
+        tokenId
+      );
+      expect(permittedAddresses).to.deep.equal([minter.address]);
+
+      const permittedAuthMethods = await pkpPermissions.getPermittedAuthMethods(
+        tokenId
+      );
+      expect(permittedAuthMethods.length).to.equal(0);
     });
   });
 });

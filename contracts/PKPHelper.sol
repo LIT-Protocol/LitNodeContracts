@@ -39,7 +39,8 @@ contract PKPHelper is Ownable, IERC721Receiver {
         address[] memory permittedAddresses,
         uint[] memory permittedAuthMethodTypes,
         bytes[] memory permittedAuthMethodIds,
-        bytes[] memory permittedAuthMethodPubkeys
+        bytes[] memory permittedAuthMethodPubkeys,
+        bool addPkpEthAddressAsPermittedAddress
     ) public payable returns (uint) {
         // mint the nft and forward the funds
         uint tokenId = pkpNFT.mintNext{value: msg.value}(keyType);
@@ -75,6 +76,13 @@ contract PKPHelper is Ownable, IERC721Receiver {
                 );
             }
         }
+
+        // add the pkp eth address as a permitted address
+        if (addPkpEthAddressAsPermittedAddress) {
+            address pkpEthAddress = pkpPermissions.getEthAddress(tokenId);
+            pkpPermissions.addPermittedAddress(tokenId, pkpEthAddress);
+        }
+
         pkpNFT.safeTransferFrom(address(this), msg.sender, tokenId);
         return tokenId;
     }
