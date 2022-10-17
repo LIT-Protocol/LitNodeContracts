@@ -57,9 +57,7 @@ describe("Staking", function () {
     pkpNft = await PkpNftFactory.deploy();
 
     // deploy router
-    const RouterFactory = await ethers.getContractFactory(
-      "PubkeyRouterAndPermissions"
-    );
+    const RouterFactory = await ethers.getContractFactory("PubkeyRouter");
     routerContract = await RouterFactory.deploy(pkpNft.address);
 
     await pkpNft.setRouterAddress(routerContract.address);

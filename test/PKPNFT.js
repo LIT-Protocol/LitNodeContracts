@@ -12,13 +12,15 @@ describe("PKPNFT", function () {
   let signers;
   let pkpContract;
   let router;
+  let pkpPermissions;
 
   let PkpFactory;
   let RouterFactory;
 
   before(async () => {
     PkpFactory = await ethers.getContractFactory("PKPNFT");
-    RouterFactory = await smock.mock("PubkeyRouterAndPermissions");
+    RouterFactory = await smock.mock("PubkeyRouter");
+    PkpPermissionsFactory = await ethers.getContractFactory("PKPPermissions");
   });
 
   beforeEach(async () => {
@@ -28,7 +30,12 @@ describe("PKPNFT", function () {
   beforeEach(async () => {
     pkpContract = await PkpFactory.deploy();
     router = await RouterFactory.deploy(pkpContract.address);
+    pkpPermissions = await PkpPermissionsFactory.deploy(
+      pkpContract.address,
+      router.address
+    );
     await pkpContract.setRouterAddress(router.address);
+    await pkpContract.setPkpPermissionsAddress(pkpPermissions.address);
   });
 
   describe("Attempt to Mint PKP NFT", async () => {
@@ -202,7 +209,7 @@ describe("PKPNFT", function () {
         "ERC721: invalid token ID"
       );
 
-      const actionIsPermitted = await router.isPermittedAction(
+      const actionIsPermitted = await pkpPermissions.isPermittedAction(
         tokenId,
         ipfsIdBytes
       );

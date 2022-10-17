@@ -13,6 +13,7 @@ describe("PKPHelper", function () {
   let pkpContract;
   let router;
   let pkpHelper;
+  let pkpPermissions;
 
   let PkpFactory;
   let RouterFactory;
@@ -20,8 +21,9 @@ describe("PKPHelper", function () {
 
   before(async () => {
     PkpFactory = await ethers.getContractFactory("PKPNFT");
-    RouterFactory = await smock.mock("PubkeyRouterAndPermissions");
+    RouterFactory = await smock.mock("PubkeyRouter");
     PkpHelperFactory = await ethers.getContractFactory("PKPHelper");
+    PkpPermissionsFactory = await ethers.getContractFactory("PKPPermissions");
   });
 
   beforeEach(async () => {
@@ -32,9 +34,13 @@ describe("PKPHelper", function () {
     pkpContract = await PkpFactory.deploy();
     router = await RouterFactory.deploy(pkpContract.address);
     await pkpContract.setRouterAddress(router.address);
-    pkpHelper = await PkpHelperFactory.deploy(
+    pkpPermissions = await PkpPermissionsFactory.deploy(
       pkpContract.address,
       router.address
+    );
+    pkpHelper = await PkpHelperFactory.deploy(
+      pkpContract.address,
+      pkpPermissions.address
     );
   });
 
@@ -115,7 +121,7 @@ describe("PKPHelper", function () {
 
       // check the auth methods
       for (let i = 0; i < addressesToPermit.length; i++) {
-        const actionIsPermitted = await router.isPermittedAction(
+        const actionIsPermitted = await pkpPermissions.isPermittedAction(
           tokenId,
           ipfsIdsBytes[i]
         );
@@ -123,7 +129,7 @@ describe("PKPHelper", function () {
       }
 
       for (let i = 0; i < addressesToPermit.length; i++) {
-        const addressIsPermitted = await router.isPermittedAddress(
+        const addressIsPermitted = await pkpPermissions.isPermittedAddress(
           tokenId,
           addressesToPermit[i]
         );
@@ -131,18 +137,19 @@ describe("PKPHelper", function () {
       }
 
       for (let i = 0; i < authMethodTypes.length; i++) {
-        const authMethodIsPermitted = await router.isPermittedAuthMethod(
-          tokenId,
-          authMethodTypes[i],
-          authMethodUserIds[i],
-          authMethodPubkeys[i]
-        );
+        const authMethodIsPermitted =
+          await pkpPermissions.isPermittedAuthMethod(
+            tokenId,
+            authMethodTypes[i],
+            authMethodUserIds[i],
+            authMethodPubkeys[i]
+          );
         expect(authMethodIsPermitted).to.equal(true);
       }
 
       // check the reverse mapping of the auth method
       for (let i = 0; i < authMethodTypes.length; i++) {
-        const authedTokenIds = await router.getTokenIdsForAuthMethod(
+        const authedTokenIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodTypes[i],
           authMethodUserIds[i]
         );
@@ -150,17 +157,21 @@ describe("PKPHelper", function () {
       }
 
       // check all the getters
-      const permittedActions = await router.getPermittedActions(tokenId);
+      const permittedActions = await pkpPermissions.getPermittedActions(
+        tokenId
+      );
       // console.log("permittedActions: ", permittedActions);
       expect(permittedActions).to.deep.equal(ipfsIdsBytes);
 
-      const permittedAddresses = await router.getPermittedAddresses(tokenId);
+      const permittedAddresses = await pkpPermissions.getPermittedAddresses(
+        tokenId
+      );
       expect(permittedAddresses).to.deep.equal([
         minter.address,
         ...addressesToPermit,
       ]);
 
-      const permittedAuthMethods = await router.getPermittedAuthMethods(
+      const permittedAuthMethods = await pkpPermissions.getPermittedAuthMethods(
         tokenId
       );
       expect(permittedAuthMethods.length).to.equal(2);

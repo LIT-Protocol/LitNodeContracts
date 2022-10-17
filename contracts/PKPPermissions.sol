@@ -334,6 +334,10 @@ contract PKPPermissions is Ownable {
         pkpNFT = PKPNFT(newPkpNftAddress);
     }
 
+    function setRouterAddress(address newRouterAddress) public onlyOwner {
+        router = PubkeyRouter(newRouterAddress);
+    }
+
     /* ========== EVENTS ========== */
 
     event PermittedAddressAdded(uint256 indexed tokenId, address user);
