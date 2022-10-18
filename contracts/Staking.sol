@@ -56,6 +56,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         address nodeAddress;
         uint256 balance;
         uint256 reward;
+        uint256 senderPubKey;
+        uint256 receiverPubKey;
     }
 
     struct VoteToKickValidatorInNextEpoch {
@@ -321,10 +323,12 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint32 ip,
         uint128 ipv6,
         uint32 port,
-        address nodeAddress
+        address nodeAddress,
+        uint256 senderPubKey,
+        uint256 receiverPubKey
     ) public whenNotPaused {
         stake(amount);
-        requestToJoin(ip, ipv6, port, nodeAddress);
+        requestToJoin(ip, ipv6, port, nodeAddress, senderPubKey, receiverPubKey);
     }
 
     /// Stake tokens for a validator
@@ -343,7 +347,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint32 ip,
         uint128 ipv6,
         uint32 port,
-        address nodeAddress
+        address nodeAddress,
+        uint256 senderPubKey,
+        uint256 receiverPubKey
     ) public nonReentrant {
         uint256 amountStaked = validators[msg.sender].balance;
         require(
@@ -365,6 +371,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         validators[msg.sender].ipv6 = ipv6;
         validators[msg.sender].port = port;
         validators[msg.sender].nodeAddress = nodeAddress;
+        validators[msg.sender].senderPubKey = senderPubKey;
+        validators[msg.sender].receiverPubKey = receiverPubKey;
         nodeAddressToStakerAddress[nodeAddress] = msg.sender;
 
         validatorsInNextEpoch.add(msg.sender);
@@ -479,16 +487,20 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// Set the IP and port of your node
     /// @param ip The ip address of your node
     /// @param port The port of your node
-    function setIpPortAndNodeAddress(
+    function setIpPortNodeAddressAndCommunicationPubKeys(
         uint32 ip,
         uint128 ipv6,
         uint32 port,
-        address nodeAddress
+        address nodeAddress,
+        uint256 senderPubKey,
+        uint256 receiverPubKey
     ) public {
         validators[msg.sender].ip = ip;
         validators[msg.sender].ipv6 = ipv6;
         validators[msg.sender].port = port;
         validators[msg.sender].nodeAddress = nodeAddress;
+        validators[msg.sender].senderPubKey = senderPubKey;
+        validators[msg.sender].receiverPubKey = receiverPubKey;
     }
 
     function setEpochLength(uint256 newEpochLength) public onlyOwner {
