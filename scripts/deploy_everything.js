@@ -97,16 +97,13 @@ async function main() {
   verifyContractInBg(rateLimitNftContract.address);
 
   // *** 6. Deploy PubkeyRouterAndPermissions Contract
-  const pubkeyRouterAndPermissionsContract = await deployContract(
-    "PubkeyRouterAndPermissions",
-    [pkpNFTContract.address]
-  );
-  tx = await transferOwnershipToNewOwner(pubkeyRouterAndPermissionsContract);
-  await tx.wait();
-  console.log("New owner set.");
-  verifyContractInBg(pubkeyRouterAndPermissionsContract.address, [
+  const pubkeyRouterContract = await deployContract("PubkeyRouter", [
     pkpNFTContract.address,
   ]);
+  tx = await transferOwnershipToNewOwner(pubkeyRouterContract);
+  await tx.wait();
+  console.log("New owner set.");
+  verifyContractInBg(pubkeyRouterContract.address, [pkpNFTContract.address]);
 
   // *** 7. Deploy Multisender Contract
   const multisenderContract = await deployContract("Multisender");
@@ -117,9 +114,7 @@ async function main() {
 
   // *** 8. Set router contract address in PKP NFT
   console.log("Setting router address in PKP NFT");
-  await pkpNFTContract.setRouterAddress(
-    pubkeyRouterAndPermissionsContract.address
-  );
+  await pkpNFTContract.setRouterAddress(pubkeyRouterContract.address);
 
   // *** 9. Send tokens to multisender to be sent to stakers
   console.log("Sending tokens to multisender");
@@ -164,13 +159,27 @@ async function main() {
   console.log("Deploying PKP helper contract and then setting new owner");
   const pkpHelperContract = await deployContract("PKPHelper", [
     pkpNFTContract.address,
-    pubkeyRouterAndPermissionsContract.address,
+    pubkeyRouterContract.address,
   ]);
   verifyContractInBg(pkpHelperContract.address, [
     pkpNFTContract.address,
-    pubkeyRouterAndPermissionsContract.address,
+    pubkeyRouterContract.address,
   ]);
   tx = await transferOwnershipToNewOwner(pkpHelperContract);
+  await tx.wait();
+  console.log("New owner set.");
+
+  // *** 14. Deploy PKPPermissions Contract
+  console.log("Deploying PKP Permissions contract and then setting new owner");
+  const pkpPermissionsContract = await deployContract("PKPPermissions", [
+    pkpNFTContract.address,
+    pubkeyRouterContract.address,
+  ]);
+  verifyContractInBg(pkpPermissionsContract.address, [
+    pkpNFTContract.address,
+    pubkeyRouterContract.address,
+  ]);
+  tx = await transferOwnershipToNewOwner(pkpPermissionsContract);
   await tx.wait();
   console.log("New owner set.");
 
@@ -181,11 +190,11 @@ async function main() {
     // used for the config file generation
     accessControlConditionsContractAddress:
       accessControlConditionsContract.address,
-    pubKeyRouterAndPermissionsContractAddress:
-      pubkeyRouterAndPermissionsContract.address,
+    pubkeyRouterContractAddress: pubkeyRouterContract.address,
     pkpNftContractAddress: pkpNFTContract.address,
     rateLimitNftContractAddress: rateLimitNftContract.address,
     pkpHelperContractAddress: pkpHelperContract.address,
+    pkpPermissionsContractAddress: pkpPermissionsContract.address,
     chainId,
     rpcUrl,
     chainName,
