@@ -52,6 +52,15 @@ const deployContract = async (contractName, args = []) => {
   );
   await contract.deployed();
   console.log(`${contractName} deployed to ${contract.address}`);
+  await hre.tenderly.persistArtifacts({
+    name: contractName,
+    address: contract.address,
+  });
+  await hre.tenderly.verify({
+    name: contractName,
+    address: contract.address,
+  });
+  await hre.tenderly.push({ name: contractName, address: contract.address });
   return contract;
 };
 

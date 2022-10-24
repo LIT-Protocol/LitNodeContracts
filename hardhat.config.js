@@ -7,6 +7,9 @@ require("@nomiclabs/hardhat-waffle");
 
 require("@nomiclabs/hardhat-etherscan");
 
+// const tdly = require("@tenderly/hardhat-tenderly");
+// tdly.setup({ automaticVerifications: true });
+
 require("hardhat-gas-reporter");
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -53,11 +56,16 @@ module.exports = {
       url: "https://alfajores-forno.celo-testnet.org",
       accounts: [process.env.LIT_ALFAJORES_DEPLOYER_PRIVATE_KEY],
     },
+    polygon: {
+      url: "https://polygon-rpc.com",
+      accounts: [process.env.LIT_POLYGON_DEPLOYER_PRIVATE_KEY],
+    },
   },
   etherscan: {
     apiKey: {
       celo: process.env.LIT_CELOSCAN_API_KEY,
       mumbai: process.env.LIT_POLYGONSCAN_API_KEY,
+      polygon: process.env.LIT_POLYGONSCAN_API_KEY,
     },
     customChains: [
       {
@@ -84,6 +92,21 @@ module.exports = {
           browserURL: "https://mumbai.polygonscan.com",
         },
       },
+      {
+        network: "polygon",
+        chainId: 137,
+        urls: {
+          apiURL: "https://api.polygonscan.com/api",
+          browserURL: "https://polygonscan.com",
+        },
+      },
     ],
+  },
+  tenderly: {
+    project: "litnodecontracts",
+    username: "rwiggum",
+    // forkNetwork: "",
+    privateVerification: true,
+    // deploymentsDir: "deployments"
   },
 };
