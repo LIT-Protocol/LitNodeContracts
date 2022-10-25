@@ -56,11 +56,11 @@ const deployContract = async (contractName, args = []) => {
     name: contractName,
     address: contract.address,
   });
-  await hre.tenderly.verify({
-    name: contractName,
-    address: contract.address,
-  });
-  await hre.tenderly.push({ name: contractName, address: contract.address });
+  // await hre.tenderly.verify({
+  //   name: contractName,
+  //   address: contract.address,
+  // });
+  // await hre.tenderly.push({ name: contractName, address: contract.address });
   return contract;
 };
 
@@ -164,20 +164,6 @@ async function main() {
   // *** 13. get chain id
   const chainId = await getChainId();
 
-  // *** 14. Deploy PKPHelper Contract
-  console.log("Deploying PKP helper contract and then setting new owner");
-  const pkpHelperContract = await deployContract("PKPHelper", [
-    pkpNFTContract.address,
-    pubkeyRouterContract.address,
-  ]);
-  verifyContractInBg(pkpHelperContract.address, [
-    pkpNFTContract.address,
-    pubkeyRouterContract.address,
-  ]);
-  tx = await transferOwnershipToNewOwner(pkpHelperContract);
-  await tx.wait();
-  console.log("New owner set.");
-
   // *** 14. Deploy PKPPermissions Contract
   console.log("Deploying PKP Permissions contract and then setting new owner");
   const pkpPermissionsContract = await deployContract("PKPPermissions", [
@@ -189,6 +175,20 @@ async function main() {
     pubkeyRouterContract.address,
   ]);
   tx = await transferOwnershipToNewOwner(pkpPermissionsContract);
+  await tx.wait();
+  console.log("New owner set.");
+
+  // *** 15. Deploy PKPHelper Contract
+  console.log("Deploying PKP helper contract and then setting new owner");
+  const pkpHelperContract = await deployContract("PKPHelper", [
+    pkpNFTContract.address,
+    pkpPermissionsContract.address,
+  ]);
+  verifyContractInBg(pkpHelperContract.address, [
+    pkpNFTContract.address,
+    pkpPermissionsContract.address,
+  ]);
+  tx = await transferOwnershipToNewOwner(pkpHelperContract);
   await tx.wait();
   console.log("New owner set.");
 

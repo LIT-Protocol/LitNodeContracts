@@ -7,6 +7,7 @@ require("@nomiclabs/hardhat-waffle");
 
 require("@nomiclabs/hardhat-etherscan");
 
+// comment this out when running tests
 // const tdly = require("@tenderly/hardhat-tenderly");
 // tdly.setup({ automaticVerifications: true });
 
