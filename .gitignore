@@ -5,3 +5,5 @@ cache
 artifacts
 .deps
 lit_config*env
+wallets
+node_configs

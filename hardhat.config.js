@@ -8,8 +8,8 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
 
 // comment this out when running tests
-// const tdly = require("@tenderly/hardhat-tenderly");
-// tdly.setup({ automaticVerifications: true });
+const tdly = require("@tenderly/hardhat-tenderly");
+tdly.setup({ automaticVerifications: true });
 
 require("hardhat-gas-reporter");
 
@@ -107,7 +107,7 @@ module.exports = {
     project: "litnodecontracts",
     username: "rwiggum",
     // forkNetwork: "",
-    privateVerification: true,
+    privateVerification: false,
     // deploymentsDir: "deployments"
   },
 };

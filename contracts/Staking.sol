@@ -66,6 +66,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     // list of all validators, even ones that are not in the current or next epoch
+    // maps STAKER address to Validator struct
     mapping(address => Validator) public validators;
 
     // stakers join by staking, but nodes need to be able to vote to kick.
@@ -118,7 +119,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         address validatorStakerAddress,
         address voterStakerAddress
     ) external view returns (uint256, bool) {
-        VoteToKickValidatorInNextEpoch storage votingStatus = votesToKickValidatorsInNextEpoch[epochNumber][validatorStakerAddress];
+        VoteToKickValidatorInNextEpoch
+            storage votingStatus = votesToKickValidatorsInNextEpoch[
+                epochNumber
+            ][validatorStakerAddress];
         return (votingStatus.votes, votingStatus.voted[voterStakerAddress]);
     }
 
@@ -328,7 +332,14 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint256 receiverPubKey
     ) public whenNotPaused {
         stake(amount);
-        requestToJoin(ip, ipv6, port, nodeAddress, senderPubKey, receiverPubKey);
+        requestToJoin(
+            ip,
+            ipv6,
+            port,
+            nodeAddress,
+            senderPubKey,
+            receiverPubKey
+        );
     }
 
     /// Stake tokens for a validator
