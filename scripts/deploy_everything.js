@@ -87,11 +87,10 @@ const deployContract = async (contractName, args = []) => {
     name: contractName,
     address: contract.address,
   });
-  // await hre.tenderly.verify({
-  //   name: contractName,
-  //   address: contract.address,
-  // });
-  // await hre.tenderly.push({ name: contractName, address: contract.address });
+  await hre.tenderly.verify({
+    name: contractName,
+    address: contract.address,
+  });
   return contract;
 };
 
