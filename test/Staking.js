@@ -1,7 +1,7 @@
 const { assert } = require("chai");
 const chai = require("chai");
 const { solidity } = require("ethereum-waffle");
-const { BigNumber } = require("ethers");
+const { BigNumber, utils } = require("ethers");
 const { ip2int, int2ip } = require("../utils.js");
 
 chai.use(solidity);
@@ -115,7 +115,9 @@ describe("Staking", function () {
         ipAddress,
         0,
         port,
-        nodeAddress
+        nodeAddress,
+        utils.randomBytes(32),
+        utils.randomBytes(32),
       );
     }
 
@@ -161,7 +163,9 @@ describe("Staking", function () {
           ip2int(stakingAccount1IpAddress),
           0,
           7777,
-          nodeAccount1.getAddress()
+          nodeAccount1.getAddress(),
+          utils.randomBytes(32),
+          utils.randomBytes(32),
         )
       ).revertedWith("Cannot stake 0");
     });
@@ -189,7 +193,9 @@ describe("Staking", function () {
           ip2int(stakingAccount1IpAddress),
           0,
           7777,
-          nodeAccount1.getAddress()
+          nodeAccount1.getAddress(),
+          utils.randomBytes(32),
+          utils.randomBytes(32),
         )
       ).revertedWith("Stake must be greater than or equal to minimumStake");
     });
@@ -213,6 +219,8 @@ describe("Staking", function () {
     const initialIpAddress = initialValidatorEntry.ip;
     const initialPort = initialValidatorEntry.port;
     const initialNodeAddresss = initialValidatorEntry.nodeAddress;
+    const initialSenderPubKey = initialValidatorEntry.senderPubKey;
+    const initialReceiverPubKey = initialValidatorEntry.receiverPubKey;
     const initialBalance = initialValidatorEntry.balance;
     const initialReward = initialValidatorEntry.reward;
     const initialNodeAddressToStakerAddress =
@@ -221,12 +229,19 @@ describe("Staking", function () {
       );
 
     stakingContract = stakingContract.connect(stakingAccount1);
+
+    // generate communication keys
+    const communicationSenderPubKey = utils.randomBytes(32);
+    const communicationReceiverPubKey = utils.randomBytes(32);
+
     await stakingContract.stakeAndJoin(
       minStake,
       ip2int(stakingAccount1IpAddress),
       0,
       stakingAccount1Port,
-      nodeAccount1.getAddress()
+      nodeAccount1.getAddress(),
+      communicationSenderPubKey,
+      communicationReceiverPubKey,
     );
 
     const postStakeBal = await stakingContract.balanceOf(
@@ -241,6 +256,8 @@ describe("Staking", function () {
     const postIpAddress = postValidatorEntry.ip;
     const postPort = postValidatorEntry.port;
     const postNodeAddress = postValidatorEntry.nodeAddress;
+    const postSenderPubKey = postValidatorEntry.senderPubKey;
+    const postReceiverPubKey = postValidatorEntry.receiverPubKey;
     const postBalance = postValidatorEntry.balance;
     const postReward = postValidatorEntry.reward;
     const postNodeAddressToStakerAddress =
@@ -260,6 +277,10 @@ describe("Staking", function () {
     // console.log("postNodeAddress", postNodeAddress);
     // console.log("nodeAccount1.getAddress()", await nodeAccount1.getAddress());
     expect(postNodeAddress).to.equal(await nodeAccount1.getAddress());
+    expect(initialSenderPubKey).to.equal(0);
+    expect(postSenderPubKey).to.be.equal(communicationSenderPubKey);
+    expect(initialReceiverPubKey).to.equal(0);
+    expect(postReceiverPubKey).to.equal(communicationReceiverPubKey);
     expect(initialBalance).to.equal(0);
     expect(postBalance).to.equal(minStake);
     expect(initialReward).to.equal(0);
