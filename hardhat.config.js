@@ -24,6 +24,16 @@ task("accounts", "Prints the list of accounts", async () => {
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
+function envVarOrDefault(envVar, defaultValue) {
+  if (process.env[envVar] == undefined) {
+    return defaultValue;
+  }
+  return process.env[envVar];
+}
+
+// NOTE, below we use the privkey key 0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166
+// as a default.  it is empty.  DO NOT SEND MONEY TO IT.  it's public.
+
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
@@ -45,19 +55,39 @@ module.exports = {
   networks: {
     celo: {
       url: "https://forno.celo.org",
-      accounts: [process.env.LIT_CELO_DEPLOYER_PRIVATE_KEY],
+      accounts: [
+        envVarOrDefault(
+          process.env.LIT_CELO_DEPLOYER_PRIVATE_KEY,
+          "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
+        ),
+      ],
     },
     mumbai: {
       url: "https://polygon-mumbai.g.alchemy.com/v2/onvoLvV97DDoLkAmdi0Cj7sxvfglKqDh",
-      accounts: [process.env.LIT_MUMBAI_DEPLOYER_PRIVATE_KEY],
+      accounts: [
+        envVarOrDefault(
+          process.env.LIT_MUMBAI_DEPLOYER_PRIVATE_KEY,
+          "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
+        ),
+      ],
     },
     alfajores: {
       url: "https://alfajores-forno.celo-testnet.org",
-      accounts: [process.env.LIT_ALFAJORES_DEPLOYER_PRIVATE_KEY],
+      accounts: [
+        envVarOrDefault(
+          process.env.LIT_ALFAJORES_DEPLOYER_PRIVATE_KEY,
+          "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
+        ),
+      ],
     },
     polygon: {
       url: "https://polygon-rpc.com",
-      accounts: [process.env.LIT_POLYGON_DEPLOYER_PRIVATE_KEY],
+      accounts: [
+        envVarOrDefault(
+          process.env.LIT_POLYGON_DEPLOYER_PRIVATE_KEY,
+          "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
+        ),
+      ],
     },
   },
   etherscan: {
