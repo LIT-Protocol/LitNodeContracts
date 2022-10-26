@@ -50,6 +50,16 @@ contract PKPNFT is
 
     /* ========== VIEWS ========== */
 
+    /// get the eth address for the keypair, as long as it's an ecdsa keypair
+    function getEthAddress(uint256 tokenId) public view returns (address) {
+        return router.getEthAddress(tokenId);
+    }
+
+    /// includes the 0x04 prefix so you can pass this directly to ethers.utils.computeAddress
+    function getPubkey(uint256 tokenId) public view returns (bytes memory) {
+        return router.getPubkey(tokenId);
+    }
+
     /// throws if the sig is bad or msg doesn't match
     function freeMintSigTest(
         uint freeMintId,
