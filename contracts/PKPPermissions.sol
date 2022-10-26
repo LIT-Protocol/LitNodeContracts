@@ -43,12 +43,6 @@ contract PKPPermissions is Ownable {
     // map the keccack256(authMethodType, userId) -> the actual AuthMethod struct
     mapping(uint256 => AuthMethod) public authMethods;
 
-    // map the keccack256(uncompressed pubkey) -> set of webAuthn users
-    mapping(uint256 => EnumerableSet.UintSet) permittedWebAuthnUsers;
-
-    // map the keccack256(uncompressed pubkey) -> WebAuthnUser
-    mapping(uint256 => AuthMethod) public webAuthnUsers;
-
     // map the AuthMethod hash to the pubkeys that it's allowed to sign for
     // this makes it possible to be given a discord id and then lookup all the pubkeys that are allowed to sign for that discord id
     mapping(uint256 => EnumerableSet.UintSet) authMethodToPkpIds;
