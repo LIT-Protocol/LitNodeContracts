@@ -36,22 +36,49 @@ contract PKPHelper is Ownable, IERC721Receiver {
     function mintNextAndAddAuthMethods(
         uint keyType,
         bytes[] memory permittedIpfsCIDs,
+        uint[][] memory permittedIpfsCIDScopes,
         address[] memory permittedAddresses,
+        uint[][] memory permittedAddressScopes,
         uint[] memory permittedAuthMethodTypes,
         bytes[] memory permittedAuthMethodIds,
         bytes[] memory permittedAuthMethodPubkeys,
+        uint[][] memory permittedAuthMethodScopes,
         bool addPkpEthAddressAsPermittedAddress,
         bool sendPkpToItself
     ) public payable returns (uint) {
         // mint the nft and forward the funds
         uint tokenId = pkpNFT.mintNext{value: msg.value}(keyType);
 
+        // sanity checking array lengths
+        require(
+            permittedIpfsCIDs.length == permittedIpfsCIDScopes.length,
+            "PKPHelper: ipfs cid and scope array lengths must match"
+        );
+        require(
+            permittedAddresses.length == permittedAddressScopes.length,
+            "PKPHelper: address and scope array lengths must match"
+        );
+        require(
+            permittedAuthMethodTypes.length == permittedAuthMethodIds.length,
+            "PKPHelper: auth method type and id array lengths must match"
+        );
+        require(
+            permittedAuthMethodTypes.length ==
+                permittedAuthMethodPubkeys.length,
+            "PKPHelper: auth method type and pubkey array lengths must match"
+        );
+        require(
+            permittedAuthMethodTypes.length == permittedAuthMethodScopes.length,
+            "PKPHelper: auth method type and scopes array lengths must match"
+        );
+
         // permit the action
         if (permittedIpfsCIDs.length != 0) {
             for (uint i = 0; i < permittedIpfsCIDs.length; i++) {
                 pkpPermissions.addPermittedAction(
                     tokenId,
-                    permittedIpfsCIDs[i]
+                    permittedIpfsCIDs[i],
+                    permittedIpfsCIDScopes[i]
                 );
             }
         }
@@ -61,7 +88,8 @@ contract PKPHelper is Ownable, IERC721Receiver {
             for (uint i = 0; i < permittedAddresses.length; i++) {
                 pkpPermissions.addPermittedAddress(
                     tokenId,
-                    permittedAddresses[i]
+                    permittedAddresses[i],
+                    permittedAddressScopes[i]
                 );
             }
         }
@@ -73,7 +101,8 @@ contract PKPHelper is Ownable, IERC721Receiver {
                     tokenId,
                     permittedAuthMethodTypes[i],
                     permittedAuthMethodIds[i],
-                    permittedAuthMethodPubkeys[i]
+                    permittedAuthMethodPubkeys[i],
+                    permittedAuthMethodScopes[i]
                 );
             }
         }
@@ -82,7 +111,11 @@ contract PKPHelper is Ownable, IERC721Receiver {
 
         // add the pkp eth address as a permitted address
         if (addPkpEthAddressAsPermittedAddress) {
-            pkpPermissions.addPermittedAddress(tokenId, pkpEthAddress);
+            pkpPermissions.addPermittedAddress(
+                tokenId,
+                pkpEthAddress,
+                new uint[](0)
+            );
         }
 
         if (sendPkpToItself) {
@@ -106,11 +139,11 @@ contract PKPHelper is Ownable, IERC721Receiver {
     }
 
     function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override returns (bytes4) {
+        address, /* operator */
+        address, /* from */
+        uint256, /* tokenId */
+        bytes calldata /* data */
+    ) external view override returns (bytes4) {
         // only accept transfers from the pkpNft contract
         require(
             msg.sender == address(pkpNFT),

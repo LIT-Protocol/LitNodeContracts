@@ -174,7 +174,7 @@ contract PKPNFT is
         require(msg.value == mintCost, "You must pay exactly mint cost");
         uint tokenId = _getNextTokenIdToMint(keyType);
         _mintWithoutValueCheck(tokenId, address(this));
-        pkpPermissions.addPermittedAction(tokenId, ipfsCID);
+        pkpPermissions.addPermittedAction(tokenId, ipfsCID, new uint[](0));
         _burn(tokenId);
         return tokenId;
     }
@@ -223,7 +223,7 @@ contract PKPNFT is
         onlyOwner
     {
         _mintWithoutValueCheck(tokenId, address(this));
-        pkpPermissions.addPermittedAction(tokenId, ipfsCID);
+        pkpPermissions.addPermittedAction(tokenId, ipfsCID, new uint[](0));
         _burn(tokenId);
     }
 
@@ -254,7 +254,7 @@ contract PKPNFT is
         freeMintSigTest(freeMintId, msgHash, v, r, s);
         _mintWithoutValueCheck(tokenId, address(this));
         redeemedFreeMintIds[freeMintId] = true;
-        pkpPermissions.addPermittedAction(tokenId, ipfsCID);
+        pkpPermissions.addPermittedAction(tokenId, ipfsCID, new uint[](0));
         _burn(tokenId);
     }
 
