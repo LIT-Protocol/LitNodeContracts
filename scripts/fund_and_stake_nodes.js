@@ -257,7 +257,7 @@ const stakeTokens = async (wallets, contracts) => {
 
 async function main() {
   const signer = await getSigner();
-  const fileName = "./deployed-contracts.json";
+  const fileName = "./deployed-contracts-temp.json";
   console.log("reading from file: " + fileName);
   let contracts = fs.readFileSync(fileName);
   contracts = JSON.parse(contracts);

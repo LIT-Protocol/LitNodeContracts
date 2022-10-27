@@ -216,7 +216,7 @@ async function main() {
   console.log(JSON.stringify(finalJson, null, 2));
 
   // *** 16. Write to file
-  const fileName = "./deployed-contracts.json";
+  const fileName = "./deployed-contracts-temp.json";
   console.log("Writing to file: " + fileName);
   fs.writeFileSync(fileName, JSON.stringify(finalJson, null, 2));
 }
