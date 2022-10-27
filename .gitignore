@@ -7,3 +7,4 @@ artifacts
 lit_config*env
 wallets
 node_configs
+.DS_Store

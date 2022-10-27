@@ -23,36 +23,6 @@ console.log("Deploying contracts to network " + chainName);
 // after deploy, the deployer will set this wallet as the owner for everything.  Make sure the private key for this is easy to access and secure.  I use a metamask wallet for this, so that I can use remix to run any functions as the owner.
 const newOwner = "0x50e2dac5e78B5905CB09495547452cEE64426db2";
 
-const generateEnvVars = async (nodeIndex, contracts) => {
-  const template = `
-  LIT_CHAIN_NAME = ${contracts.chainName}
-  LIT_CHAIN_ID = ${contracts.chainId}
-  LIT_CHAIN_RPC_URL = ${contracts.rpcUrl}
-  
-  LIT_CONTRACT_CONDITIONVALIDATIONS = 0x0
-  LIT_CONTRACT_ACCESSCONTROLCONDITIONS = ${
-    contracts.accessControlConditionsContractAddress
-  }
-  LIT_CONTRACT_LITTOKEN = ${contracts.litTokenContractAddress}
-  LIT_CONTRACT_STAKING = ${contracts.stakingContractAddress}
-  LIT_CONTRACT_PUBKEYROUTER = ${contracts.pubkeyRouterContractAddress}
-  LIT_CONTRACT_PKPNFT = ${contracts.pkpNftContractAddress}
-  LIT_CONTRACT_RATELIMITNFT = ${contracts.rateLimitNftContractAddress}
-  LIT_CONTRACT_PKPPERMISSIONS = ${contracts.pkpPermissionsContractAddress}
-  
-      
-  LIT_NODE_DOMAIN_NAME = ${contracts.litNodeDomainName}
-  LIT_NODE_PORT = ${contracts.litNodePort + nodeIndex}
-  ROCKET_PORT = ${contracts.rocketPort + nodeIndex}
-  
-  LIT_IPFS_GATEWAY = http://127.0.0.1:8080/ipfs/
-  
-  LIT_DISABLE_RATE_LIMITING = true
-  `;
-
-  return template;
-};
-
 const verifyContractInBg = (address, args = []) => {
   let verify = spawn(
     "bash",
