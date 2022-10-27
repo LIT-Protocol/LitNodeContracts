@@ -93,35 +93,21 @@ contract PKPPermissions is Ownable {
         return am.userPubkey;
     }
 
-    /// get if a user is permitted to use a given pubkey.  returns true if it is permitted to use the pubkey in the permittedAuthMethods[tokenId] struct.
-    function isPermittedAuthMethod(
-        uint256 tokenId,
-        uint authMethodType,
+    function getTokenIdsForAuthMethod(
+        uint256 authMethodType,
         bytes memory id,
         bytes memory userPubkey
-    ) external view returns (bool) {
+    ) external view returns (uint[] memory) {
         uint authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
-        bool permitted = permittedAuthMethods[tokenId].contains(authMethodId);
-        if (!permitted) {
-            return false;
-        }
-        return true;
-    }
 
-    function isPermittedAuthMethodScopePresent(
-        uint256 tokenId,
-        uint authMethodType,
-        bytes memory id,
-        bytes memory userPubkey,
-        uint scopeId
-    ) external view returns (bool) {
-        uint authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
-        bool present = permittedAuthMethodScopes[tokenId][authMethodId]
-            .contains(scopeId);
-        if (!present) {
-            return false;
+        uint256 pkpIdsLength = authMethodToPkpIds[authMethodId].length();
+        uint[] memory allPkpIds = new uint[](pkpIdsLength);
+
+        for (uint256 i = 0; i < pkpIdsLength; i++) {
+            allPkpIds[i] = authMethodToPkpIds[authMethodId].at(i);
         }
-        return true;
+
+        return allPkpIds;
     }
 
     function getPermittedAuthMethods(uint256 tokenId)
@@ -165,21 +151,147 @@ contract PKPPermissions is Ownable {
         return allPermittedScopes;
     }
 
-    function getTokenIdsForAuthMethod(
-        uint256 authMethodType,
-        bytes memory id,
-        bytes memory userPubkey
-    ) external view returns (uint[] memory) {
-        uint authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
+    function getPermittedActions(uint256 tokenId)
+        public
+        view
+        returns (bytes[] memory)
+    {
+        uint256 permittedAuthMethodsLength = permittedAuthMethods[tokenId]
+            .length();
 
-        uint256 pkpIdsLength = authMethodToPkpIds[authMethodId].length();
-        uint[] memory allPkpIds = new uint[](pkpIdsLength);
-
-        for (uint256 i = 0; i < pkpIdsLength; i++) {
-            allPkpIds[i] = authMethodToPkpIds[authMethodId].at(i);
+        // count the number of auth methods that are actions
+        uint permittedActionsLength = 0;
+        for (uint256 i = 0; i < permittedAuthMethodsLength; i++) {
+            uint authMethodHash = permittedAuthMethods[tokenId].at(i);
+            AuthMethod memory am = authMethods[authMethodHash];
+            if (am.authMethodType == uint256(AuthMethodType.ACTION)) {
+                permittedActionsLength++;
+            }
         }
 
-        return allPkpIds;
+        bytes[] memory allPermittedActions = new bytes[](
+            permittedActionsLength
+        );
+
+        uint permittedActionsIndex = 0;
+        for (uint256 i = 0; i < permittedAuthMethodsLength; i++) {
+            uint authMethodHash = permittedAuthMethods[tokenId].at(i);
+            AuthMethod memory am = authMethods[authMethodHash];
+            if (am.authMethodType == uint256(AuthMethodType.ACTION)) {
+                allPermittedActions[permittedActionsIndex] = am.id;
+                permittedActionsIndex++;
+            }
+        }
+
+        return allPermittedActions;
+    }
+
+    function getPermittedAddresses(uint256 tokenId)
+        public
+        view
+        returns (address[] memory)
+    {
+        uint256 permittedAuthMethodsLength = permittedAuthMethods[tokenId]
+            .length();
+
+        // count the number of auth methods that are addresses
+        uint permittedAddressLength = 0;
+        for (uint256 i = 0; i < permittedAuthMethodsLength; i++) {
+            uint authMethodHash = permittedAuthMethods[tokenId].at(i);
+            AuthMethod memory am = authMethods[authMethodHash];
+            if (am.authMethodType == uint256(AuthMethodType.ADDRESS)) {
+                permittedAddressLength++;
+            }
+        }
+
+        address[] memory allPermittedAddresses = new address[](
+            permittedAddressLength + 1
+        );
+
+        // always add nft owner in first slot
+        address nftOwner = pkpNFT.ownerOf(tokenId);
+        allPermittedAddresses[0] = nftOwner;
+
+        uint permittedAddressIndex = 1;
+        for (uint256 i = 0; i < permittedAuthMethodsLength; i++) {
+            uint authMethodHash = permittedAuthMethods[tokenId].at(i);
+            AuthMethod memory am = authMethods[authMethodHash];
+            if (am.authMethodType == uint256(AuthMethodType.ADDRESS)) {
+                address parsed;
+                bytes memory id = am.id;
+
+                // address was packed using abi.encodedPacked(address), so you need to pad left to get the correct bytes back
+                assembly {
+                    parsed := div(
+                        mload(add(id, 32)),
+                        0x1000000000000000000000000
+                    )
+                }
+                allPermittedAddresses[permittedAddressIndex] = parsed;
+                permittedAddressIndex++;
+            }
+        }
+
+        return allPermittedAddresses;
+    }
+
+    /// get if a user is permitted to use a given pubkey.  returns true if it is permitted to use the pubkey in the permittedAuthMethods[tokenId] struct.
+    function isPermittedAuthMethod(
+        uint256 tokenId,
+        uint authMethodType,
+        bytes memory id,
+        bytes memory userPubkey
+    ) public view returns (bool) {
+        uint authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
+        bool permitted = permittedAuthMethods[tokenId].contains(authMethodId);
+        if (!permitted) {
+            return false;
+        }
+        return true;
+    }
+
+    function isPermittedAuthMethodScopePresent(
+        uint256 tokenId,
+        uint authMethodType,
+        bytes memory id,
+        bytes memory userPubkey,
+        uint scopeId
+    ) public view returns (bool) {
+        uint authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
+        bool present = permittedAuthMethodScopes[tokenId][authMethodId]
+            .contains(scopeId);
+        if (!present) {
+            return false;
+        }
+        return true;
+    }
+
+    function isPermittedAction(uint256 tokenId, bytes memory ipfsCID)
+        public
+        view
+        returns (bool)
+    {
+        return
+            isPermittedAuthMethod(
+                tokenId,
+                uint(AuthMethodType.ACTION),
+                ipfsCID,
+                ""
+            );
+    }
+
+    function isPermittedAddress(uint256 tokenId, address user)
+        public
+        view
+        returns (bool)
+    {
+        return
+            isPermittedAuthMethod(
+                tokenId,
+                uint(AuthMethodType.ADDRESS),
+                abi.encodePacked(user),
+                ""
+            ) || pkpNFT.ownerOf(tokenId) == user;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */

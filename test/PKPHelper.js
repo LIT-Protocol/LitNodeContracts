@@ -78,7 +78,7 @@ describe("PKPHelper", function () {
       const ipfsIdsBytes = ipfsIdsToPermit.map((f) => getBytesFromMultihash(f));
       // const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
       // const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
-      const authMethodTypes = [1, 2];
+      const authMethodTypes = [4, 5];
       const authMethodUserIds = [
         "0xdeadbeef",
         "0x7ce7b7b6766949f0bf8552a0db7117de4e5628321ae8c589e67e5839ee3c1912402dfd0ed9be127812d0d2c16df2ac2c319ebed0927b0de98a3b946767577ad7",
@@ -105,10 +105,13 @@ describe("PKPHelper", function () {
       await pkpHelper.mintNextAndAddAuthMethods(
         2,
         ipfsIdsBytes,
+        [[], []],
         addressesToPermit,
+        [[], []],
         authMethodTypes,
         authMethodUserIds,
         authMethodPubkeys,
+        [[], []],
         true, //addPkpEthAddressAsPermittedAddress,
         false, // sendPkpToItself
         transaction
@@ -166,7 +169,8 @@ describe("PKPHelper", function () {
       for (let i = 0; i < authMethodTypes.length; i++) {
         const authedTokenIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodTypes[i],
-          authMethodUserIds[i]
+          authMethodUserIds[i],
+          authMethodPubkeys[i]
         );
         expect(authedTokenIds).to.deep.equal([tokenId]);
       }
@@ -190,18 +194,25 @@ describe("PKPHelper", function () {
       const permittedAuthMethods = await pkpPermissions.getPermittedAuthMethods(
         tokenId
       );
-      expect(permittedAuthMethods.length).to.equal(2);
+      expect(permittedAuthMethods.length).to.equal(7);
       // console.log("permittedAuthMethods: ", permittedAuthMethods);
-      for (let i = 0; i < authMethodTypes.length; i++) {
-        expect([
-          permittedAuthMethods[i][0].toNumber(),
-          permittedAuthMethods[i][1],
-          permittedAuthMethods[i][2],
-        ]).to.deep.equal([
-          authMethodTypes[i],
-          authMethodUserIds[i],
-          authMethodPubkeys[i],
-        ]);
+      let authMethodIndex = 0;
+      for (let i = 0; i < permittedAuthMethods.length; i++) {
+        if (
+          permittedAuthMethods[i][0].toNumber() !== 1 &&
+          permittedAuthMethods[i][0].toNumber() !== 2
+        ) {
+          expect([
+            permittedAuthMethods[i][0].toNumber(),
+            permittedAuthMethods[i][1],
+            permittedAuthMethods[i][2],
+          ]).to.deep.equal([
+            authMethodTypes[authMethodIndex],
+            authMethodUserIds[authMethodIndex],
+            authMethodPubkeys[authMethodIndex],
+          ]);
+          authMethodIndex++;
+        }
       }
     });
 
@@ -230,7 +241,7 @@ describe("PKPHelper", function () {
       const ipfsIdsBytes = ipfsIdsToPermit.map((f) => getBytesFromMultihash(f));
       // const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
       // const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
-      const authMethodTypes = [1, 2];
+      const authMethodTypes = [4, 5];
       const authMethodUserIds = [
         "0xdeadbeef",
         "0x7ce7b7b6766949f0bf8552a0db7117de4e5628321ae8c589e67e5839ee3c1912402dfd0ed9be127812d0d2c16df2ac2c319ebed0927b0de98a3b946767577ad7",
@@ -257,10 +268,13 @@ describe("PKPHelper", function () {
       await pkpHelper.mintNextAndAddAuthMethods(
         2,
         ipfsIdsBytes,
+        [[], []],
         addressesToPermit,
+        [[], []],
         authMethodTypes,
         authMethodUserIds,
         authMethodPubkeys,
+        [[], []],
         true, //addPkpEthAddressAsPermittedAddress,
         true, // sendPkpToItself
         transaction
@@ -318,7 +332,8 @@ describe("PKPHelper", function () {
       for (let i = 0; i < authMethodTypes.length; i++) {
         const authedTokenIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodTypes[i],
-          authMethodUserIds[i]
+          authMethodUserIds[i],
+          authMethodPubkeys[i]
         );
         expect(authedTokenIds).to.deep.equal([tokenId]);
       }
@@ -342,18 +357,25 @@ describe("PKPHelper", function () {
       const permittedAuthMethods = await pkpPermissions.getPermittedAuthMethods(
         tokenId
       );
-      expect(permittedAuthMethods.length).to.equal(2);
+      expect(permittedAuthMethods.length).to.equal(7);
       // console.log("permittedAuthMethods: ", permittedAuthMethods);
-      for (let i = 0; i < authMethodTypes.length; i++) {
-        expect([
-          permittedAuthMethods[i][0].toNumber(),
-          permittedAuthMethods[i][1],
-          permittedAuthMethods[i][2],
-        ]).to.deep.equal([
-          authMethodTypes[i],
-          authMethodUserIds[i],
-          authMethodPubkeys[i],
-        ]);
+      let authMethodIndex = 0;
+      for (let i = 0; i < permittedAuthMethods.length; i++) {
+        if (
+          permittedAuthMethods[i][0].toNumber() !== 1 &&
+          permittedAuthMethods[i][0].toNumber() !== 2
+        ) {
+          expect([
+            permittedAuthMethods[i][0].toNumber(),
+            permittedAuthMethods[i][1],
+            permittedAuthMethods[i][2],
+          ]).to.deep.equal([
+            authMethodTypes[authMethodIndex],
+            authMethodUserIds[authMethodIndex],
+            authMethodPubkeys[authMethodIndex],
+          ]);
+          authMethodIndex++;
+        }
       }
     });
 
@@ -380,6 +402,9 @@ describe("PKPHelper", function () {
 
       await pkpHelper.mintNextAndAddAuthMethods(
         2,
+        [],
+        [],
+        [],
         [],
         [],
         [],
@@ -444,10 +469,13 @@ describe("PKPHelper", function () {
       await pkpHelper.mintNextAndAddAuthMethods(
         2,
         ipfsIdsBytes,
+        [],
         addressesToPermit,
+        [],
         authMethodTypes,
         authMethodUserIds,
         authMethodPubkeys,
+        [],
         true, //addPkpEthAddressAsPermittedAddress,
         false, // sendPkpToItself
         transaction
@@ -488,7 +516,7 @@ describe("PKPHelper", function () {
       const permittedAuthMethods = await pkpPermissions.getPermittedAuthMethods(
         tokenId
       );
-      expect(permittedAuthMethods.length).to.equal(0);
+      expect(permittedAuthMethods.length).to.equal(1);
     });
   });
 });

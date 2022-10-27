@@ -116,7 +116,7 @@ describe("PKPPermissions", function () {
 
         // permit it
         pkpPermissions = await pkpPermissions.connect(tester);
-        await pkpPermissions.addPermittedAddress(tokenId, addressToPermit);
+        await pkpPermissions.addPermittedAddress(tokenId, addressToPermit, []);
         permitted = await pkpPermissions.isPermittedAddress(
           tokenId,
           addressToPermit
@@ -170,7 +170,7 @@ describe("PKPPermissions", function () {
 
         // permit it
         pkpPermissions = await pkpPermissions.connect(tester);
-        await pkpPermissions.addPermittedAction(tokenId, ipfsIdBytes);
+        await pkpPermissions.addPermittedAction(tokenId, ipfsIdBytes, []);
         permitted = await pkpPermissions.isPermittedAction(
           tokenId,
           ipfsIdBytes
@@ -200,7 +200,7 @@ describe("PKPPermissions", function () {
         expect(permitted).equal(false);
 
         const ipfsIdBytes = getBytesFromMultihash(ipfsIdToPermit);
-        await pkpPermissions.addPermittedAction(tokenId, ipfsIdBytes);
+        await pkpPermissions.addPermittedAction(tokenId, ipfsIdBytes, []);
 
         permitted = await pkpPermissions.isPermittedAction(
           tokenId,
@@ -216,7 +216,7 @@ describe("PKPPermissions", function () {
         );
         expect(permitted).equal(false);
 
-        await pkpPermissions.addPermittedAction(tokenId, ipfsIdBytes);
+        await pkpPermissions.addPermittedAction(tokenId, ipfsIdBytes, []);
 
         permitted = await pkpPermissions.isPermittedAction(
           tokenId,
@@ -226,7 +226,7 @@ describe("PKPPermissions", function () {
       });
 
       it("registers and grants permission to a generic AuthMethod", async () => {
-        const authMethodType = 1;
+        const authMethodType = 5;
         const userId = "0xdeadbeef1234";
         const userPubkey = "0x9876543210";
 
@@ -247,7 +247,8 @@ describe("PKPPermissions", function () {
           tokenId,
           authMethodType,
           userId,
-          userPubkey
+          userPubkey,
+          []
         );
 
         // lookup the pubkey by the user id
@@ -270,28 +271,27 @@ describe("PKPPermissions", function () {
         // do a reverse lookup
         let pkpIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodType,
-          userId
+          userId,
+          userPubkey
         );
         expect(pkpIds.length).equal(1);
         expect(pkpIds[0]).equal(tokenId);
 
         // try a check with the wrong pubkey
-        await expect(
-          pkpPermissions.isPermittedAuthMethod(
-            tokenId,
-            authMethodType,
-            userId,
-            "0x55"
-          )
-        ).revertedWith(
-          "The pubkey you submitted does not match the one stored"
+        permitted = await pkpPermissions.isPermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId,
+          "0x55"
         );
+        expect(permitted).equal(false);
 
         // revoke
         await pkpPermissions.removePermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId
+          userId,
+          userPubkey
         );
         permitted = await pkpPermissions.isPermittedAuthMethod(
           tokenId,
@@ -304,7 +304,8 @@ describe("PKPPermissions", function () {
         // confirm that the reverse lookup is now empty
         pkpIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodType,
-          userId
+          userId,
+          userPubkey
         );
         expect(pkpIds.length).equal(0);
       });
