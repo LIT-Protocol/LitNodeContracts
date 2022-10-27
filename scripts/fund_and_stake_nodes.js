@@ -21,8 +21,6 @@ async function getChainId() {
 
 console.log("Funding and staking to network " + chainName);
 
-// after deploy, the deployer will set this wallet as the owner for everything.  Make sure the private key for this is easy to access and secure.  I use a metamask wallet for this, so that I can use remix to run any functions as the owner.
-const newOwner = "0x50e2dac5e78B5905CB09495547452cEE64426db2";
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const ip2int = (ip) => {
@@ -259,7 +257,7 @@ const stakeTokens = async (wallets, contracts) => {
 
 async function main() {
   const signer = await getSigner();
-  const fileName = "./deployed-contracts.json";
+  const fileName = "./deployed-contracts-temp.json";
   console.log("reading from file: " + fileName);
   let contracts = fs.readFileSync(fileName);
   contracts = JSON.parse(contracts);
