@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {PKPNFT} from "./PKPNFT.sol";
 import {PubkeyRouter} from "./PubkeyRouter.sol";
@@ -14,6 +15,7 @@ contract PKPPermissions is Ownable {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.UintSet;
     using BytesLib for bytes;
+    using BitMaps for BitMaps.BitMap;
 
     /* ========== STATE VARIABLES ========== */
 
@@ -39,7 +41,7 @@ contract PKPPermissions is Ownable {
     mapping(uint256 => EnumerableSet.UintSet) permittedAuthMethods;
 
     // map the keccack256(uncompressed pubkey) -> auth_method_id -> scope id
-    mapping(uint256 => mapping(uint256 => EnumerableSet.UintSet)) permittedAuthMethodScopes;
+    mapping(uint256 => mapping(uint256 => BitMaps.BitMap)) permittedAuthMethodScopes;
 
     // map the keccack256(authMethodType, userId, userPubkey) -> the actual AuthMethod struct
     mapping(uint256 => AuthMethod) public authMethods;
@@ -133,24 +135,21 @@ contract PKPPermissions is Ownable {
         uint256 tokenId,
         uint256 authMethodType,
         bytes memory id,
-        bytes memory userPubkey
-    ) public view returns (uint256[] memory) {
+        bytes memory userPubkey,
+        uint256 maxScopeId
+    ) public view returns (bool[] memory) {
         uint256 authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
-        uint256 permittedScopesLength = permittedAuthMethodScopes[tokenId][
-            authMethodId
-        ].length();
-        uint256[] memory allPermittedScopes = new uint256[](
-            permittedScopesLength
-        );
+        BitMaps.BitMap
+            storage permittedScopesBitMap = permittedAuthMethodScopes[tokenId][
+                authMethodId
+            ];
+        bool[] memory allScopes = new bool[](maxScopeId);
 
-        for (uint256 i = 0; i < permittedScopesLength; i++) {
-            uint scopeId = permittedAuthMethodScopes[tokenId][authMethodId].at(
-                i
-            );
-            allPermittedScopes[i] = scopeId;
+        for (uint256 i = 0; i < maxScopeId; i++) {
+            allScopes[i] = permittedScopesBitMap.get(i);
         }
 
-        return allPermittedScopes;
+        return allScopes;
     }
 
     function getPermittedActions(uint256 tokenId)
@@ -260,12 +259,10 @@ contract PKPPermissions is Ownable {
         uint scopeId
     ) public view returns (bool) {
         uint authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
-        bool present = permittedAuthMethodScopes[tokenId][authMethodId]
-            .contains(scopeId);
-        if (!present) {
-            return false;
-        }
-        return true;
+        bool present = permittedAuthMethodScopes[tokenId][authMethodId].get(
+            scopeId
+        );
+        return present;
     }
 
     function isPermittedAction(uint256 tokenId, bytes memory ipfsCID)
@@ -328,7 +325,8 @@ contract PKPPermissions is Ownable {
 
         for (uint256 i = 0; i < scopes.length; i++) {
             uint256 scopeId = scopes[i];
-            permittedAuthMethodScopes[tokenId][authMethodId].add(scopeId);
+
+            permittedAuthMethodScopes[tokenId][authMethodId].set(scopeId);
         }
 
         uint256 authMethodHashWithoutPubkey = uint256(
@@ -394,7 +392,7 @@ contract PKPPermissions is Ownable {
 
         uint authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
 
-        permittedAuthMethodScopes[tokenId][authMethodId].add(scopeId);
+        permittedAuthMethodScopes[tokenId][authMethodId].set(scopeId);
 
         emit PermittedAuthMethodScopeAdded(
             tokenId,
@@ -421,7 +419,7 @@ contract PKPPermissions is Ownable {
 
         uint authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
 
-        permittedAuthMethodScopes[tokenId][authMethodId].remove(scopeId);
+        permittedAuthMethodScopes[tokenId][authMethodId].unset(scopeId);
 
         emit PermittedAuthMethodScopeRemoved(
             tokenId,

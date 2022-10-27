@@ -314,7 +314,7 @@ describe("PKPPermissions", function () {
         const authMethodType = 5;
         const userId = "0xdeadbeef1234";
         const userPubkey = "0x9876543210";
-        const scopes = ["0xe0e0e0", "0xf0f0f0"];
+        const scopes = [10, 20];
 
         pkpContract = await pkpContract.connect(tester);
 
@@ -332,9 +332,14 @@ describe("PKPPermissions", function () {
           tokenId,
           authMethodType,
           userId,
-          userPubkey
+          userPubkey,
+          256
         );
-        expect(storedScopes.length).equal(0);
+        expect(storedScopes.length).equal(256);
+
+        for (let i = 0; i < storedScopes.length; i++) {
+          expect(storedScopes[i]).equal(false);
+        }
 
         // check the scopes one by one
         for (let i = 0; i < scopes.length; i++) {
@@ -390,11 +395,12 @@ describe("PKPPermissions", function () {
           tokenId,
           authMethodType,
           userId,
-          userPubkey
+          userPubkey,
+          256
         );
-        expect(storedScopes.length).equal(2);
+        expect(storedScopes.length).equal(256);
         for (let i = 0; i < scopes.length; i++) {
-          expect(storedScopes[i]).equal(scopes[i]);
+          expect(storedScopes[scopes[i]]).equal(true);
         }
 
         // check the scopes one by one
@@ -409,6 +415,58 @@ describe("PKPPermissions", function () {
             );
           expect(scopePresent).equal(true);
         }
+
+        // remove a scope
+        let scopePresent =
+          await pkpPermissions.isPermittedAuthMethodScopePresent(
+            tokenId,
+            authMethodType,
+            userId,
+            userPubkey,
+            scopes[0]
+          );
+        expect(scopePresent).equal(true);
+        await pkpPermissions.removePermittedAuthMethodScope(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey,
+          scopes[0]
+        );
+        scopePresent = await pkpPermissions.isPermittedAuthMethodScopePresent(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey,
+          scopes[0]
+        );
+        expect(scopePresent).equal(false);
+
+        // add a new scope
+        const newScope = 40;
+        scopePresent = await pkpPermissions.isPermittedAuthMethodScopePresent(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey,
+          newScope
+        );
+        expect(scopePresent).equal(false);
+        await pkpPermissions.addPermittedAuthMethodScope(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey,
+          newScope
+        );
+        scopePresent = await pkpPermissions.isPermittedAuthMethodScopePresent(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey,
+          newScope
+        );
+        expect(scopePresent).equal(true);
 
         // try a check with the wrong pubkey
         permitted = await pkpPermissions.isPermittedAuthMethod(
