@@ -129,11 +129,13 @@ contract PKPPermissions is Ownable {
         return allPermittedAuthMethods;
     }
 
-    function getPermittedAuthMethodScopes(uint256 tokenId, uint256 authMethodId)
-        public
-        view
-        returns (uint256[] memory)
-    {
+    function getPermittedAuthMethodScopes(
+        uint256 tokenId,
+        uint256 authMethodType,
+        bytes memory id,
+        bytes memory userPubkey
+    ) public view returns (uint256[] memory) {
+        uint256 authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
         uint256 permittedScopesLength = permittedAuthMethodScopes[tokenId][
             authMethodId
         ].length();

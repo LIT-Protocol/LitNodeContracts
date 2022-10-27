@@ -309,6 +309,139 @@ describe("PKPPermissions", function () {
         );
         expect(pkpIds.length).equal(0);
       });
+
+      it("registers and grants permission to a generic AuthMethod with scopes", async () => {
+        const authMethodType = 5;
+        const userId = "0xdeadbeef1234";
+        const userPubkey = "0x9876543210";
+        const scopes = ["0xe0e0e0", "0xf0f0f0"];
+
+        pkpContract = await pkpContract.connect(tester);
+
+        // validate that the auth method is not permitted
+        let permitted = await pkpPermissions.isPermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey
+        );
+        expect(permitted).equal(false);
+
+        // make sure the scopes aren't set
+        let storedScopes = await pkpPermissions.getPermittedAuthMethodScopes(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey
+        );
+        expect(storedScopes.length).equal(0);
+
+        // check the scopes one by one
+        for (let i = 0; i < scopes.length; i++) {
+          const scopePresent =
+            await pkpPermissions.isPermittedAuthMethodScopePresent(
+              tokenId,
+              authMethodType,
+              userId,
+              userPubkey,
+              scopes[i]
+            );
+          expect(scopePresent).equal(false);
+        }
+
+        // attempt to permit it
+        pkpPermissions = await pkpPermissions.connect(tester);
+        await pkpPermissions.addPermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey,
+          scopes
+        );
+
+        // lookup the pubkey by the user id
+        let pubkey = await pkpPermissions.getUserPubkeyForAuthMethod(
+          authMethodType,
+          userId
+        );
+        // console.log("pubkey stored in contract", pubkey);
+        // console.log("userPubkey", userPubkey);
+        expect(pubkey).equal(userPubkey);
+
+        permitted = await pkpPermissions.isPermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey
+        );
+        expect(permitted).equal(true);
+
+        // do a reverse lookup
+        let pkpIds = await pkpPermissions.getTokenIdsForAuthMethod(
+          authMethodType,
+          userId,
+          userPubkey
+        );
+        expect(pkpIds.length).equal(1);
+        expect(pkpIds[0]).equal(tokenId);
+
+        // check the scopes
+        storedScopes = await pkpPermissions.getPermittedAuthMethodScopes(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey
+        );
+        expect(storedScopes.length).equal(2);
+        for (let i = 0; i < scopes.length; i++) {
+          expect(storedScopes[i]).equal(scopes[i]);
+        }
+
+        // check the scopes one by one
+        for (let i = 0; i < scopes.length; i++) {
+          const scopePresent =
+            await pkpPermissions.isPermittedAuthMethodScopePresent(
+              tokenId,
+              authMethodType,
+              userId,
+              userPubkey,
+              scopes[i]
+            );
+          expect(scopePresent).equal(true);
+        }
+
+        // try a check with the wrong pubkey
+        permitted = await pkpPermissions.isPermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId,
+          "0x55"
+        );
+        expect(permitted).equal(false);
+
+        // revoke
+        await pkpPermissions.removePermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey
+        );
+        permitted = await pkpPermissions.isPermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId,
+          userPubkey
+        );
+        expect(permitted).equal(false);
+
+        // confirm that the reverse lookup is now empty
+        pkpIds = await pkpPermissions.getTokenIdsForAuthMethod(
+          authMethodType,
+          userId,
+          userPubkey
+        );
+        expect(pkpIds.length).equal(0);
+      });
     });
   });
 });
