@@ -502,4 +502,102 @@ describe("PKPPermissions", function () {
       });
     });
   });
+
+  describe("register a PKP and set routing permissions for a burn test", async () => {
+    context("when the PKP grants permission to an ETH address", async () => {
+      // 64 byte pubkey - the max size we support
+      let fakePubkey =
+        "0x04ef7f4b5b671bd1b1c5cbc1b04451ae0ea0de36525df4b4e48598dfa89763019afdcb59ca553d7daead86ea484bd0d85a805c3624fb4e5e32c8d93c7f6846e49f";
+      let tester;
+      let creator;
+      let tokenId;
+
+      before(async () => {
+        [creator, tester, ...signers] = signers;
+
+        routerContract = await routerContract.connect(deployer);
+
+        // check that the routing data for this pubkey is empty
+        const pubkeyHash = ethers.utils.keccak256(fakePubkey);
+        const [pubkeyBefore, stakingContractAddressBefore, keyType] =
+          await routerContract.getRoutingData(pubkeyHash);
+        expect(pubkeyBefore).equal("0x");
+        expect(stakingContractAddressBefore).equal(
+          "0x0000000000000000000000000000000000000000"
+        );
+        expect(keyType).equal(0);
+
+        const keyTypeInput = 2;
+
+        await routerContract.voteForRoutingData(
+          pubkeyHash,
+          fakePubkey,
+          stakingContract.address,
+          keyTypeInput
+        );
+
+        // validate that it was set
+        const [pubkeyAfter, stakingContractAddressAfter, keyTypeAfter] =
+          await routerContract.getRoutingData(pubkeyHash);
+        expect(pubkeyAfter).equal(fakePubkey);
+        expect(stakingContractAddressAfter).equal(stakingContract.address);
+        expect(keyTypeAfter).equal(keyTypeInput);
+
+        tokenId = ethers.BigNumber.from(pubkeyHash);
+
+        // mint the PKP to the tester account
+        pkpContract = await pkpContract.connect(tester);
+        // send eth with the txn
+        const mintCost = await pkpContract.mintCost();
+        const transaction = {
+          value: mintCost,
+        };
+        await pkpContract.mintNext(2, transaction);
+        const owner = await pkpContract.ownerOf(pubkeyHash);
+        expect(owner).equal(tester.address);
+      });
+
+      it("grants permission to an eth address and then revokes it and then burns it", async () => {
+        const addressToPermit = "0x75EdCdfb5A678290A8654979703bdb75C683B3dD";
+
+        pkpContract = await pkpContract.connect(tester);
+
+        // validate that the address is not permitted
+        let permitted = await pkpPermissions.isPermittedAddress(
+          tokenId,
+          addressToPermit
+        );
+        expect(permitted).equal(false);
+
+        // permit it
+        pkpPermissions = await pkpPermissions.connect(tester);
+        await pkpPermissions.addPermittedAddress(tokenId, addressToPermit, []);
+        permitted = await pkpPermissions.isPermittedAddress(
+          tokenId,
+          addressToPermit
+        );
+        expect(permitted).equal(true);
+
+        // revoke
+        await pkpPermissions.removePermittedAddress(tokenId, addressToPermit);
+        permitted = await pkpPermissions.isPermittedAddress(
+          tokenId,
+          addressToPermit
+        );
+        expect(permitted).equal(false);
+
+        let exists = await pkpContract.exists(tokenId);
+        expect(exists).equal(true);
+
+        // try burning the PKP and make sure everything still works
+        await pkpContract.burn(tokenId);
+
+        let permittedAddresses = pkpPermissions.getPermittedAddresses(tokenId);
+        expect(permittedAddresses).to.be.empty;
+
+        exists = await pkpContract.exists(tokenId);
+        expect(exists).equal(false);
+      });
+    });
+  });
 });

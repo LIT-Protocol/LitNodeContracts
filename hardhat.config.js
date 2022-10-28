@@ -57,7 +57,7 @@ module.exports = {
       url: "https://forno.celo.org",
       accounts: [
         envVarOrDefault(
-          process.env.LIT_CELO_DEPLOYER_PRIVATE_KEY,
+          "LIT_CELO_DEPLOYER_PRIVATE_KEY",
           "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
         ),
       ],
@@ -66,7 +66,7 @@ module.exports = {
       url: "https://polygon-mumbai.g.alchemy.com/v2/onvoLvV97DDoLkAmdi0Cj7sxvfglKqDh",
       accounts: [
         envVarOrDefault(
-          process.env.LIT_MUMBAI_DEPLOYER_PRIVATE_KEY,
+          "LIT_MUMBAI_DEPLOYER_PRIVATE_KEY",
           "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
         ),
       ],
@@ -75,7 +75,7 @@ module.exports = {
       url: "https://alfajores-forno.celo-testnet.org",
       accounts: [
         envVarOrDefault(
-          process.env.LIT_ALFAJORES_DEPLOYER_PRIVATE_KEY,
+          "LIT_ALFAJORES_DEPLOYER_PRIVATE_KEY",
           "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
         ),
       ],
@@ -84,7 +84,7 @@ module.exports = {
       url: "https://polygon-rpc.com",
       accounts: [
         envVarOrDefault(
-          process.env.LIT_POLYGON_DEPLOYER_PRIVATE_KEY,
+          "LIT_POLYGON_DEPLOYER_PRIVATE_KEY",
           "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
         ),
       ],

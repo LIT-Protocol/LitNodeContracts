@@ -205,15 +205,22 @@ contract PKPPermissions is Ownable {
             }
         }
 
-        address[] memory allPermittedAddresses = new address[](
-            permittedAddressLength + 1
-        );
+        bool tokenExists = pkpNFT.exists(tokenId);
+        address[] memory allPermittedAddresses;
+        uint permittedAddressIndex = 0;
+        if (tokenExists) {
+            // token is not burned, so add the owner address
+            allPermittedAddresses = new address[](permittedAddressLength + 1);
 
-        // always add nft owner in first slot
-        address nftOwner = pkpNFT.ownerOf(tokenId);
-        allPermittedAddresses[0] = nftOwner;
+            // always add nft owner in first slot
+            address nftOwner = pkpNFT.ownerOf(tokenId);
+            allPermittedAddresses[0] = nftOwner;
+            permittedAddressIndex++;
+        } else {
+            // token is burned, so don't add the owner address
+            allPermittedAddresses = new address[](permittedAddressLength);
+        }
 
-        uint permittedAddressIndex = 1;
         for (uint256 i = 0; i < permittedAuthMethodsLength; i++) {
             uint authMethodHash = permittedAuthMethods[tokenId].at(i);
             AuthMethod memory am = authMethods[authMethodHash];

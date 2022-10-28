@@ -157,6 +157,10 @@ contract PKPNFT is
             );
     }
 
+    function exists(uint256 tokenId) public view returns (bool) {
+        return _exists(tokenId);
+    }
+
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     function mintNext(uint keyType) public payable returns (uint) {
