@@ -1,14 +1,17 @@
 {
-  "stakingContractAddress": "0xcCbC64C671e453ec7B8f43789aa214fe024aD2b4",
-  "multisenderContractAddress": "0xaA10eF6Ae844213aF84D7a49Bf3b2c6066c0BE6a",
-  "litTokenContractAddress": "0x9f4D335DeDad7f40C512Eb557e84787605d7Be13",
-  "accessControlConditionsContractAddress": "0x2416850Ea7e5111E1816C63C495835DB11A6625a",
-  "pubkeyRouterContractAddress": "0x818B3F18E0b43722179ec9C379ef03bEdcbb6426",
-  "pkpNftContractAddress": "0x7595e6485cC5c3DAD8D536e37B98C12B9bffe209",
-  "rateLimitNftContractAddress": "0x268D567667E982Ec22b432F871646Ed794bc3c4C",
-  "pkpHelperContractAddress": "0x18b3598af0673e8f24358a15111a62f99e9bC2c2",
-  "pkpPermissionsContractAddress": "0xad31b6f94dec27F72AE975116f843B34B79A9cCa",
+  "stakingContractAddress": "0xA129A26648Bce1E9e6261aCA3A21b28d3F58687D",
+  "multisenderContractAddress": "0x24ae5075412E0657F2375D9bfF8B19f0dd451aBB",
+  "litTokenContractAddress": "0x576542646347498F9Dca2BB2B2C813c43bA33f09",
+  "accessControlConditionsContractAddress": "0x3A51c98060A8e91871de52F3b633c6b87c34726D",
+  "pubkeyRouterContractAddress": "0x160B37CA041b2657bc388Eaf0deC1B723BC9db72",
+  "pkpNftContractAddress": "0x3a9f7b20dCEea0946a5A6c37cFA432237D7B775a",
+  "rateLimitNftContractAddress": "0x63c48140c9B13F29D1eb35ec3Fe02b559232F020",
+  "pkpHelperContractAddress": "0xbd9646b0ba74Bed3aa1309828EAB6e316a95A559",
+  "pkpPermissionsContractAddress": "0xB95f8D79B2888F6FDFEcE7cfF191B7C0e5B62846",
   "chainId": 80001,
   "rpcUrl": "https://polygon-mumbai.g.alchemy.com/v2/onvoLvV97DDoLkAmdi0Cj7sxvfglKqDh",
-  "chainName": "mumbai"
+  "chainName": "mumbai",
+  "litNodeDomainName": "127.0.0.1",
+  "litNodePort": 7470,
+  "rocketPort": 7470
 }
