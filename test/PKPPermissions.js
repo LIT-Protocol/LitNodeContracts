@@ -332,10 +332,9 @@ describe("PKPPermissions", function () {
           tokenId,
           authMethodType,
           userId,
-          userPubkey,
-          256
+          userPubkey
         );
-        expect(storedScopes.length).equal(256);
+        expect(storedScopes.length).equal(255);
 
         for (let i = 0; i < storedScopes.length; i++) {
           expect(storedScopes[i]).equal(false);
@@ -395,10 +394,9 @@ describe("PKPPermissions", function () {
           tokenId,
           authMethodType,
           userId,
-          userPubkey,
-          256
+          userPubkey
         );
-        expect(storedScopes.length).equal(256);
+        expect(storedScopes.length).equal(255);
         for (let i = 0; i < scopes.length; i++) {
           expect(storedScopes[scopes[i]]).equal(true);
         }

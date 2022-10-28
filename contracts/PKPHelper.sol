@@ -36,13 +36,13 @@ contract PKPHelper is Ownable, IERC721Receiver {
     function mintNextAndAddAuthMethods(
         uint keyType,
         bytes[] memory permittedIpfsCIDs,
-        uint[][] memory permittedIpfsCIDScopes,
+        uint8[][] memory permittedIpfsCIDScopes,
         address[] memory permittedAddresses,
-        uint[][] memory permittedAddressScopes,
+        uint8[][] memory permittedAddressScopes,
         uint[] memory permittedAuthMethodTypes,
         bytes[] memory permittedAuthMethodIds,
         bytes[] memory permittedAuthMethodPubkeys,
-        uint[][] memory permittedAuthMethodScopes,
+        uint8[][] memory permittedAuthMethodScopes,
         bool addPkpEthAddressAsPermittedAddress,
         bool sendPkpToItself
     ) public payable returns (uint) {
@@ -114,7 +114,7 @@ contract PKPHelper is Ownable, IERC721Receiver {
             pkpPermissions.addPermittedAddress(
                 tokenId,
                 pkpEthAddress,
-                new uint[](0)
+                new uint8[](0)
             );
         }
 

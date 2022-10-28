@@ -2,11 +2,11 @@
 pragma solidity ^0.8.0;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {PKPNFT} from "./PKPNFT.sol";
 import {PubkeyRouter} from "./PubkeyRouter.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
+import {BitFields} from "./BitFields.sol";
 
 import "hardhat/console.sol";
 
@@ -15,7 +15,7 @@ contract PKPPermissions is Ownable {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.UintSet;
     using BytesLib for bytes;
-    using BitMaps for BitMaps.BitMap;
+    using BitFields for uint256;
 
     /* ========== STATE VARIABLES ========== */
 
@@ -41,7 +41,7 @@ contract PKPPermissions is Ownable {
     mapping(uint256 => EnumerableSet.UintSet) permittedAuthMethods;
 
     // map the keccack256(uncompressed pubkey) -> auth_method_id -> scope id
-    mapping(uint256 => mapping(uint256 => BitMaps.BitMap)) permittedAuthMethodScopes;
+    mapping(uint256 => mapping(uint256 => uint256)) permittedAuthMethodScopes;
 
     // map the keccack256(authMethodType, userId, userPubkey) -> the actual AuthMethod struct
     mapping(uint256 => AuthMethod) public authMethods;
@@ -135,17 +135,15 @@ contract PKPPermissions is Ownable {
         uint256 tokenId,
         uint256 authMethodType,
         bytes memory id,
-        bytes memory userPubkey,
-        uint256 maxScopeId
-    ) public view returns (bool[] memory) {
+        bytes memory userPubkey
+    ) public view returns (bool[255] memory) {
         uint256 authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
-        BitMaps.BitMap
-            storage permittedScopesBitMap = permittedAuthMethodScopes[tokenId][
-                authMethodId
-            ];
-        bool[] memory allScopes = new bool[](maxScopeId);
+        uint permittedScopesBitMap = permittedAuthMethodScopes[tokenId][
+            authMethodId
+        ];
+        bool[255] memory allScopes;
 
-        for (uint256 i = 0; i < maxScopeId; i++) {
+        for (uint8 i = 0; i < 255; i++) {
             allScopes[i] = permittedScopesBitMap.get(i);
         }
 
@@ -263,7 +261,7 @@ contract PKPPermissions is Ownable {
         uint authMethodType,
         bytes memory id,
         bytes memory userPubkey,
-        uint scopeId
+        uint8 scopeId
     ) public view returns (bool) {
         uint authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
         bool present = permittedAuthMethodScopes[tokenId][authMethodId].get(
@@ -308,7 +306,7 @@ contract PKPPermissions is Ownable {
         uint authMethodType,
         bytes memory id,
         bytes memory userPubkey,
-        uint256[] memory scopes
+        uint8[] memory scopes
     ) public {
         // check that user is allowed to set this
         address nftOwner = pkpNFT.ownerOf(tokenId);
@@ -331,9 +329,11 @@ contract PKPPermissions is Ownable {
         newPkpIds.add(tokenId);
 
         for (uint256 i = 0; i < scopes.length; i++) {
-            uint256 scopeId = scopes[i];
+            uint8 scopeId = scopes[i];
 
-            permittedAuthMethodScopes[tokenId][authMethodId].set(scopeId);
+            permittedAuthMethodScopes[tokenId][
+                authMethodId
+            ] = permittedAuthMethodScopes[tokenId][authMethodId].set(scopeId);
 
             emit PermittedAuthMethodScopeAdded(
                 tokenId,
@@ -396,18 +396,20 @@ contract PKPPermissions is Ownable {
         uint authMethodType,
         bytes memory id,
         bytes memory userPubkey,
-        uint256 scopeId
+        uint8 scopeId
     ) public {
         // check that user is allowed to set this
         address nftOwner = pkpNFT.ownerOf(tokenId);
         require(
             msg.sender == nftOwner,
-            "Only the PKP NFT owner can add and remove permitted auth method scoped"
+            "Only the PKP NFT owner can add and remove permitted auth method scopes"
         );
 
         uint authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
 
-        permittedAuthMethodScopes[tokenId][authMethodId].set(scopeId);
+        permittedAuthMethodScopes[tokenId][
+            authMethodId
+        ] = permittedAuthMethodScopes[tokenId][authMethodId].set(scopeId);
 
         emit PermittedAuthMethodScopeAdded(
             tokenId,
@@ -423,7 +425,7 @@ contract PKPPermissions is Ownable {
         uint authMethodType,
         bytes memory id,
         bytes memory userPubkey,
-        uint256 scopeId
+        uint8 scopeId
     ) public {
         // check that user is allowed to set this
         address nftOwner = pkpNFT.ownerOf(tokenId);
@@ -434,7 +436,9 @@ contract PKPPermissions is Ownable {
 
         uint authMethodId = getAuthMethodId(authMethodType, id, userPubkey);
 
-        permittedAuthMethodScopes[tokenId][authMethodId].unset(scopeId);
+        permittedAuthMethodScopes[tokenId][
+            authMethodId
+        ] = permittedAuthMethodScopes[tokenId][authMethodId].unset(scopeId);
 
         emit PermittedAuthMethodScopeRemoved(
             tokenId,
@@ -449,7 +453,7 @@ contract PKPPermissions is Ownable {
     function addPermittedAction(
         uint256 tokenId,
         bytes memory ipfsCID,
-        uint256[] memory scopes
+        uint8[] memory scopes
     ) public {
         addPermittedAuthMethod(
             tokenId,
@@ -474,7 +478,7 @@ contract PKPPermissions is Ownable {
     function addPermittedAddress(
         uint256 tokenId,
         address user,
-        uint256[] memory scopes
+        uint8[] memory scopes
     ) public {
         addPermittedAuthMethod(
             tokenId,
@@ -521,13 +525,13 @@ contract PKPPermissions is Ownable {
         uint authMethodType,
         bytes id,
         bytes userPubkey,
-        uint256 scopeId
+        uint8 scopeId
     );
     event PermittedAuthMethodScopeRemoved(
         uint256 indexed tokenId,
         uint authMethodType,
         bytes id,
         bytes userPubkey,
-        uint256 scopeId
+        uint8 scopeId
     );
 }
