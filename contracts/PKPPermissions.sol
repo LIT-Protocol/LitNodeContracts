@@ -334,6 +334,14 @@ contract PKPPermissions is Ownable {
             uint256 scopeId = scopes[i];
 
             permittedAuthMethodScopes[tokenId][authMethodId].set(scopeId);
+
+            emit PermittedAuthMethodScopeAdded(
+                tokenId,
+                authMethodId,
+                id,
+                userPubkey,
+                scopeId
+            );
         }
 
         uint256 authMethodHashWithoutPubkey = uint256(
