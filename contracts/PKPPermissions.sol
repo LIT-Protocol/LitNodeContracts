@@ -340,10 +340,6 @@ contract PKPPermissions is Ownable {
             );
         }
 
-        uint256 authMethodHashWithoutPubkey = uint256(
-            keccak256(abi.encode(authMethodType, id))
-        );
-
         emit PermittedAuthMethodAdded(tokenId, authMethodType, id, userPubkey);
     }
 

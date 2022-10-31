@@ -102,7 +102,7 @@ describe("PKPHelper", function () {
         value: mintCost,
       };
 
-      await pkpHelper.mintNextAndAddAuthMethods(
+      await pkpHelper.mintNextAndAddAuthMethodsWithTypes(
         2,
         ipfsIdsBytes,
         [[], []],
@@ -112,6 +112,161 @@ describe("PKPHelper", function () {
         authMethodUserIds,
         authMethodPubkeys,
         [[], []],
+        true, //addPkpEthAddressAsPermittedAddress,
+        false, // sendPkpToItself
+        transaction
+      );
+
+      // check the token was minted
+      const owner = await pkpContract.ownerOf(tokenId);
+      expect(owner).to.equal(minter.address);
+
+      const pkpEthAddress = await pkpPermissions.getEthAddress(tokenId);
+
+      // check the auth methods
+      for (let i = 0; i < addressesToPermit.length; i++) {
+        const actionIsPermitted = await pkpPermissions.isPermittedAction(
+          tokenId,
+          ipfsIdsBytes[i]
+        );
+        expect(actionIsPermitted).to.equal(true);
+      }
+
+      for (let i = 0; i < addressesToPermit.length; i++) {
+        const addressIsPermitted = await pkpPermissions.isPermittedAddress(
+          tokenId,
+          addressesToPermit[i]
+        );
+        expect(addressIsPermitted).to.equal(true);
+      }
+
+      // confirm that the owner is also permitted
+      const ownerIsPermitted = await pkpPermissions.isPermittedAddress(
+        tokenId,
+        minter.address
+      );
+      expect(ownerIsPermitted).to.equal(true);
+
+      // confirm that the pkp eth address is permitted
+      const pkpEthAddressIsPermitted = await pkpPermissions.isPermittedAddress(
+        tokenId,
+        pkpEthAddress
+      );
+      expect(pkpEthAddressIsPermitted).to.equal(true);
+
+      for (let i = 0; i < authMethodTypes.length; i++) {
+        const authMethodIsPermitted =
+          await pkpPermissions.isPermittedAuthMethod(
+            tokenId,
+            authMethodTypes[i],
+            authMethodUserIds[i]
+          );
+        expect(authMethodIsPermitted).to.equal(true);
+      }
+
+      // check the reverse mapping of the auth method
+      for (let i = 0; i < authMethodTypes.length; i++) {
+        const authedTokenIds = await pkpPermissions.getTokenIdsForAuthMethod(
+          authMethodTypes[i],
+          authMethodUserIds[i]
+        );
+        expect(authedTokenIds).to.deep.equal([tokenId]);
+      }
+
+      // check all the getters
+      const permittedActions = await pkpPermissions.getPermittedActions(
+        tokenId
+      );
+      // console.log("permittedActions: ", permittedActions);
+      expect(permittedActions).to.deep.equal(ipfsIdsBytes);
+
+      const permittedAddresses = await pkpPermissions.getPermittedAddresses(
+        tokenId
+      );
+      expect(permittedAddresses).to.deep.equal([
+        minter.address,
+        ...addressesToPermit,
+        pkpEthAddress,
+      ]);
+
+      const permittedAuthMethods = await pkpPermissions.getPermittedAuthMethods(
+        tokenId
+      );
+      expect(permittedAuthMethods.length).to.equal(7);
+      // console.log("permittedAuthMethods: ", permittedAuthMethods);
+      let authMethodIndex = 0;
+      for (let i = 0; i < permittedAuthMethods.length; i++) {
+        if (
+          permittedAuthMethods[i][0].toNumber() !== 1 &&
+          permittedAuthMethods[i][0].toNumber() !== 2
+        ) {
+          expect([
+            permittedAuthMethods[i][0].toNumber(),
+            permittedAuthMethods[i][1],
+            permittedAuthMethods[i][2],
+          ]).to.deep.equal([
+            authMethodTypes[authMethodIndex],
+            authMethodUserIds[authMethodIndex],
+            authMethodPubkeys[authMethodIndex],
+          ]);
+          authMethodIndex++;
+        }
+      }
+    });
+
+    it("mints successfully with permitted auth methods using the simple non-typed function", async () => {
+      let pubkey =
+        "0x04359eeca3b8852d0c54ccc190ae8f0a4f0f27d11cb72ecc2cc11aab6fff1f08610090301a6ab7f8afbbcd167bc2406e366ee7bc49373c20f95fabd5165454f934";
+      const pubkeyHash = ethers.utils.keccak256(pubkey);
+      const tokenId = ethers.BigNumber.from(pubkeyHash);
+      //console.log("PubkeyHash: " , pubkeyHash);
+      // route it
+      await router.setRoutingData(
+        tokenId,
+        pubkey,
+        "0x0000000000000000000000000000000000000003",
+        2
+      );
+
+      const addressesToPermit = [
+        "0x75EdCdfb5A678290A8654979703bdb75C683B3dD",
+        "0xeb250b8DA8021fE09Ea2D0121e20eDa65D523aA6",
+      ];
+      const ipfsIdsToPermit = [
+        "QmPRjq7medLpjnFSZaiJ3xUudKteVFQDmaMZuhr644MQ4Z",
+        "QmSX1eaPhZjxb8rJtejunop8Sq41FMSUVv9HfqtPNtVi7j",
+      ];
+      const ipfsIdsBytes = ipfsIdsToPermit.map((f) => getBytesFromMultihash(f));
+      // const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
+      // const multihashStruct = getBytes32FromMultihash(ipfsIdToPermit);
+      const authMethodTypes = [4, 5, 2, 2, 1, 1];
+      const authMethodUserIds = [
+        "0xdeadbeef",
+        "0x7ce7b7b6766949f0bf8552a0db7117de4e5628321ae8c589e67e5839ee3c1912402dfd0ed9be127812d0d2c16df2ac2c319ebed0927b0de98a3b946767577ad7",
+        ...ipfsIdsBytes,
+        ...addressesToPermit,
+      ];
+      const authMethodPubkeys = [
+        "0xacbe9af83570da302d072984c4938bd7d9dd86186ebedf53d693171d48dbf5e60e2ae9dc9f72ee9592b054ec0a9de5d3bac6a35b9f658b5183c40990e588ffea",
+        "0x00",
+        ...ipfsIdsBytes.map((r) => "0x00"),
+        ...addressesToPermit.map((r) => "0x00"),
+      ];
+
+      const authMethodScopes = authMethodUserIds.map((r) => []);
+
+      // send eth with the txn
+      const mintCost = await pkpContract.mintCost();
+      const transaction = {
+        value: mintCost,
+      };
+
+      await pkpHelper.mintNextAndAddAuthMethods(
+        2,
+        authMethodTypes,
+        authMethodUserIds,
+        authMethodPubkeys,
+        authMethodScopes,
         true, //addPkpEthAddressAsPermittedAddress,
         false, // sendPkpToItself
         transaction
@@ -263,7 +418,7 @@ describe("PKPHelper", function () {
         value: mintCost,
       };
 
-      await pkpHelper.mintNextAndAddAuthMethods(
+      await pkpHelper.mintNextAndAddAuthMethodsWithTypes(
         2,
         ipfsIdsBytes,
         [[], []],
@@ -396,7 +551,7 @@ describe("PKPHelper", function () {
         value: mintCost,
       };
 
-      await pkpHelper.mintNextAndAddAuthMethods(
+      await pkpHelper.mintNextAndAddAuthMethodsWithTypes(
         2,
         [],
         [],
@@ -462,7 +617,7 @@ describe("PKPHelper", function () {
         value: mintCost,
       };
 
-      await pkpHelper.mintNextAndAddAuthMethods(
+      await pkpHelper.mintNextAndAddAuthMethodsWithTypes(
         2,
         ipfsIdsBytes,
         [],
