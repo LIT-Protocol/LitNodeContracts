@@ -310,6 +310,38 @@ describe("PKPPermissions", function () {
         );
         expect(permitted).equal(false);
 
+        // try changing the pubkey again now that we revoked the auth method
+        // it should still fail
+        expect(
+          // attempt to permit it
+          pkpPermissions.addPermittedAuthMethod(
+            tokenId,
+            authMethodType,
+            userId,
+            "0x66", // a new pubkey
+            []
+          )
+        ).revertedWith(
+          "Cannot add a different pubkey for the same auth method type and id"
+        );
+
+        // lookup the pubkey by the user id and make sure it's still correct
+        pubkey = await pkpPermissions.getUserPubkeyForAuthMethod(
+          authMethodType,
+          userId
+        );
+        // console.log("pubkey stored in contract", pubkey);
+        // console.log("userPubkey", userPubkey);
+        expect(pubkey).equal(userPubkey);
+
+        // confirm that it's still not permitted
+        permitted = await pkpPermissions.isPermittedAuthMethod(
+          tokenId,
+          authMethodType,
+          userId
+        );
+        expect(permitted).equal(false);
+
         // confirm that the reverse lookup is now empty
         pkpIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodType,
