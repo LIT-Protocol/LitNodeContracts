@@ -159,8 +159,7 @@ describe("PKPHelper", function () {
           await pkpPermissions.isPermittedAuthMethod(
             tokenId,
             authMethodTypes[i],
-            authMethodUserIds[i],
-            authMethodPubkeys[i]
+            authMethodUserIds[i]
           );
         expect(authMethodIsPermitted).to.equal(true);
       }
@@ -169,8 +168,7 @@ describe("PKPHelper", function () {
       for (let i = 0; i < authMethodTypes.length; i++) {
         const authedTokenIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodTypes[i],
-          authMethodUserIds[i],
-          authMethodPubkeys[i]
+          authMethodUserIds[i]
         );
         expect(authedTokenIds).to.deep.equal([tokenId]);
       }
@@ -322,8 +320,7 @@ describe("PKPHelper", function () {
           await pkpPermissions.isPermittedAuthMethod(
             tokenId,
             authMethodTypes[i],
-            authMethodUserIds[i],
-            authMethodPubkeys[i]
+            authMethodUserIds[i]
           );
         expect(authMethodIsPermitted).to.equal(true);
       }
@@ -332,8 +329,7 @@ describe("PKPHelper", function () {
       for (let i = 0; i < authMethodTypes.length; i++) {
         const authedTokenIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodTypes[i],
-          authMethodUserIds[i],
-          authMethodPubkeys[i]
+          authMethodUserIds[i]
         );
         expect(authedTokenIds).to.deep.equal([tokenId]);
       }

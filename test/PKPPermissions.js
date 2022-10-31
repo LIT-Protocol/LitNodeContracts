@@ -236,8 +236,7 @@ describe("PKPPermissions", function () {
         let permitted = await pkpPermissions.isPermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         expect(permitted).equal(false);
 
@@ -263,57 +262,66 @@ describe("PKPPermissions", function () {
         permitted = await pkpPermissions.isPermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         expect(permitted).equal(true);
 
         // do a reverse lookup
         let pkpIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         expect(pkpIds.length).equal(1);
         expect(pkpIds[0]).equal(tokenId);
 
-        // try a check with the wrong pubkey
-        permitted = await pkpPermissions.isPermittedAuthMethod(
-          tokenId,
-          authMethodType,
-          userId,
-          "0x55"
+        // try changing the pubkey
+        expect(
+          // attempt to permit it
+          pkpPermissions.addPermittedAuthMethod(
+            tokenId,
+            authMethodType,
+            userId,
+            "0x55", // a new pubkey
+            []
+          )
+        ).revertedWith(
+          "Cannot add a different pubkey for the same auth method type and id"
         );
-        expect(permitted).equal(false);
+
+        // lookup the pubkey by the user id and make sure it's still correct
+        pubkey = await pkpPermissions.getUserPubkeyForAuthMethod(
+          authMethodType,
+          userId
+        );
+        // console.log("pubkey stored in contract", pubkey);
+        // console.log("userPubkey", userPubkey);
+        expect(pubkey).equal(userPubkey);
 
         // revoke
         await pkpPermissions.removePermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         permitted = await pkpPermissions.isPermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         expect(permitted).equal(false);
 
         // confirm that the reverse lookup is now empty
         pkpIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         expect(pkpIds.length).equal(0);
       });
 
       it("registers and grants permission to a generic AuthMethod with scopes", async () => {
         const authMethodType = 5;
-        const userId = "0xdeadbeef1234";
-        const userPubkey = "0x9876543210";
+        const userId = "0xdead1234beef";
+        const userPubkey = "0x98765432101234";
         const scopes = [10, 20];
 
         pkpContract = await pkpContract.connect(tester);
@@ -322,8 +330,7 @@ describe("PKPPermissions", function () {
         let permitted = await pkpPermissions.isPermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         expect(permitted).equal(false);
 
@@ -332,7 +339,6 @@ describe("PKPPermissions", function () {
           tokenId,
           authMethodType,
           userId,
-          userPubkey,
           256
         );
         expect(storedScopes.length).equal(256);
@@ -348,7 +354,6 @@ describe("PKPPermissions", function () {
               tokenId,
               authMethodType,
               userId,
-              userPubkey,
               scopes[i]
             );
           expect(scopePresent).equal(false);
@@ -376,16 +381,14 @@ describe("PKPPermissions", function () {
         permitted = await pkpPermissions.isPermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         expect(permitted).equal(true);
 
         // do a reverse lookup
         let pkpIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         expect(pkpIds.length).equal(1);
         expect(pkpIds[0]).equal(tokenId);
@@ -395,7 +398,6 @@ describe("PKPPermissions", function () {
           tokenId,
           authMethodType,
           userId,
-          userPubkey,
           256
         );
         expect(storedScopes.length).equal(256);
@@ -410,7 +412,6 @@ describe("PKPPermissions", function () {
               tokenId,
               authMethodType,
               userId,
-              userPubkey,
               scopes[i]
             );
           expect(scopePresent).equal(true);
@@ -422,7 +423,6 @@ describe("PKPPermissions", function () {
             tokenId,
             authMethodType,
             userId,
-            userPubkey,
             scopes[0]
           );
         expect(scopePresent).equal(true);
@@ -430,14 +430,12 @@ describe("PKPPermissions", function () {
           tokenId,
           authMethodType,
           userId,
-          userPubkey,
           scopes[0]
         );
         scopePresent = await pkpPermissions.isPermittedAuthMethodScopePresent(
           tokenId,
           authMethodType,
           userId,
-          userPubkey,
           scopes[0]
         );
         expect(scopePresent).equal(false);
@@ -448,7 +446,6 @@ describe("PKPPermissions", function () {
           tokenId,
           authMethodType,
           userId,
-          userPubkey,
           newScope
         );
         expect(scopePresent).equal(false);
@@ -456,47 +453,33 @@ describe("PKPPermissions", function () {
           tokenId,
           authMethodType,
           userId,
-          userPubkey,
           newScope
         );
         scopePresent = await pkpPermissions.isPermittedAuthMethodScopePresent(
           tokenId,
           authMethodType,
           userId,
-          userPubkey,
           newScope
         );
         expect(scopePresent).equal(true);
-
-        // try a check with the wrong pubkey
-        permitted = await pkpPermissions.isPermittedAuthMethod(
-          tokenId,
-          authMethodType,
-          userId,
-          "0x55"
-        );
-        expect(permitted).equal(false);
 
         // revoke
         await pkpPermissions.removePermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         permitted = await pkpPermissions.isPermittedAuthMethod(
           tokenId,
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         expect(permitted).equal(false);
 
         // confirm that the reverse lookup is now empty
         pkpIds = await pkpPermissions.getTokenIdsForAuthMethod(
           authMethodType,
-          userId,
-          userPubkey
+          userId
         );
         expect(pkpIds.length).equal(0);
       });
