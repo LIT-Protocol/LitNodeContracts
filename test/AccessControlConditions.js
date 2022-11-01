@@ -286,7 +286,7 @@ describe("AccessControlConditions", function () {
         );
       });
       
-      it("retrieves condition and updates it", async () => {
+      it("retrieves condition and fails to update it with incorrect creator", async () => {
         let [
           valueFromContract,
           securityHashFromContract,
@@ -316,16 +316,7 @@ describe("AccessControlConditions", function () {
           )
         ).revertedWith("Only the condition creator can update it");
 
-        // update with the correct address
-        await contract.connect(trustedSigner).storeConditionWithSigner(
-          key,
-          newValue,
-          newSecurityHash,
-          newChainId,
-          permanent,
-          creator.address,
-        );
-
+        // verify that nothing changed
         [
           valueFromContract,
           securityHashFromContract,
@@ -333,12 +324,57 @@ describe("AccessControlConditions", function () {
           permanentFromContract,
           creatorFromContract,
         ] = await contract.getCondition(key);
-        expect(valueFromContract).equal(newValue);
-        expect(securityHashFromContract).equal(newSecurityHash);
-        expect(chainIdFromContract).equal(newChainId);
+        expect(valueFromContract).equal(value);
+        expect(securityHashFromContract).equal(securityHash);
+        expect(chainIdFromContract).equal(chainId);
         expect(permanentFromContract).equal(permanent);
         expect(creatorFromContract).equal(creator.address);
       });
+      
+      it("retrieves condition and fails to update it with correct creator", async () => {
+        let [
+          valueFromContract,
+          securityHashFromContract,
+          chainIdFromContract,
+          permanentFromContract,
+          creatorFromContract,
+        ] = await contract.getCondition(key);
+        expect(valueFromContract).equal(value);
+        expect(securityHashFromContract).equal(securityHash);
+        expect(chainIdFromContract).equal(chainId);
+        expect(permanentFromContract).equal(permanent);
+        expect(creatorFromContract).equal(creator.address);
+
+        const newSecurityHash = 0x1337;
+        const newValue = 0x8765;
+        const newChainId = 2;
+
+        // attempt to update it with the wrong address.  it should revert.
+        expect(
+          contract.connect(trustedSigner).storeConditionWithSigner(
+            key,
+            newValue,
+            newSecurityHash,
+            newChainId,
+            permanent,
+            creator.address,
+          )
+        ).revertedWith("Signer cannot update conditions");
+
+        // verify that nothing changed
+        [
+          valueFromContract,
+          securityHashFromContract,
+          chainIdFromContract,
+          permanentFromContract,
+          creatorFromContract,
+        ] = await contract.getCondition(key);
+        expect(valueFromContract).equal(value);
+        expect(securityHashFromContract).equal(securityHash);
+        expect(chainIdFromContract).equal(chainId);
+        expect(permanentFromContract).equal(permanent);
+        expect(creatorFromContract).equal(creator.address);
+      })
     });
 
     context("when key is correct and condition is permanent", async () => {
@@ -368,7 +404,7 @@ describe("AccessControlConditions", function () {
         );
       });
 
-      it("retrieves condition and attempts to update it", async () => {
+      it("retrieves condition and fails to update it", async () => {
         let [
           valueFromContract,
           securityHashFromContract,

@@ -88,6 +88,10 @@ contract AccessControlConditions is
                 storedConditions[key].permanent == false,
                 "This condition was stored with the Permanent flag and cannot be updated"
             );
+            require(
+                msg.sender != signer,
+                "Signer cannot update conditions"
+            );
         }
         storedConditions[key] = StoredCondition(
             value,
