@@ -158,6 +158,9 @@ const fundWalletsWithGas = async (wallets, contracts) => {
     { value: stakerAmount }
   );
   console.log("fundWalletsWithGas stakerTx: ", stakerTx);
+
+  await Promise.all([nodeTx.wait(), stakerTx.wait()]);
+  console.log("mined nodeTx and stakerTx");
 };
 
 const fundWalletsWithTokens = async (wallets, contracts) => {
@@ -174,9 +177,11 @@ const fundWalletsWithTokens = async (wallets, contracts) => {
     contracts.litTokenContractAddress
   );
   console.log("fundWalletsWithTokens stakerTx: ", stakerTx);
+  await stakerTx.wait();
+  console.log("stakerTx mined");
 };
 
-const stakeTokens = async (wallets, contracts) => {
+const stakeTokensAndLockValidatorSet = async (wallets, contracts) => {
   const signer = await getSigner();
 
   const stakingContract = await ethers.getContractAt(
@@ -195,17 +200,58 @@ const stakeTokens = async (wallets, contracts) => {
   const amountToStake = await stakingContract.minimumStake();
   // let amountToStake = ethers.BigNumber.from("10");
   console.log("amountToStake: ", amountToStake);
+  console.log("sending approval txns now");
+  const approvalPromises = [];
+  for (let i = 0; i < wallets.length; i++) {
+    let w = wallets[i];
+
+    const connectedStakerWallet = w.staker.connect(ethers.provider);
+
+    const litTokenContractAsStaker = litTokenContract.connect(
+      connectedStakerWallet
+    );
+
+    // const balance = await litTokenContractAsStaker.balanceOf(
+    //   connectedStakerWallet.address
+    // );
+    // console.log(`balance for ${connectedStakerWallet.address}: `, balance);
+
+    console.log(
+      "stakeTokens - approving tokens for staker: ",
+      connectedStakerWallet.address
+    );
+    const approvalTx = litTokenContractAsStaker.approve(
+      contracts.stakingContractAddress,
+      amountToStake
+    );
+    // console.log("approvalTx for wallet " + i + ": ", approvalTx);
+
+    approvalPromises.push(approvalTx);
+  }
+
+  console.log("awaiting approval txns to be mined...");
+  await Promise.all(
+    approvalPromises.map((tx) => {
+      return tx.then((sentTxn) => sentTxn.wait());
+    })
+  );
+
+  // console.log("sleeping for 10 seconds for the chain to catch up");
+  // await sleep(10000);
+
+  console.log("sending staking txns now");
+  const stakingPromises = [];
   for (let i = 0; i < wallets.length; i++) {
     let w = wallets[i];
     /*
-    function stakeAndJoin(
-      uint256 amount,
-      uint32 ip,
-      uint128 ipv6,
-      uint32 port,
-      address nodeAddress
-    )
-    */
+      function stakeAndJoin(
+        uint256 amount,
+        uint32 ip,
+        uint128 ipv6,
+        uint32 port,
+        address nodeAddress
+      )
+      */
     //  15.235.12.154
     // const ip = ethers.BigNumber.from("267062426");
     // const ipv6 = ethers.BigNumber.from("0");
@@ -217,32 +263,14 @@ const stakeTokens = async (wallets, contracts) => {
 
     const connectedStakerWallet = w.staker.connect(ethers.provider);
 
-    const litTokenContractAsStaker = litTokenContract.connect(
-      connectedStakerWallet
-    );
-
-    const balance = await litTokenContractAsStaker.balanceOf(
-      connectedStakerWallet.address
-    );
-    console.log(`balance for ${connectedStakerWallet.address}: `, balance);
-
-    console.log(
-      "stakeTokens - approving tokens for staker: ",
-      connectedStakerWallet.address
-    );
-    const approvalTx = await litTokenContractAsStaker.approve(
-      contracts.stakingContractAddress,
-      amountToStake
-    );
-    console.log("approvalTx for wallet " + i + ": ", approvalTx);
-
-    console.log("sleeping for 5 seconds for the chain to catch up");
-    await sleep(5000);
-
     const stakingContractAsStaker = stakingContract.connect(
       connectedStakerWallet
     );
-    const tx = await stakingContractAsStaker.stakeAndJoin(
+    console.log(
+      "stakeTokens - staking tokens for staker: ",
+      connectedStakerWallet.address
+    );
+    const tx = stakingContractAsStaker.stakeAndJoin(
       amountToStake,
       ip,
       ipv6,
@@ -251,8 +279,26 @@ const stakeTokens = async (wallets, contracts) => {
       w.node.comsKeysSender.publicKey,
       w.node.comsKeysReceiver.publicKey
     );
-    console.log("stakeAndJoin tx for wallet " + i + ": ", tx);
+    // console.log("stakeAndJoin tx for wallet " + i + ": ", tx);
+
+    stakingPromises.push(tx);
   }
+
+  console.log("awaiting staking txns to be mined...");
+  await Promise.all(
+    stakingPromises.map((tx) => {
+      return tx.then((sentTxn) => sentTxn.wait());
+    })
+  );
+
+  // console.log("sleeping for 10 seconds for the chain to catch up");
+  // await sleep(10000);
+
+  console.log("locking the validator set");
+  const lockTx = await stakingContract.lockValidatorsForNextEpoch();
+  console.log("lockTx: ", lockTx);
+  await lockTx.wait();
+  console.log("lockTx mined");
 };
 
 async function main() {
@@ -274,8 +320,8 @@ async function main() {
   // sleep because the chain needs to catch up
   await sleep(10000);
 
-  // *** 5. Stake
-  await stakeTokens(wallets, contracts);
+  // *** 5. Stake and lock validator set
+  await stakeTokensAndLockValidatorSet(wallets, contracts);
 
   // *** 6. Generate env vars and conf files
   saveConfigFiles(wallets, contracts);
