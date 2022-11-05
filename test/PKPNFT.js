@@ -13,14 +13,17 @@ describe("PKPNFT", function () {
   let pkpContract;
   let router;
   let pkpPermissions;
+  let pkpNftMetadata;
 
   let PkpFactory;
   let RouterFactory;
+  let PkpNftMetadataFactory;
 
   before(async () => {
     PkpFactory = await ethers.getContractFactory("PKPNFT");
     RouterFactory = await smock.mock("PubkeyRouter");
     PkpPermissionsFactory = await ethers.getContractFactory("PKPPermissions");
+    PkpNftMetadataFactory = await ethers.getContractFactory("PKPNFTMetadata");
   });
 
   beforeEach(async () => {
@@ -34,8 +37,10 @@ describe("PKPNFT", function () {
       pkpContract.address,
       router.address
     );
+    pkpNftMetadata = await PkpNftMetadataFactory.deploy();
     await pkpContract.setRouterAddress(router.address);
     await pkpContract.setPkpPermissionsAddress(pkpPermissions.address);
+    await pkpContract.setPkpNftMetadataAddress(pkpNftMetadata.address);
   });
 
   describe("Attempt to Mint PKP NFT", async () => {
@@ -45,7 +50,7 @@ describe("PKPNFT", function () {
     beforeEach(async () => (pkpContract = pkpContract.connect(minter)));
 
     let pubkey =
-      "0x034319b040a81f78d14b8efcf73f3120b28d88ac5ca316dbd1a83797defcf20b5a";
+      "0x044028212ea31584733e183cc92b2c5306ff29bd26693698875e19e329f19cf2e0be4383fc28f63269619067d2369fbb0877f11158efe30ea1b17ffd07b5cde887";
     const pubkeyHash = ethers.utils.keccak256(pubkey);
     const tokenId = ethers.BigNumber.from(pubkeyHash);
     //console.log("PubkeyHash: " , pubkeyHash);
@@ -88,6 +93,25 @@ describe("PKPNFT", function () {
       // check the token was minted
       const owner = await pkpContract.ownerOf(tokenId);
       expect(owner).to.equal(minter.address);
+
+      // check the metadata
+      const pkpEthAddress = await pkpContract.getEthAddress(tokenId);
+
+      const tokenUri = await pkpContract.tokenURI(tokenId);
+      // console.log("tokenUri", tokenUri);
+      const metadata = tokenUri.substring(29);
+      const decodedUint8Array = ethers.utils.base64.decode(metadata);
+      const decoded = ethers.utils.toUtf8String(decodedUint8Array);
+      // console.log("decoded", decoded);
+      const parsed = JSON.parse(decoded);
+      // console.log("parsed", parsed);
+
+      expect(parsed["name"]).to.equal("Lit PKP #" + tokenId.toString());
+      expect(parsed["attributes"][0]["value"]).to.equal(pubkey);
+      expect(parsed["attributes"][1]["value"].toLowerCase()).to.equal(
+        pkpEthAddress.toLowerCase()
+      );
+      expect(parsed["attributes"][2]["value"]).to.equal(tokenId.toString());
     });
   });
 

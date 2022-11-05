@@ -192,6 +192,19 @@ async function main() {
   await tx.wait();
   console.log("New owner set.");
 
+  // *** 16. Deploy PKPNFTMetadata contract
+  console.log("Deploying PKP NFT metadata contract");
+  const pkpNftMetadataContract = await deployContract("PKPNFTMetadata");
+  verifyContractInBg(pkpNftMetadataContract.address);
+
+  // *** 17. Set metadata contract address in PKPNFT contract
+  console.log("Setting metadata contract address in PKPNFT contract");
+  tx = await pkpNFTContract.setPkpNftMetadataAddress(
+    pkpNftMetadataContract.address
+  );
+  await tx.wait();
+  console.log("Metadata contract address set");
+
   const finalJson = {
     stakingContractAddress: stakingContract.address,
     multisenderContractAddress: multisenderContract.address,
@@ -204,6 +217,7 @@ async function main() {
     rateLimitNftContractAddress: rateLimitNftContract.address,
     pkpHelperContractAddress: pkpHelperContract.address,
     pkpPermissionsContractAddress: pkpPermissionsContract.address,
+    pkpNftMetadataContractAddress: pkpNftMetadataContract.address,
     chainId,
     rpcUrl,
     chainName,
