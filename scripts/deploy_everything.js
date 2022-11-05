@@ -154,6 +154,19 @@ async function main() {
   await Promise.all([adminTx.wait(), minterTx.wait()]);
   console.log("New owner set.");
 
+  // *** 11.1 Deploy PKPNFTMetadata contract
+  console.log("Deploying PKP NFT metadata contract");
+  const pkpNftMetadataContract = await deployContract("PKPNFTMetadata");
+  verifyContractInBg(pkpNftMetadataContract.address);
+
+  // *** 11.2 Set metadata contract address in PKPNFT contract
+  console.log("Setting metadata contract address in PKPNFT contract");
+  tx = await pkpNFTContract.setPkpNftMetadataAddress(
+    pkpNftMetadataContract.address
+  );
+  await tx.wait();
+  console.log("Metadata contract address set");
+
   // *** 12. Set new owner of PKPNFT contract
   console.log("Setting new owner of PKPNFT contract...");
   tx = await transferOwnershipToNewOwner(pkpNFTContract);
@@ -191,19 +204,6 @@ async function main() {
   tx = await transferOwnershipToNewOwner(pkpHelperContract);
   await tx.wait();
   console.log("New owner set.");
-
-  // *** 16. Deploy PKPNFTMetadata contract
-  console.log("Deploying PKP NFT metadata contract");
-  const pkpNftMetadataContract = await deployContract("PKPNFTMetadata");
-  verifyContractInBg(pkpNftMetadataContract.address);
-
-  // *** 17. Set metadata contract address in PKPNFT contract
-  console.log("Setting metadata contract address in PKPNFT contract");
-  tx = await pkpNFTContract.setPkpNftMetadataAddress(
-    pkpNftMetadataContract.address
-  );
-  await tx.wait();
-  console.log("Metadata contract address set");
 
   const finalJson = {
     stakingContractAddress: stakingContract.address,
