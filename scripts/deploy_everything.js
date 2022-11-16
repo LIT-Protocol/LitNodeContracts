@@ -167,17 +167,10 @@ async function main() {
   await tx.wait();
   console.log("Metadata contract address set");
 
-  // *** 12. Set new owner of PKPNFT contract
-  console.log("Setting new owner of PKPNFT contract...");
-  tx = await transferOwnershipToNewOwner(pkpNFTContract);
-  await tx.wait();
-  console.log("New owner set.");
-  verifyContractInBg(pkpNFTContract.address);
-
-  // *** 13. get chain id
+  // *** 12. get chain id
   const chainId = await getChainId();
 
-  // *** 14. Deploy PKPPermissions Contract
+  // *** 13. Deploy PKPPermissions Contract
   console.log("Deploying PKP Permissions contract and then setting new owner");
   const pkpPermissionsContract = await deployContract("PKPPermissions", [
     pkpNFTContract.address,
@@ -190,6 +183,14 @@ async function main() {
   tx = await transferOwnershipToNewOwner(pkpPermissionsContract);
   await tx.wait();
   console.log("New owner set.");
+
+  // *** 14. Set PKP Permissions contract address on PKPNFT
+  console.log("Setting PKP Permissions contract address on PKPNFT");
+  tx = await pkpNFTContract.setPkpPermissionsAddress(
+    pkpPermissionsContract.address
+  );
+  await tx.wait();
+  console.log("PKP Permissions contract address set");
 
   // *** 15. Deploy PKPHelper Contract
   console.log("Deploying PKP helper contract and then setting new owner");
@@ -204,6 +205,13 @@ async function main() {
   tx = await transferOwnershipToNewOwner(pkpHelperContract);
   await tx.wait();
   console.log("New owner set.");
+
+  // *** 16. Set new owner of PKPNFT contract
+  console.log("Setting new owner of PKPNFT contract...");
+  tx = await transferOwnershipToNewOwner(pkpNFTContract);
+  await tx.wait();
+  console.log("New owner set.");
+  verifyContractInBg(pkpNFTContract.address);
 
   const finalJson = {
     stakingContractAddress: stakingContract.address,
