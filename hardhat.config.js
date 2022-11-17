@@ -135,7 +135,7 @@ module.exports = {
     project: "litnodecontracts",
     username: "rwiggum",
     // forkNetwork: "",
-    privateVerification: true,
+    privateVerification: false,
     // deploymentsDir: "deployments"
   },
 };
