@@ -85,6 +85,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     mapping(uint256 => mapping(address => VoteToKickValidatorInNextEpoch))
         public votesToKickValidatorsInNextEpoch;
 
+    // resolver contract address. the resolver contract is used to lookup other contract addresses.
+    address public resolverContractAddress;
+
     /* ========== CONSTRUCTOR ========== */
     constructor(address _stakingToken) {
         stakingToken = LITToken(_stakingToken);
@@ -539,6 +542,12 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         kickPenaltyPercent = newKickPenaltyPercent;
     }
 
+    function setResolverContractAddress(address newResolverContractAddress) public onlyOwner {
+        resolverContractAddress = newResolverContractAddress;
+
+        emit ResolverContractAddressChanged(newResolverContractAddress);
+    }
+
     /* ========== EVENTS ========== */
 
     event Staked(address indexed staker, uint256 amount);
@@ -555,4 +564,5 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         address indexed validatorStakerAddress
     );
     event ValidatorKickedFromNextEpoch(address indexed staker);
+    event ResolverContractAddressChanged(address resolverContractAddress);
 }

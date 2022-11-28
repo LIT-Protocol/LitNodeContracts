@@ -8,3 +8,9 @@ lit_config*env
 wallets
 node_configs
 .DS_Store
+
+# IDEs
+*.iml
+.idea
+*.gz
+*.core
