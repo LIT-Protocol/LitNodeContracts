@@ -111,6 +111,7 @@ async function main() {
   // *** 2. Deploy Staking Conttact
   const stakingContract = await deployContract("Staking", [litToken.address]);
   if (getResolverContractAddress()) {
+    console.log(`Setting new ResolverContractAddress to ${getResolverContractAddress()}`);
     await stakingContract.setResolverContractAddress(getResolverContractAddress());
   }
   let tx = await transferOwnershipToNewOwner(stakingContract);

@@ -34,5 +34,7 @@ if [ -n "${RESOLVER_CONTRACT_ADDRESS}" ]; then
   fi
 
   # Link the ContractResolver so we can call it.
-  ln -s "${LIT_OS_DIR}/blockchain/contracts/ContractResolver.sol" contracts/
+  if [ ! -e "${SCRIPT_DIR}/contracts/ContractResolver.sol" ]; then
+    ln -s "${LIT_OS_DIR}/blockchain/contracts/ContractResolver.sol" contracts/
+  fi
 fi
