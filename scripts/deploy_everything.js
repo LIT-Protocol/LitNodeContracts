@@ -250,16 +250,20 @@ async function main() {
     const deployEnvEnum = mapEnvToEnum(getEnv());
     const resolverContract = await getContract("ContractResolver", getResolverContractAddress());
 
-    await resolverContract.setContract(resolverContract.STAKING_CONTRACT(), deployEnvEnum, stakingContract.address);
-    await resolverContract.setContract(resolverContract.MULTI_SENDER_CONTRACT(), deployEnvEnum, multisenderContract.address);
-    await resolverContract.setContract(resolverContract.LIT_TOKEN_CONTRACT(), deployEnvEnum, litToken.address);
-    await resolverContract.setContract(resolverContract.ACCESS_CONTROL_CONTRACT(), deployEnvEnum, accessControlConditionsContract.address);
-    await resolverContract.setContract(resolverContract.PUB_KEY_ROUTER_CONTRACT(), deployEnvEnum, pubkeyRouterContract.address);
-    await resolverContract.setContract(resolverContract.PKP_NFT_CONTRACT(), deployEnvEnum, pkpNFTContract.address);
-    await resolverContract.setContract(resolverContract.RATE_LIMIT_NFT_CONTRACT(), deployEnvEnum, rateLimitNftContract.address);
-    await resolverContract.setContract(resolverContract.PKP_HELPER_CONTRACT(), deployEnvEnum, pkpHelperContract.address);
-    await resolverContract.setContract(resolverContract.PKP_PERMISSIONS_CONTRACT(), deployEnvEnum, pkpPermissionsContract.address);
-    await resolverContract.setContract(resolverContract.PKP_NFT_METADATA_CONTRACT(), deployEnvEnum, pkpNftMetadataContract.address);
+    let txs = [];
+
+    txs.push(await resolverContract.setContract(await resolverContract.STAKING_CONTRACT(), deployEnvEnum, stakingContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.MULTI_SENDER_CONTRACT(), deployEnvEnum, multisenderContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.LIT_TOKEN_CONTRACT(), deployEnvEnum, litToken.address));
+    txs.push(await resolverContract.setContract(await resolverContract.ACCESS_CONTROL_CONTRACT(), deployEnvEnum, accessControlConditionsContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.PUB_KEY_ROUTER_CONTRACT(), deployEnvEnum, pubkeyRouterContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.PKP_NFT_CONTRACT(), deployEnvEnum, pkpNFTContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.RATE_LIMIT_NFT_CONTRACT(), deployEnvEnum, rateLimitNftContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.PKP_HELPER_CONTRACT(), deployEnvEnum, pkpHelperContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.PKP_PERMISSIONS_CONTRACT(), deployEnvEnum, pkpPermissionsContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.PKP_NFT_METADATA_CONTRACT(), deployEnvEnum, pkpNftMetadataContract.address));
+
+    await Promise.all(txs);
   }
 
   const finalJson = {
