@@ -10,7 +10,8 @@ Learn more here: https://developer.litprotocol.com/docs/litactionsandpkps/whatar
 # How to verify contracts
 
 ```shell
-npx hardhat verify --network celo 0x5Ef8A5e3b74DE013d608740F934c14109ae12a81 "0x0008a7B1Ce657E78b4eDC6FC40078ce8bf08329A"
+npx hardhat verify --network celo 0x5Ef8A5e3b74DE013d608740F934c14109ae12a81 \
+  "0x0008a7B1Ce657E78b4eDC6FC40078ce8bf08329A"
 ```
 
 The second param is any constructor params.
