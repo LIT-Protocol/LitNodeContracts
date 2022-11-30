@@ -15,7 +15,15 @@ The second param is any constructor params.
 
 # Deploying
 
-Use the `deployEverythingToMumbai.sh` script to deploy all the contracts and create config files for the nodes. You should set the ENV var LIT_MUMBAI_DEPLOYER_PRIVATE_KEY to the private key of the account you want to deploy from. It should have Polygon Mumbai testnet tokens in it for gas. You can get them from the [Polygon Mumbai faucet](https://faucet.matic.network/) or from the [Alchemy mumbai faucet](https://mumbaifaucet.com/) or if you need even more ask Chris on slack.
+```shell
+./deployEverything.sh <env> [resolver_address] [chain]
+```
+
+_env_: Environment (dev, test or prod).
+_resolver_address_: Address of the ContractResolver (optional).
+_chain_: Chain (optional, defaults to mumbai).
+
+Use the `deployEverything.sh` script to deploy all the contracts and create config files for the nodes. You should set the ENV var LIT_MUMBAI_DEPLOYER_PRIVATE_KEY to the private key of the account you want to deploy from. It should have Polygon Mumbai testnet tokens in it for gas. You can get them from the [Polygon Mumbai faucet](https://faucet.matic.network/) or from the [Alchemy mumbai faucet](https://mumbaifaucet.com/) or if you need even more ask Chris on slack.
 
 Note: The deploy script will set the ownership of each contract to the `newOwner` address defined in scripts/deploy_everything.js. If you need to call owner / admin functions on the contracts after they're deployed, you can set that `newOwner` address to something you control. If you're just using the contracts with the nodes you probably don't need to do this.
 
