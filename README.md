@@ -9,7 +9,9 @@ Learn more here: https://developer.litprotocol.com/docs/litactionsandpkps/whatar
 
 # How to verify contracts
 
-`npx hardhat verify --network celo 0x5Ef8A5e3b74DE013d608740F934c14109ae12a81 "0x0008a7B1Ce657E78b4eDC6FC40078ce8bf08329A"`
+```shell
+npx hardhat verify --network celo 0x5Ef8A5e3b74DE013d608740F934c14109ae12a81 "0x0008a7B1Ce657E78b4eDC6FC40078ce8bf08329A"
+```
 
 The second param is any constructor params.
 
@@ -19,9 +21,9 @@ The second param is any constructor params.
 ./deployEverything.sh <env> [resolver_address] [chain]
 ```
 
-_env_: Environment (dev, test or prod).
-_resolver_address_: Address of the ContractResolver (optional).
-_chain_: Chain (optional, defaults to mumbai).
+- **env**: Environment (dev, test or prod).
+- **resolver_address**: Address of the ContractResolver (optional).
+- **chain**: Chain (optional, defaults to mumbai).
 
 Use the `deployEverything.sh` script to deploy all the contracts and create config files for the nodes. You should set the ENV var LIT_MUMBAI_DEPLOYER_PRIVATE_KEY to the private key of the account you want to deploy from. It should have Polygon Mumbai testnet tokens in it for gas. You can get them from the [Polygon Mumbai faucet](https://faucet.matic.network/) or from the [Alchemy mumbai faucet](https://mumbaifaucet.com/) or if you need even more ask Chris on slack.
 
