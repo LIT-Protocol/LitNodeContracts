@@ -16,6 +16,27 @@ async function getChainId() {
   return chainId;
 }
 
+const getEnv = () => {
+  return process.env.ENV;
+}
+
+const mapEnvToEnum = (env) => {
+  switch (env) {
+    case "dev":
+      return 0;
+    case "test":
+      return 1;
+    case "prod":
+      return 2;
+    default:
+      throw new Error("ENV is invalid");
+  }
+}
+
+const getResolverContractAddress = () => {
+  return process.env.RESOLVER_CONTRACT_ADDRESS;
+}
+
 console.log("Deploying contracts to network " + chainName);
 
 // process.exit(0);
@@ -64,6 +85,11 @@ const deployContract = async (contractName, args = []) => {
   return contract;
 };
 
+const getContract = async (contractName, addr) => {
+  const Factory = await ethers.getContractFactory(contractName);
+  return Factory.attach(addr);
+};
+
 const transferOwnershipToNewOwner = async (contract) => {
   console.log(`Setting new owner to ${newOwner}`);
   const tx = await contract.transferOwnership(newOwner);
@@ -84,6 +110,10 @@ async function main() {
 
   // *** 2. Deploy Staking Conttact
   const stakingContract = await deployContract("Staking", [litToken.address]);
+  if (getResolverContractAddress()) {
+    console.log(`Setting new ResolverContractAddress to ${getResolverContractAddress()}`);
+    await stakingContract.setResolverContractAddress(getResolverContractAddress());
+  }
   let tx = await transferOwnershipToNewOwner(stakingContract);
   await tx.wait();
   console.log("New owner set.");
@@ -212,6 +242,29 @@ async function main() {
   await tx.wait();
   console.log("New owner set.");
   verifyContractInBg(pkpNFTContract.address);
+
+  if (getResolverContractAddress()) {
+    // *** 17. Set contract addresses in resolver contract
+    console.log("Setting contract addresses in resolver...");
+
+    const deployEnvEnum = mapEnvToEnum(getEnv());
+    const resolverContract = await getContract("ContractResolver", getResolverContractAddress());
+
+    let txs = [];
+
+    txs.push(await resolverContract.setContract(await resolverContract.STAKING_CONTRACT(), deployEnvEnum, stakingContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.MULTI_SENDER_CONTRACT(), deployEnvEnum, multisenderContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.LIT_TOKEN_CONTRACT(), deployEnvEnum, litToken.address));
+    txs.push(await resolverContract.setContract(await resolverContract.ACCESS_CONTROL_CONTRACT(), deployEnvEnum, accessControlConditionsContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.PUB_KEY_ROUTER_CONTRACT(), deployEnvEnum, pubkeyRouterContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.PKP_NFT_CONTRACT(), deployEnvEnum, pkpNFTContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.RATE_LIMIT_NFT_CONTRACT(), deployEnvEnum, rateLimitNftContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.PKP_HELPER_CONTRACT(), deployEnvEnum, pkpHelperContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.PKP_PERMISSIONS_CONTRACT(), deployEnvEnum, pkpPermissionsContract.address));
+    txs.push(await resolverContract.setContract(await resolverContract.PKP_NFT_METADATA_CONTRACT(), deployEnvEnum, pkpNftMetadataContract.address));
+
+    await Promise.all(txs);
+  }
 
   const finalJson = {
     stakingContractAddress: stakingContract.address,

@@ -672,4 +672,18 @@ describe("Staking", function () {
       ).to.be.false;
     });
   });
+
+  describe("setting new resolver contract address", () => {
+    it("sets the new contract address", async () => {
+      stakingContract = stakingContract.connect(deployer);
+
+      const newResolverContractAddress = "0xea1762E80ED1C54baCa25C7aF4E435FA1427C99E";
+
+      expect(await stakingContract.resolverContractAddress()).equal("0x0000000000000000000000000000000000000000");
+
+      await stakingContract.setResolverContractAddress(newResolverContractAddress);
+
+      expect(await stakingContract.resolverContractAddress()).equal(newResolverContractAddress);
+    });
+  });
 });
