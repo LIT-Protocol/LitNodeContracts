@@ -117,7 +117,7 @@ describe("Staking", function () {
         port,
         nodeAddress,
         utils.randomBytes(32),
-        utils.randomBytes(32),
+        utils.randomBytes(32)
       );
     }
 
@@ -165,7 +165,7 @@ describe("Staking", function () {
           7777,
           nodeAccount1.getAddress(),
           utils.randomBytes(32),
-          utils.randomBytes(32),
+          utils.randomBytes(32)
         )
       ).revertedWith("Cannot stake 0");
     });
@@ -195,7 +195,7 @@ describe("Staking", function () {
           7777,
           nodeAccount1.getAddress(),
           utils.randomBytes(32),
-          utils.randomBytes(32),
+          utils.randomBytes(32)
         )
       ).revertedWith("Stake must be greater than or equal to minimumStake");
     });
@@ -241,7 +241,7 @@ describe("Staking", function () {
       stakingAccount1Port,
       nodeAccount1.getAddress(),
       communicationSenderPubKey,
-      communicationReceiverPubKey,
+      communicationReceiverPubKey
     );
 
     const postStakeBal = await stakingContract.balanceOf(
@@ -586,7 +586,9 @@ describe("Staking", function () {
         const nodeAddress = stakingAccount.nodeAddress;
         stakingContract = stakingContract.connect(nodeAddress);
         await stakingContract.kickValidatorInNextEpoch(
-          toBeKicked.stakingAddress.getAddress()
+          toBeKicked.stakingAddress.getAddress(),
+          1,
+          "0x"
         );
 
         // assert votesToKickValidatorsInNextEpoch state
@@ -677,13 +679,20 @@ describe("Staking", function () {
     it("sets the new contract address", async () => {
       stakingContract = stakingContract.connect(deployer);
 
-      const newResolverContractAddress = "0xea1762E80ED1C54baCa25C7aF4E435FA1427C99E";
+      const newResolverContractAddress =
+        "0xea1762E80ED1C54baCa25C7aF4E435FA1427C99E";
 
-      expect(await stakingContract.resolverContractAddress()).equal("0x0000000000000000000000000000000000000000");
+      expect(await stakingContract.resolverContractAddress()).equal(
+        "0x0000000000000000000000000000000000000000"
+      );
 
-      await stakingContract.setResolverContractAddress(newResolverContractAddress);
+      await stakingContract.setResolverContractAddress(
+        newResolverContractAddress
+      );
 
-      expect(await stakingContract.resolverContractAddress()).equal(newResolverContractAddress);
+      expect(await stakingContract.resolverContractAddress()).equal(
+        newResolverContractAddress
+      );
     });
   });
 });

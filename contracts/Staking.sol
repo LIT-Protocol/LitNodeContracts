@@ -24,6 +24,15 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         Unlocked
     }
 
+    // this enum is not used, and instead we use an integer so that
+    // we can add more reasons after the contract is deployed.
+    // This enum is kept in the comments here for reference.
+    // enum KickReason {
+    //     NULLREASON, // 0
+    //     UNRESPONSIVE, // 1
+    //     BAD_ATTESTATION // 2
+    // }
+
     States public state = States.Active;
 
     LITToken public stakingToken;
@@ -448,10 +457,11 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// If more than the threshold of validators vote to kick someone, kick them.
     /// It's expected that this will be called by the node directly, so msg.sender will be the nodeAddress
-    function kickValidatorInNextEpoch(address validatorStakerAddress)
-        public
-        nonReentrant
-    {
+    function kickValidatorInNextEpoch(
+        address validatorStakerAddress,
+        uint reason,
+        bytes calldata data
+    ) public nonReentrant {
         address stakerAddressOfSender = nodeAddressToStakerAddress[msg.sender];
         require(
             stakerAddressOfSender != address(0),
@@ -494,7 +504,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
         emit VotedToKickValidatorInNextEpoch(
             stakerAddressOfSender,
-            validatorStakerAddress
+            validatorStakerAddress,
+            reason,
+            data
         );
     }
 
@@ -542,7 +554,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         kickPenaltyPercent = newKickPenaltyPercent;
     }
 
-    function setResolverContractAddress(address newResolverContractAddress) public onlyOwner {
+    function setResolverContractAddress(address newResolverContractAddress)
+        public
+        onlyOwner
+    {
         resolverContractAddress = newResolverContractAddress;
 
         emit ResolverContractAddressChanged(newResolverContractAddress);
@@ -560,8 +575,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     event ReadyForNextEpoch(address indexed staker);
     event StateChanged(States newState);
     event VotedToKickValidatorInNextEpoch(
-        address indexed staker,
-        address indexed validatorStakerAddress
+        address indexed reporter,
+        address indexed validatorStakerAddress,
+        uint indexed reason,
+        bytes data
     );
     event ValidatorKickedFromNextEpoch(address indexed staker);
     event ResolverContractAddressChanged(address resolverContractAddress);
