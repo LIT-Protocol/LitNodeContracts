@@ -107,9 +107,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             retries: 0
         });
         // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
-        tokenRewardPerTokenPerEpoch = (10 ^ stakingToken.decimals()) / 20;
+        tokenRewardPerTokenPerEpoch = (10**stakingToken.decimals()) / 20;
         // 1 token minimum stake
-        minimumStake = (1 * 10) ^ stakingToken.decimals();
+        minimumStake = (1 * 10)**stakingToken.decimals();
         kickPenaltyPercent = 5;
     }
 
