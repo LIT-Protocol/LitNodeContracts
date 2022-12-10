@@ -298,11 +298,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         for (uint256 i = 0; i < validatorsInCurrentEpoch.length(); i++) {
             address validatorAddress = validatorsInCurrentEpoch.at(i);
             validators[validatorAddress].reward +=
-                tokenRewardPerTokenPerEpoch *
-                validators[validatorAddress].balance;
-
-            // clear out readyForNextEpoch
-            //readyForNextEpoch[validatorAddress] = false; //moved to copy loop because this should enumerate over next validators
+                (tokenRewardPerTokenPerEpoch *
+                    validators[validatorAddress].balance) /
+                10**stakingToken.decimals();
         }
 
         // set the validators to the new validator set
