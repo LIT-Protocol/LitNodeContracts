@@ -4,6 +4,7 @@ pragma solidity ^0.8.3;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {PubkeyRouter} from "./PubkeyRouter.sol";
 import {PKPPermissions} from "./PKPPermissions.sol";
 import {PKPNFTMetadata} from "./PKPNFTMetadata.sol";
@@ -27,7 +28,8 @@ contract PKPNFT is
     ERC721("Programmable Keypair", "PKP"),
     Ownable,
     ERC721Burnable,
-    ERC721Enumerable
+    ERC721Enumerable,
+    ReentrancyGuard
 {
     /* ========== STATE VARIABLES ========== */
 
@@ -35,7 +37,6 @@ contract PKPNFT is
     PKPPermissions public pkpPermissions;
     PKPNFTMetadata public pkpNftMetadata;
     uint public mintCost;
-    uint public contractBalance;
     address public freeMintSigner;
 
     // maps keytype to array of unminted routed token ids
@@ -257,8 +258,6 @@ contract PKPNFT is
         } else {
             _safeMint(to, tokenId);
         }
-
-        contractBalance += msg.value;
     }
 
     /// Take a tokenId off the stack
@@ -302,9 +301,11 @@ contract PKPNFT is
         freeMintSigner = newFreeMintSigner;
     }
 
-    function withdraw() public onlyOwner {
-        payable(msg.sender).transfer(contractBalance);
-        contractBalance = 0;
+    function withdraw() public onlyOwner nonReentrant {
+        (bool sent, ) = payable(msg.sender).call{value: address(this).balance}(
+            ""
+        );
+        require(sent);
     }
 
     /// Push a tokenId onto the stack

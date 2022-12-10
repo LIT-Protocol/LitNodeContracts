@@ -4,6 +4,7 @@ pragma solidity ^0.8.3;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ERC721Burnable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
@@ -18,12 +19,12 @@ contract RateLimitNFT is
     ERC721("Rate Limit Increases on Lit Protocol", "RLI"),
     Ownable,
     ERC721Burnable,
-    ERC721Enumerable
+    ERC721Enumerable,
+    ReentrancyGuard
 {
     using Strings for uint256;
     /* ========== STATE VARIABLES ========== */
 
-    uint256 public contractBalance;
     address public freeMintSigner;
     uint256 public additionalRequestsPerMillisecondCost;
     uint256 public tokenIdCounter;
@@ -203,7 +204,6 @@ contract RateLimitNFT is
         );
 
         _mintWithoutValueCheck(tokenId, requestsPerMillisecond, expiresAt);
-        contractBalance += msg.value;
     }
 
     function freeMint(
@@ -243,9 +243,11 @@ contract RateLimitNFT is
         freeMintSigner = newFreeMintSigner;
     }
 
-    function withdraw() public onlyOwner {
-        payable(msg.sender).transfer(contractBalance);
-        contractBalance = 0;
+    function withdraw() public onlyOwner nonReentrant {
+        (bool sent, ) = payable(msg.sender).call{value: address(this).balance}(
+            ""
+        );
+        require(sent);
     }
 
     function setRateLimitWindowMilliseconds(

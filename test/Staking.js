@@ -33,7 +33,9 @@ describe("Staking", function () {
   let stakingContract;
   let minStake;
   const stakingAccounts = [];
-  const totalTokens = 1000000;
+  const totalTokens = ethers.BigNumber.from("1000000000").mul(
+    ethers.BigNumber.from(10).pow(ethers.BigNumber.from(18))
+  ); // create 1,000,000,000 total tokens with 18 decimals
   const stakingAccount1IpAddress = "192.168.1.1";
   const stakingAccount1Port = 7777;
   const stakingAccountCount = 10;
