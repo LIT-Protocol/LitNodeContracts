@@ -146,7 +146,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         address[] memory values = new address[](
             validatorsInCurrentEpoch.length()
         );
-        for (uint256 i = 0; i < validatorsInCurrentEpoch.length(); i++) {
+        uint validatorLength = validatorsInCurrentEpoch.length();
+        for (uint256 i = 0; i < validatorLength; i++) {
             values[i] = validatorsInCurrentEpoch.at(i);
         }
         return values;
@@ -158,7 +159,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         returns (address[] memory)
     {
         address[] memory values = new address[](validatorsInNextEpoch.length());
-        for (uint256 i = 0; i < validatorsInNextEpoch.length(); i++) {
+        uint validatorLength = validatorsInNextEpoch.length();
+        for (uint256 i = 0; i < validatorLength; i++) {
             values[i] = validatorsInNextEpoch.at(i);
         }
         return values;
@@ -166,7 +168,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     function isReadyForNextEpoch() public view returns (bool) {
         uint256 total = 0;
-        for (uint256 i = 0; i < validatorsInNextEpoch.length(); i++) {
+        uint validatorLength = validatorsInNextEpoch.length();
+        for (uint256 i = 0; i < validatorLength; i++) {
             if (readyForNextEpoch[validatorsInNextEpoch.at(i)]) {
                 total++;
             }
@@ -268,7 +271,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             "Must be in NextValidatorSetLocked"
         );
 
-        for (uint256 i = 0; i < validatorsInNextEpoch.length(); i++) {
+        uint validatorLength = validatorsInNextEpoch.length();
+        for (uint256 i = 0; i < validatorLength; i++) {
             readyForNextEpoch[validatorsInNextEpoch.at(i)] = false;
         }
 
@@ -295,7 +299,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         );
 
         // reward the validators
-        for (uint256 i = 0; i < validatorsInCurrentEpoch.length(); i++) {
+        uint validatorLength = validatorsInCurrentEpoch.length();
+        for (uint256 i = 0; i < validatorLength; i++) {
             address validatorAddress = validatorsInCurrentEpoch.at(i);
             validators[validatorAddress].reward +=
                 (tokenRewardPerTokenPerEpoch *
@@ -314,7 +319,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         }
 
         // copy validators from next epoch to current epoch
-        for (uint256 i = 0; i < validatorsInNextEpoch.length(); i++) {
+        validatorLength = validatorsInNextEpoch.length();
+        for (uint256 i = 0; i < validatorLength; i++) {
             validatorsInCurrentEpoch.add(validatorsInNextEpoch.at(i));
 
             // clear out readyForNextEpoch
