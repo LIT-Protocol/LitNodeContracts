@@ -212,7 +212,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         if (validatorsInCurrentEpoch.length() <= 2) {
             return 1;
         }
-        return (validatorsInCurrentEpoch.length() / 3) * 2;
+        return (validatorsInCurrentEpoch.length() * 2) / 3;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -491,8 +491,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             // block them from rejoining the next epoch
             validatorsKickedFromNextEpoch.add(validatorStakerAddress);
             // slash the stake
-            uint256 amountToBurn = validators[validatorStakerAddress].balance *
-                (kickPenaltyPercent / 100);
+            uint256 amountToBurn = (validators[validatorStakerAddress].balance *
+                kickPenaltyPercent) / 100;
             validators[validatorStakerAddress].balance -= amountToBurn;
             totalStaked -= amountToBurn;
             stakingToken.burn(amountToBurn);

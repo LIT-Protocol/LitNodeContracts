@@ -109,7 +109,7 @@ contract PubkeyRouter is Ownable {
     }
 
     /// vote to set the pubkey and routing data for a given key
-    // FIXME this is vulnerable to an attack where the first node to call setRoutingData can set an incorrect key length, stakingContract, or keyType, since none of those are validated.  Then, if more nodes try to call setRoutingData with the correct data, it will revert because it doesn't match.  Instead, it should probably be vote based.  so if 1 guy votes for an incorrect keyLength, it doesn't matter, because the one that gets the most votes wins.
+    // FIXME this is vulnerable to an attack where the first node to call setRoutingData can set an incorrect stakingContract, or keyType, since none of those are validated.  Then, if more nodes try to call setRoutingData with the correct data, it will revert because it doesn't match.  Instead, it should probably be vote based.  so if 1 guy votes for an incorrect keyLength, it doesn't matter, because the one that gets the most votes wins.
     // FIXME this is also vulnerable to an attack where someone sets up their own staking contract with a threshold of 1 and then goes around claiming tokenIds and filling them with junk.  we probably need to verify that the staking contract is legit.  i'm not sure how to do that though.  like we can check various things from the staking contract, that the staked token is the real Lit token, and that the user has staked a significant amount.  But how do we know that staking contract isn't a custom fork that lies about all that stuff?  Maybe we need a mapping of valid staking contracts somewhere, and when we deploy a new one we add it manually.
     function voteForRoutingData(
         uint256 tokenId,
@@ -133,14 +133,9 @@ contract PubkeyRouter is Ownable {
 
         // if this is the first registration, validate that the hashes match
         if (pubkeyRegistrations[tokenId].nodeVoteCount == 0) {
-            // this is the only place where the tokenId could become decoupled from the keyParts.
+            // this is the only place where the tokenId could become decoupled from the pubkey.
             // therefore, we need to ensure that the tokenId was derived correctly
             // this only needs to be done the first time the PKP is registered
-
-            // console.log("keypart1: ");
-            // console.logBytes32(keyPart1);
-            // console.log("keypart2: ");
-            // console.logBytes32(keyPart2);
 
             require(
                 tokenId == uint256(keccak256(pubkey)),

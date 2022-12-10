@@ -394,7 +394,7 @@ describe("Staking", function () {
       const keyTypeInput = 2;
 
       // vote to register it with 5 nodes
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 6; i++) {
         const stakingAccount = stakingAccounts[i];
         const nodeAddress = stakingAccount.nodeAddress;
         routerContract = routerContract.connect(nodeAddress);
@@ -419,11 +419,15 @@ describe("Staking", function () {
       isRouted = await routerContract.isRouted(pubkeyHash);
       expect(isRouted).equal(false);
 
+      // how many validators are there, anyway?
+      const validators = await stakingContract.getValidatorsInCurrentEpoch();
+      expect(validators.length).equal(11);
+
       // validate that the voting process is going as expected
       let [routingData, nodeVoteCount, nodeVoteThreshold, votedNodes] =
         await routerContract.pubkeyRegistrations(pubkeyHash);
-      expect(nodeVoteThreshold).equal(6);
-      expect(nodeVoteCount).equal(5);
+      expect(nodeVoteThreshold).equal(7);
+      expect(nodeVoteCount).equal(6);
 
       // this data is the candidate data.  if the votes pass, this becomes the real routing data.  this should match what the nodes are voting for
       [pubkeyBefore, stakingContractAddressBefore, keyType] = routingData;
@@ -432,7 +436,7 @@ describe("Staking", function () {
       expect(keyType).equal(keyTypeInput);
 
       // now vote with the rest of the nodes
-      for (let i = 5; i < stakingAccounts.length; i++) {
+      for (let i = 6; i < stakingAccounts.length; i++) {
         const stakingAccount = stakingAccounts[i];
         const nodeAddress = stakingAccount.nodeAddress;
         routerContract = routerContract.connect(nodeAddress);
@@ -443,9 +447,9 @@ describe("Staking", function () {
           stakingContract.address,
           keyTypeInput
         );
-        if (i === 6) {
-          // confirm that it was set after the 7th node has voted
-          // because it's set after the nodeVoteCount > nodeVoteThreshold which is 6.
+        if (i === 7) {
+          // confirm that it was set after the 8th node has voted
+          // because it's set after the nodeVoteCount > nodeVoteThreshold which is 7.
           let [pubkeyAfter, stakingContractAddressAfter, keyTypeAfter] =
             await routerContract.getRoutingData(pubkeyHash);
           expect(pubkeyAfter).equal(fakePubkey);
@@ -616,9 +620,9 @@ describe("Staking", function () {
         toBeKicked.stakingAddress.getAddress()
       );
       const kickPenaltyPercent = await stakingContract.kickPenaltyPercent();
-      const amountBurned = kickedValidatorStakeBefore.mul(
-        kickPenaltyPercent.div(BigNumber.from(100))
-      );
+      const amountBurned = kickedValidatorStakeBefore
+        .mul(kickPenaltyPercent)
+        .div(BigNumber.from(100));
 
       expect(kickedValidatorStakeAfter.toString()).to.equal(
         kickedValidatorStakeBefore.sub(amountBurned).toString()
