@@ -29,10 +29,6 @@ contract ConditionValidations is ReentrancyGuard {
         address creator;
     }
 
-    struct ValidAddress {
-        bool isValid;
-    }
-
     /* ========== STATE VARIABLES ========== */
     mapping(bytes32 => ValidatedCondition) public validatedConditions;
     mapping(address => bool) public validAddresses;
@@ -54,11 +50,9 @@ contract ConditionValidations is ReentrancyGuard {
 
     /* ========== VIEWS ========== */
 
-    function getValidatedCondition(bytes32 conditionHashKey)
-        external
-        view
-        returns (ValidatedCondition memory)
-    {
+    function getValidatedCondition(
+        bytes32 conditionHashKey
+    ) external view returns (ValidatedCondition memory) {
         // check if key exists in validatedConditions
         if (validatedConditions[conditionHashKey].timestamp != 0) {
             return validatedConditions[conditionHashKey];
@@ -67,21 +61,18 @@ contract ConditionValidations is ReentrancyGuard {
         }
     }
 
-    function verifySignature(bytes32 conditionHash, bytes memory signature)
-        external
-        view
-        returns (bool)
-    {
+    function verifySignature(
+        bytes32 conditionHash,
+        bytes memory signature
+    ) external view returns (bool) {
         address sigAddress = ECDSA.recover(conditionHash, signature);
-        
-        return validAddresses[sigAddress];  
+
+        return validAddresses[sigAddress];
     }
 
-    function testPubKeyToAddress(bytes memory _publicKey)
-        external
-        pure
-        returns (address)
-    {
+    function testPubKeyToAddress(
+        bytes memory _publicKey
+    ) external pure returns (address) {
         //require(_publicKey.length == 64);
         address addrFromPublicKey = address(
             bytes20(uint160(uint256(keccak256(_publicKey))))
