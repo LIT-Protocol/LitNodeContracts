@@ -92,13 +92,9 @@ contract PKPNFT is
         );
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC721, ERC721Enumerable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC721, ERC721Enumerable) returns (bool) {
         return
             interfaceId == type(IERC721Enumerable).interfaceId ||
             interfaceId == type(IERC721Metadata).interfaceId ||
@@ -113,12 +109,9 @@ contract PKPNFT is
         ERC721Enumerable._beforeTokenTransfer(from, to, tokenId);
     }
 
-    function tokenURI(uint tokenId)
-        public
-        view
-        override
-        returns (string memory)
-    {
+    function tokenURI(
+        uint tokenId
+    ) public view override returns (string memory) {
         console.log("getting token uri");
         bytes memory pubKey = router.getPubkey(tokenId);
         console.log("got pubkey, getting eth address");
@@ -128,11 +121,9 @@ contract PKPNFT is
         return pkpNftMetadata.tokenURI(tokenId, pubKey, ethAddress);
     }
 
-    function getUnmintedRoutedTokenIdCount(uint keyType)
-        public
-        view
-        returns (uint)
-    {
+    function getUnmintedRoutedTokenIdCount(
+        uint keyType
+    ) public view returns (uint) {
         return unmintedRoutedTokenIds[keyType].length;
     }
 
@@ -157,11 +148,10 @@ contract PKPNFT is
         return tokenId;
     }
 
-    function mintGrantAndBurnNext(uint keyType, bytes memory ipfsCID)
-        public
-        payable
-        returns (uint)
-    {
+    function mintGrantAndBurnNext(
+        uint keyType,
+        bytes memory ipfsCID
+    ) public payable returns (uint) {
         require(msg.value == mintCost, "You must pay exactly mint cost");
         uint tokenId = _getNextTokenIdToMint(keyType);
         _mintWithoutValueCheck(tokenId, address(this));
@@ -209,10 +199,10 @@ contract PKPNFT is
     /// where you could just trust the sig that a number is prime.
     /// without this function, a user could mint a PKP, sign a bunch of junk, and then burn the
     /// PKP to make it looks like only the Lit Action can use it.
-    function mintGrantAndBurnSpecific(uint tokenId, bytes memory ipfsCID)
-        public
-        onlyOwner
-    {
+    function mintGrantAndBurnSpecific(
+        uint tokenId,
+        bytes memory ipfsCID
+    ) public onlyOwner {
         _mintWithoutValueCheck(tokenId, address(this));
         pkpPermissions.addPermittedAction(tokenId, ipfsCID, new uint[](0));
         _burn(tokenId);
@@ -277,35 +267,38 @@ contract PKPNFT is
 
     function setRouterAddress(address routerAddress) public onlyOwner {
         router = PubkeyRouter(routerAddress);
+        emit RouterAddressSet(routerAddress);
     }
 
-    function setPkpNftMetadataAddress(address pkpNftMetadataAddress)
-        public
-        onlyOwner
-    {
+    function setPkpNftMetadataAddress(
+        address pkpNftMetadataAddress
+    ) public onlyOwner {
         pkpNftMetadata = PKPNFTMetadata(pkpNftMetadataAddress);
+        emit PkpNftMetadataAddressSet(pkpNftMetadataAddress);
     }
 
-    function setPkpPermissionsAddress(address pkpPermissionsAddress)
-        public
-        onlyOwner
-    {
+    function setPkpPermissionsAddress(
+        address pkpPermissionsAddress
+    ) public onlyOwner {
         pkpPermissions = PKPPermissions(pkpPermissionsAddress);
+        emit PkpPermissionsAddressSet(pkpPermissionsAddress);
     }
 
     function setMintCost(uint newMintCost) public onlyOwner {
         mintCost = newMintCost;
+        emit MintCostSet(newMintCost);
     }
 
     function setFreeMintSigner(address newFreeMintSigner) public onlyOwner {
         freeMintSigner = newFreeMintSigner;
+        emit FreeMintSignerSet(newFreeMintSigner);
     }
 
     function withdraw() public onlyOwner nonReentrant {
-        (bool sent, ) = payable(msg.sender).call{value: address(this).balance}(
-            ""
-        );
+        uint withdrawAmount = address(this).balance;
+        (bool sent, ) = payable(msg.sender).call{value: withdrawAmount}("");
         require(sent);
+        emit Withdrew(withdrawAmount);
     }
 
     /// Push a tokenId onto the stack
@@ -315,5 +308,16 @@ contract PKPNFT is
             "Only the routing contract can call this function"
         );
         unmintedRoutedTokenIds[keyType].push(tokenId);
+        emit PkpRouted(tokenId, keyType);
     }
+
+    /* ========== EVENTS ========== */
+
+    event RouterAddressSet(address indexed routerAddress);
+    event PkpNftMetadataAddressSet(address indexed pkpNftMetadataAddress);
+    event PkpPermissionsAddressSet(address indexed pkpPermissionsAddress);
+    event MintCostSet(uint newMintCost);
+    event FreeMintSignerSet(address indexed newFreeMintSigner);
+    event Withdrew(uint amount);
+    event PkpRouted(uint indexed tokenId, uint indexed keyType);
 }

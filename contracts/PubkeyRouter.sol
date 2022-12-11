@@ -214,6 +214,7 @@ contract PubkeyRouter is Ownable {
 
     function setPkpNftAddress(address newPkpNftAddress) public onlyOwner {
         pkpNFT = PKPNFT(newPkpNftAddress);
+        emit PkpNftAddressSet(newPkpNftAddress);
     }
 
     /* ========== EVENTS ========== */
@@ -231,4 +232,6 @@ contract PubkeyRouter is Ownable {
         address stakingContract,
         uint256 keyType
     );
+
+    event PkpNftAddressSet(address newPkpNftAddress);
 }

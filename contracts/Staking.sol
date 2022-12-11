@@ -535,20 +535,24 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     function setEpochLength(uint256 newEpochLength) public onlyOwner {
         epoch.epochLength = newEpochLength;
+        emit EpochLengthSet(newEpochLength);
     }
 
     function setStakingToken(address newStakingTokenAddress) public onlyOwner {
         stakingToken = LITToken(newStakingTokenAddress);
+        emit StakingTokenSet(newStakingTokenAddress);
     }
 
     function setTokenRewardPerTokenPerEpoch(
         uint256 newTokenRewardPerTokenPerEpoch
     ) public onlyOwner {
         tokenRewardPerTokenPerEpoch = newTokenRewardPerTokenPerEpoch;
+        emit TokenRewardPerTokenPerEpochSet(newTokenRewardPerTokenPerEpoch);
     }
 
     function setMinimumStake(uint256 newMinimumStake) public onlyOwner {
         minimumStake = newMinimumStake;
+        emit MinimumStakeSet(newMinimumStake);
     }
 
     function setKickPenaltyPercent(uint256 newKickPenaltyPercent)
@@ -556,6 +560,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         onlyOwner
     {
         kickPenaltyPercent = newKickPenaltyPercent;
+        emit KickPenaltyPercentSet(newKickPenaltyPercent);
     }
 
     function setResolverContractAddress(address newResolverContractAddress)
@@ -564,7 +569,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     {
         resolverContractAddress = newResolverContractAddress;
 
-        emit ResolverContractAddressChanged(newResolverContractAddress);
+        emit ResolverContractAddressSet(newResolverContractAddress);
     }
 
     /* ========== EVENTS ========== */
@@ -585,5 +590,12 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         bytes data
     );
     event ValidatorKickedFromNextEpoch(address indexed staker);
-    event ResolverContractAddressChanged(address resolverContractAddress);
+
+    // onlyOwner events
+    event EpochLengthSet(uint newEpochLength);
+    event StakingTokenSet(address newStakingTokenAddress);
+    event TokenRewardPerTokenPerEpochSet(uint newTokenRewardPerTokenPerEpoch);
+    event MinimumStakeSet(uint newMinimumStake);
+    event KickPenaltyPercentSet(uint newKickPenaltyPercent);
+    event ResolverContractAddressSet(address newResolverContractAddress);
 }
