@@ -6,22 +6,19 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 
 import "hardhat/console.sol";
 
-contract AccessControlConditions is
-    Ownable,
-    ReentrancyGuard
-{
+contract AccessControlConditions is Ownable, ReentrancyGuard {
     /* ========== STRUCTS ========== */
     struct StoredCondition {
-        uint256 value;
-        uint256 securityHash;
-        uint256 chainId;
+        uint value;
+        uint securityHash;
+        uint chainId;
         bool permanent;
         address creator;
     }
 
     /* ========== STATE VARIABLES ========== */
 
-    mapping(uint256 => StoredCondition) public storedConditions;
+    mapping(uint => StoredCondition) public storedConditions;
     address public signer;
 
     /* ========== CONSTRUCTOR ========== */
@@ -31,36 +28,51 @@ contract AccessControlConditions is
 
     /* ========== VIEWS ========== */
 
-    function getCondition(uint256 key)
-        external
-        view
-        returns (StoredCondition memory)
-    {
+    function getCondition(
+        uint key
+    ) external view returns (StoredCondition memory) {
         return storedConditions[key];
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     function storeCondition(
-        uint256 key,
-        uint256 value,
-        uint256 securityHash,
-        uint256 chainId,
+        uint key,
+        uint value,
+        uint securityHash,
+        uint chainId,
         bool permanent
     ) external nonReentrant {
-        _storeCondition(key, value, securityHash, chainId, permanent, msg.sender);
+        _storeCondition(
+            key,
+            value,
+            securityHash,
+            chainId,
+            permanent,
+            msg.sender
+        );
     }
 
     function storeConditionWithSigner(
-        uint256 key,
-        uint256 value,
-        uint256 securityHash,
-        uint256 chainId,
+        uint key,
+        uint value,
+        uint securityHash,
+        uint chainId,
         bool permanent,
         address creatorAddress
     ) external nonReentrant {
-        require(msg.sender == signer, "Only signer can call storeConditionsWithSigner.");
-        _storeCondition(key, value, securityHash, chainId, permanent, creatorAddress);
+        require(
+            msg.sender == signer,
+            "Only signer can call storeConditionsWithSigner."
+        );
+        _storeCondition(
+            key,
+            value,
+            securityHash,
+            chainId,
+            permanent,
+            creatorAddress
+        );
     }
 
     function setSigner(address newSigner) public onlyOwner {
@@ -70,10 +82,10 @@ contract AccessControlConditions is
     /* ========== PRIVATE FUNCTIONS ========== */
 
     function _storeCondition(
-        uint256 key,
-        uint256 value,
-        uint256 securityHash,
-        uint256 chainId,
+        uint key,
+        uint value,
+        uint securityHash,
+        uint chainId,
         bool permanent,
         address creatorAddress
     ) private {
@@ -88,10 +100,7 @@ contract AccessControlConditions is
                 storedConditions[key].permanent == false,
                 "This condition was stored with the Permanent flag and cannot be updated"
             );
-            require(
-                msg.sender != signer,
-                "Signer cannot update conditions"
-            );
+            require(msg.sender != signer, "Signer cannot update conditions");
         }
         storedConditions[key] = StoredCondition(
             value,
@@ -107,9 +116,9 @@ contract AccessControlConditions is
     /* ========== EVENTS ========== */
 
     event ConditionStored(
-        uint256 indexed key,
-        uint256 value,
-        uint256 chainId,
+        uint indexed key,
+        uint value,
+        uint chainId,
         bool permanent,
         address creator
     );

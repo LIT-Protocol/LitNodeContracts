@@ -45,7 +45,7 @@ contract LITToken is
     ///
     /// @param _recipient the account to mint tokens to.
     /// @param _amount    the amount of tokens to mint.
-    function mint(address _recipient, uint256 _amount) external onlyMinter {
+    function mint(address _recipient, uint _amount) external onlyMinter {
         _mint(_recipient, _amount);
     }
 }

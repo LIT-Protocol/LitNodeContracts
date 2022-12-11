@@ -156,17 +156,16 @@ contract PKPHelper is Ownable, IERC721Receiver {
         pkpNFT = PKPNFT(newPkpNftAddress);
     }
 
-    function setPkpPermissionsAddress(address newPkpPermissionsAddress)
-        public
-        onlyOwner
-    {
+    function setPkpPermissionsAddress(
+        address newPkpPermissionsAddress
+    ) public onlyOwner {
         pkpPermissions = PKPPermissions(newPkpPermissionsAddress);
     }
 
     function onERC721Received(
-        address, /* operator */
-        address, /* from */
-        uint256, /* tokenId */
+        address /* operator */,
+        address /* from */,
+        uint /* tokenId */,
         bytes calldata /* data */
     ) external view override returns (bytes4) {
         // only accept transfers from the pkpNft contract

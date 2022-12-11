@@ -26,25 +26,25 @@ contract PubkeyRouter is Ownable {
     struct PubkeyRoutingData {
         bytes pubkey;
         address stakingContract;
-        uint256 keyType; // 1 = BLS, 2 = ECDSA.  Not doing this in an enum so we can add more keytypes in the future without redeploying.
+        uint keyType; // 1 = BLS, 2 = ECDSA.  Not doing this in an enum so we can add more keytypes in the future without redeploying.
     }
 
     struct PubkeyRegistrationProgress {
         PubkeyRoutingData routingData;
-        uint256 nodeVoteCount;
-        uint256 nodeVoteThreshold;
+        uint nodeVoteCount;
+        uint nodeVoteThreshold;
         mapping(address => bool) votedNodes;
     }
 
     // map the keccack256(uncompressed pubkey) -> PubkeyRoutingData
-    mapping(uint256 => PubkeyRoutingData) public pubkeys;
+    mapping(uint => PubkeyRoutingData) public pubkeys;
 
     // this is used to count the votes from the nodes to register a key
     // map the keccack256(uncompressed pubkey) -> PubkeyRegistrationProgress
-    mapping(uint256 => PubkeyRegistrationProgress) public pubkeyRegistrations;
+    mapping(uint => PubkeyRegistrationProgress) public pubkeyRegistrations;
 
     // map the eth address to a pkp id
-    mapping(address => uint256) public ethAddressToPkpId;
+    mapping(address => uint) public ethAddressToPkpId;
 
     /* ========== CONSTRUCTOR ========== */
     constructor(address _pkpNft) {
@@ -54,16 +54,14 @@ contract PubkeyRouter is Ownable {
     /* ========== VIEWS ========== */
 
     /// get the routing data for a given key hash
-    function getRoutingData(uint256 tokenId)
-        external
-        view
-        returns (PubkeyRoutingData memory)
-    {
+    function getRoutingData(
+        uint tokenId
+    ) external view returns (PubkeyRoutingData memory) {
         return pubkeys[tokenId];
     }
 
     /// get if a given pubkey has routing data associated with it or not
-    function isRouted(uint256 tokenId) public view returns (bool) {
+    function isRouted(uint tokenId) public view returns (bool) {
         PubkeyRoutingData memory prd = pubkeys[tokenId];
         return
             prd.pubkey.length != 0 &&
@@ -72,7 +70,7 @@ contract PubkeyRouter is Ownable {
     }
 
     /// get the eth address for the keypair, as long as it's an ecdsa keypair
-    function getEthAddress(uint256 tokenId) public view returns (address) {
+    function getEthAddress(uint tokenId) public view returns (address) {
         // only return addresses for ECDSA keys so that people don't
         // send funds to a BLS key that would be irretrieveably lost
         if (pubkeys[tokenId].keyType != 2) {
@@ -81,11 +79,11 @@ contract PubkeyRouter is Ownable {
         // remove 0x04 prefix
         bytes memory pubkey = pubkeys[tokenId].pubkey.slice(1, 64);
         bytes32 hashed = keccak256(pubkey);
-        return address(uint160(uint256(hashed)));
+        return address(uint160(uint(hashed)));
     }
 
     /// includes the 0x04 prefix so you can pass this directly to ethers.utils.computeAddress
-    function getPubkey(uint256 tokenId) public view returns (bytes memory) {
+    function getPubkey(uint tokenId) public view returns (bytes memory) {
         return pubkeys[tokenId].pubkey;
     }
 
@@ -94,10 +92,10 @@ contract PubkeyRouter is Ownable {
     /// Set the pubkey and routing data for a given key hash
     // this is only used by an admin in case of emergency.  can prob be removed.
     function setRoutingData(
-        uint256 tokenId,
+        uint tokenId,
         bytes memory pubkey,
         address stakingContract,
-        uint256 keyType
+        uint keyType
     ) public onlyOwner {
         pubkeys[tokenId].pubkey = pubkey;
         pubkeys[tokenId].stakingContract = stakingContract;
@@ -112,10 +110,10 @@ contract PubkeyRouter is Ownable {
     // FIXME this is vulnerable to an attack where the first node to call setRoutingData can set an incorrect stakingContract, or keyType, since none of those are validated.  Then, if more nodes try to call setRoutingData with the correct data, it will revert because it doesn't match.  Instead, it should probably be vote based.  so if 1 guy votes for an incorrect keyLength, it doesn't matter, because the one that gets the most votes wins.
     // FIXME this is also vulnerable to an attack where someone sets up their own staking contract with a threshold of 1 and then goes around claiming tokenIds and filling them with junk.  we probably need to verify that the staking contract is legit.  i'm not sure how to do that though.  like we can check various things from the staking contract, that the staked token is the real Lit token, and that the user has staked a significant amount.  But how do we know that staking contract isn't a custom fork that lies about all that stuff?  Maybe we need a mapping of valid staking contracts somewhere, and when we deploy a new one we add it manually.
     function voteForRoutingData(
-        uint256 tokenId,
+        uint tokenId,
         bytes memory pubkey,
         address stakingContract,
-        uint256 keyType
+        uint keyType
     ) public {
         // check that the sender is a staking node and hasn't already voted for this key
         Staking stakingContractInstance = Staking(stakingContract);
@@ -138,7 +136,7 @@ contract PubkeyRouter is Ownable {
             // this only needs to be done the first time the PKP is registered
 
             require(
-                tokenId == uint256(keccak256(pubkey)),
+                tokenId == uint(keccak256(pubkey)),
                 "tokenId does not match hashed keyParts"
             );
             pubkeyRegistrations[tokenId].routingData.pubkey = pubkey;
@@ -220,17 +218,17 @@ contract PubkeyRouter is Ownable {
     /* ========== EVENTS ========== */
 
     event PubkeyRoutingDataSet(
-        uint256 indexed tokenId,
+        uint indexed tokenId,
         bytes pubkey,
         address stakingContract,
-        uint256 keyType
+        uint keyType
     );
     event PubkeyRoutingDataVote(
-        uint256 indexed tokenId,
+        uint indexed tokenId,
         address indexed nodeAddress,
         bytes pubkey,
         address stakingContract,
-        uint256 keyType
+        uint keyType
     );
 
     event PkpNftAddressSet(address newPkpNftAddress);

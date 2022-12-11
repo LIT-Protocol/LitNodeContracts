@@ -24,8 +24,8 @@ Todos
 contract ConditionValidations is ReentrancyGuard {
     /* ========== STRUCTS ========== */
     struct ValidatedCondition {
-        uint256 chainId;
-        uint256 timestamp;
+        uint chainId;
+        uint timestamp;
         address creator;
     }
 
@@ -38,7 +38,7 @@ contract ConditionValidations is ReentrancyGuard {
     // constructor(bytes memory _publicKey) {
     //     require(_publicKey.length == 64);
     //     address addrFromPublicKey = address(
-    //         bytes20(uint160(uint256(keccak256(_publicKey))))
+    //         bytes20(uint160(uint(keccak256(_publicKey))))
     //     );
 
     //     validAddresses[addrFromPublicKey] = true;
@@ -75,7 +75,7 @@ contract ConditionValidations is ReentrancyGuard {
     ) external pure returns (address) {
         //require(_publicKey.length == 64);
         address addrFromPublicKey = address(
-            uint160(uint256(keccak256(_publicKey)))
+            uint160(uint(keccak256(_publicKey)))
         );
 
         return addrFromPublicKey;
@@ -83,7 +83,7 @@ contract ConditionValidations is ReentrancyGuard {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
     function storeValidatedCondition(
-        uint256 chainId,
+        uint chainId,
         bytes32 conditionHash,
         bytes memory signature
     ) external nonReentrant {
@@ -112,8 +112,8 @@ contract ConditionValidations is ReentrancyGuard {
 
     event ValidationStored(
         bytes32 indexed conditionHash,
-        uint256 chainId,
-        uint256 timestamp,
+        uint chainId,
+        uint timestamp,
         address creator
     );
 }

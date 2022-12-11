@@ -22,22 +22,22 @@ contract RateLimitNFT is
     ERC721Enumerable,
     ReentrancyGuard
 {
-    using Strings for uint256;
+    using Strings for uint;
     /* ========== STATE VARIABLES ========== */
 
     address public freeMintSigner;
-    uint256 public additionalRequestsPerMillisecondCost;
-    uint256 public tokenIdCounter;
-    uint256 public defaultRateLimitWindowMilliseconds = 60 * 60 * 1000; // 60 mins
-    uint256 public RLIHolderRateLimitWindowMilliseconds = 5 * 60 * 1000; // 5 mins
-    uint256 public freeRequestsPerRateLimitWindow = 10;
+    uint public additionalRequestsPerMillisecondCost;
+    uint public tokenIdCounter;
+    uint public defaultRateLimitWindowMilliseconds = 60 * 60 * 1000; // 60 mins
+    uint public RLIHolderRateLimitWindowMilliseconds = 5 * 60 * 1000; // 5 mins
+    uint public freeRequestsPerRateLimitWindow = 10;
 
-    mapping(uint256 => RateLimit) public capacity;
+    mapping(uint => RateLimit) public capacity;
     mapping(bytes32 => bool) public redeemedFreeMints;
 
     struct RateLimit {
-        uint256 requestsPerMillisecond;
-        uint256 expiresAt;
+        uint requestsPerMillisecond;
+        uint expiresAt;
     }
 
     /* ========== CONSTRUCTOR ========== */
@@ -49,8 +49,8 @@ contract RateLimitNFT is
 
     /// throws if the sig is bad or msg doesn't match
     function freeMintSigTest(
-        uint256 expiresAt,
-        uint256 requestsPerMillisecond,
+        uint expiresAt,
+        uint requestsPerMillisecond,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
@@ -95,25 +95,25 @@ contract RateLimitNFT is
     function _beforeTokenTransfer(
         address from,
         address to,
-        uint256 tokenId
+        uint tokenId
     ) internal virtual override(ERC721, ERC721Enumerable) {
         ERC721Enumerable._beforeTokenTransfer(from, to, tokenId);
     }
 
     function calculateCost(
-        uint256 requestsPerMillisecond,
-        uint256 expiresAt
-    ) public view returns (uint256) {
+        uint requestsPerMillisecond,
+        uint expiresAt
+    ) public view returns (uint) {
         require(
             expiresAt > block.timestamp,
             "The expiresAt must be in the future"
         );
 
         // calculate the duration
-        uint256 durationInMilliseconds = (expiresAt - block.timestamp) * 1000;
+        uint durationInMilliseconds = (expiresAt - block.timestamp) * 1000;
 
         // calculate the cost
-        uint256 cost = requestsPerMillisecond *
+        uint cost = requestsPerMillisecond *
             durationInMilliseconds *
             additionalRequestsPerMillisecondCost;
 
@@ -121,26 +121,26 @@ contract RateLimitNFT is
     }
 
     function calculateRequestsPerSecond(
-        uint256 payingAmount,
-        uint256 expiresAt
-    ) public view returns (uint256) {
+        uint payingAmount,
+        uint expiresAt
+    ) public view returns (uint) {
         require(
             expiresAt > block.timestamp,
             "The expiresAt must be in the future"
         );
 
         // calculate the duration
-        uint256 durationInMilliseconds = (expiresAt - block.timestamp) * 1000;
+        uint durationInMilliseconds = (expiresAt - block.timestamp) * 1000;
 
         // calculate the cost
-        uint256 requestsPerSecond = payingAmount /
+        uint requestsPerSecond = payingAmount /
             (durationInMilliseconds * additionalRequestsPerMillisecondCost);
 
         return requestsPerSecond;
     }
 
     function tokenURI(
-        uint256 tokenId
+        uint tokenId
     ) public view override returns (string memory) {
         string
             memory svgData = "<svg xmlns='http://www.w3.org/2000/svg' width='1080' height='1080' fill='none' xmlns:v='https://vecta.io/nano'><path d='M363.076 392.227s-.977 18.524-36.874 78.947c-41.576 70.018-45.481 151.978-3.017 220.4 89.521 144.245 332.481 141.52 422.556.089 34.832-54.707 44.816-117.479 32.924-181.248 0 0-28.819-133.144-127.237-217.099 1.553 1.308 5.369 19.122 6.101 26.722 2.241 23.354.045 47.838-7.787 70.062-5.746 16.33-13.711 30.467-27.178 41.368 0-3.811-.954-10.635-.976-12.918-.644-46.508-18.659-89.582-48.011-125.743-25.647-31.552-60.812-53.089-97.84-68.932.931 3.191 2.662 16.419 2.906 19.033 1.908 21.958 2.263 52.713-.621 74.649s-7.832 33.878-14.554 54.441c-10.184 31.175-24.05 54.285-41.621 82.004-3.24 5.096-12.913 19.078-18.082 26.146 0 0-8.897-56.191-40.667-87.921h-.022z' fill='#000'/><path d='M562.5 27.28l410.279 236.874c13.923 8.039 22.5 22.895 22.5 38.971v473.75c0 16.076-8.577 30.932-22.5 38.971L562.5 1052.72c-13.923 8.04-31.077 8.04-45 0L107.221 815.846c-13.923-8.039-22.5-22.895-22.5-38.971v-473.75a45 45 0 0 1 22.5-38.971L517.5 27.28a45 45 0 0 1 45 0z' stroke='#000' stroke-width='24.75'/></svg>";
@@ -163,7 +163,7 @@ contract RateLimitNFT is
         return string(abi.encodePacked("data:application/json;base64,", json));
     }
 
-    function isExpired(uint256 tokenId) public view returns (bool) {
+    function isExpired(uint tokenId) public view returns (bool) {
         return capacity[tokenId].expiresAt <= block.timestamp;
     }
 
@@ -178,17 +178,17 @@ contract RateLimitNFT is
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     /// mint a token with a certain number of requests per millisecond and a certain expiration time.  Requests per second is calculated from the msg.value amount.  You can find out the cost for a certain requests per second value by using the calculateCost() function.
-    function mint(uint256 expiresAt) public payable {
+    function mint(uint expiresAt) public payable {
         tokenIdCounter++;
-        uint256 tokenId = tokenIdCounter;
+        uint tokenId = tokenIdCounter;
 
-        uint256 requestsPerMillisecond = calculateRequestsPerSecond(
+        uint requestsPerMillisecond = calculateRequestsPerSecond(
             msg.value,
             expiresAt
         );
 
         // sanity check
-        uint256 cost = calculateCost(requestsPerMillisecond, expiresAt);
+        uint cost = calculateCost(requestsPerMillisecond, expiresAt);
         require(
             msg.value > 0 && msg.value >= cost,
             "You must send the cost of this rate limit increase.  To check the cost, use the calculateCost function."
@@ -198,15 +198,15 @@ contract RateLimitNFT is
     }
 
     function freeMint(
-        uint256 expiresAt,
-        uint256 requestsPerMillisecond,
+        uint expiresAt,
+        uint requestsPerMillisecond,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) public {
         tokenIdCounter++;
-        uint256 tokenId = tokenIdCounter;
+        uint tokenId = tokenIdCounter;
 
         // this will panic if the sig is bad
         freeMintSigTest(expiresAt, requestsPerMillisecond, msgHash, v, r, s);
@@ -216,16 +216,16 @@ contract RateLimitNFT is
     }
 
     function _mintWithoutValueCheck(
-        uint256 tokenId,
-        uint256 requestsPerMillisecond,
-        uint256 expiresAt
+        uint tokenId,
+        uint requestsPerMillisecond,
+        uint expiresAt
     ) internal {
         _safeMint(msg.sender, tokenId);
         capacity[tokenId] = RateLimit(requestsPerMillisecond, expiresAt);
     }
 
     function setAdditionalRequestsPerSecondCost(
-        uint256 newAdditionalRequestsPerMillisecondCost
+        uint newAdditionalRequestsPerMillisecondCost
     ) public onlyOwner {
         additionalRequestsPerMillisecondCost = newAdditionalRequestsPerMillisecondCost;
         emit AdditionalRequestsPerSecondCostSet(
@@ -246,14 +246,14 @@ contract RateLimitNFT is
     }
 
     function setRateLimitWindowMilliseconds(
-        uint256 newRateLimitWindowMilliseconds
+        uint newRateLimitWindowMilliseconds
     ) public onlyOwner {
         defaultRateLimitWindowMilliseconds = newRateLimitWindowMilliseconds;
         emit RateLimitWindowMillisecondsSet(newRateLimitWindowMilliseconds);
     }
 
     function setRLIHolderRateLimitWindowMilliseconds(
-        uint256 newRLIHolderRateLimitWindowMilliseconds
+        uint newRLIHolderRateLimitWindowMilliseconds
     ) public onlyOwner {
         RLIHolderRateLimitWindowMilliseconds = newRLIHolderRateLimitWindowMilliseconds;
         emit RLIHolderRateLimitWindowMillisecondsSet(
@@ -262,7 +262,7 @@ contract RateLimitNFT is
     }
 
     function setFreeRequestsPerRateLimitWindow(
-        uint256 newFreeRequestsPerRateLimitWindow
+        uint newFreeRequestsPerRateLimitWindow
     ) public onlyOwner {
         freeRequestsPerRateLimitWindow = newFreeRequestsPerRateLimitWindow;
         emit FreeRequestsPerRateLimitWindowSet(
@@ -273,17 +273,15 @@ contract RateLimitNFT is
     /* ========== EVENTS ========== */
 
     event AdditionalRequestsPerSecondCostSet(
-        uint256 newAdditionalRequestsPerMillisecondCost
+        uint newAdditionalRequestsPerMillisecondCost
     );
     event FreeMintSignerSet(address indexed newFreeMintSigner);
     event Withdrew(uint amount);
-    event RateLimitWindowMillisecondsSet(
-        uint256 newRateLimitWindowMilliseconds
-    );
+    event RateLimitWindowMillisecondsSet(uint newRateLimitWindowMilliseconds);
     event RLIHolderRateLimitWindowMillisecondsSet(
-        uint256 newRLIHolderRateLimitWindowMilliseconds
+        uint newRLIHolderRateLimitWindowMilliseconds
     );
     event FreeRequestsPerRateLimitWindowSet(
-        uint256 newFreeRequestsPerRateLimitWindow
+        uint newFreeRequestsPerRateLimitWindow
     );
 }

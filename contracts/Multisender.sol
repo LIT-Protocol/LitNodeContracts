@@ -8,19 +8,20 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract Multisender is Ownable {
     function sendEth(address[] calldata _recipients) public payable {
-        uint256 val = msg.value / _recipients.length;
-        for (uint256 i = 0; i < _recipients.length; i++) {
+        uint val = msg.value / _recipients.length;
+        for (uint i = 0; i < _recipients.length; i++) {
             payable(_recipients[i]).transfer(val);
         }
     }
 
-    function sendTokens(address[] calldata _recipients, address tokenContract)
-        public
-    {
+    function sendTokens(
+        address[] calldata _recipients,
+        address tokenContract
+    ) public {
         ERC20 tkn = ERC20(tokenContract);
-        uint256 bal = tkn.balanceOf(address(this));
-        uint256 val = bal / _recipients.length;
-        for (uint256 i = 0; i < _recipients.length; i++) {
+        uint bal = tkn.balanceOf(address(this));
+        uint val = bal / _recipients.length;
+        for (uint i = 0; i < _recipients.length; i++) {
             tkn.transfer(_recipients[i], val);
         }
     }
@@ -31,7 +32,7 @@ contract Multisender is Ownable {
 
     function withdrawTokens(address tokenContract) public onlyOwner {
         ERC20 tkn = ERC20(tokenContract);
-        uint256 bal = tkn.balanceOf(address(this));
+        uint bal = tkn.balanceOf(address(this));
         tkn.transfer(msg.sender, bal);
     }
 }
