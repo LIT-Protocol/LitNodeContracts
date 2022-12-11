@@ -75,7 +75,7 @@ contract ConditionValidations is ReentrancyGuard {
     ) external pure returns (address) {
         //require(_publicKey.length == 64);
         address addrFromPublicKey = address(
-            bytes20(uint160(uint256(keccak256(_publicKey))))
+            uint160(uint256(keccak256(_publicKey)))
         );
 
         return addrFromPublicKey;
