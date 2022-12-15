@@ -82,6 +82,7 @@ LIT_IPFS_GATEWAY = http://127.0.0.1:8080/ipfs/
 
 LIT_ENABLE_RATE_LIMITING = false
 LIT_ENABLE_ACTIONS_ALLOWLIST = true
+LIT_ENABLE_EPOCH_TRANSITIONS = true
   `;
 
   return template;
