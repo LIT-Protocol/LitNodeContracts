@@ -70,6 +70,8 @@ LIT_CONTRACT_PUBKEYROUTER = ${contracts.pubkeyRouterContractAddress}
 LIT_CONTRACT_PKPNFT = ${contracts.pkpNftContractAddress}
 LIT_CONTRACT_RATELIMITNFT = ${contracts.rateLimitNftContractAddress}
 LIT_CONTRACT_PKPPERMISSIONS = ${contracts.pkpPermissionsContractAddress}
+LIT_CONTRACT_PKPHELPER = ${contracts.pkpHelperContractAddress}
+LIT_CONTRACT_ALLOWLIST = ${contracts.allowlistContractAddress}
 
     
 LIT_NODE_DOMAIN_NAME = ${contracts.litNodeDomainName}
@@ -78,7 +80,8 @@ ROCKET_PORT = ${contracts.rocketPort + nodeIndex}
 
 LIT_IPFS_GATEWAY = http://127.0.0.1:8080/ipfs/
 
-LIT_DISABLE_RATE_LIMITING = true
+LIT_ENABLE_RATE_LIMITING = false
+LIT_ENABLE_ACTIONS_ALLOWLIST = true
   `;
 
   return template;
