@@ -37,3 +37,7 @@ Use the `deployEverything.sh` script to deploy all the contracts and create conf
 Note: The deploy script will set the ownership of each contract to the `newOwner` address defined in scripts/deploy_everything.js. If you need to call owner / admin functions on the contracts after they're deployed, you can set that `newOwner` address to something you control. If you're just using the contracts with the nodes you probably don't need to do this.
 
 Once this script is done running, there will be config files for you generated in /node_configs of this repo. You can copy these to the /config folder of the lit_node_rust repo.
+
+# ContractResolver.sol
+
+This file lives in the lit-os repo. Run "make setup" to pull it in here. If you need to edit it, edit it in the lit-os repo.

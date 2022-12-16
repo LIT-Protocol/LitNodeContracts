@@ -131,6 +131,9 @@ async function main() {
 
   // *** 3.1 Deploy Allowlist Conttact
   const allowlistContract = await deployContract("Allowlist");
+  tx = await transferOwnershipToNewOwner(allowlistContract);
+  await tx.wait();
+  console.log("New owner set.");
   verifyContractInBg(allowlistContract.address);
 
   // *** 4. Deploy PKPNFT Contract
