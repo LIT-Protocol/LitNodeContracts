@@ -18,6 +18,12 @@ The second param is any constructor params.
 
 # Deploying
 
+Prepare (you only need to run this once):
+
+```shell
+make setup
+```
+
 ```shell
 ./deployEverything.sh <env> [resolver_address] [chain]
 ```

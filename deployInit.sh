@@ -9,9 +9,26 @@ export NETWORK="$3"
 export SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 export LIT_OS_DIR="${SCRIPT_DIR}/../lit-os"
 
+setup_project() {
+  if [ ! -e "${LIT_OS_DIR}" ]; then
+    echo "Error: lit-os checkout is required to perform this operation"
+    echo "       address (checkout dir: $(readlink -f $LIT_OS_DIR)"
+    exit 2
+  fi
+
+  # Link the ContractResolver so we can call it.
+  if [ ! -e "${SCRIPT_DIR}/contracts/ContractResolver.sol" ]; then
+    ln -s "${LIT_OS_DIR}/blockchain/contracts/ContractResolver.sol" contracts/
+  fi
+}
+
 if [ -z "${ENV}" ]; then
   echo "Usage: $0 <dev|test|prod>"
   exit 2
+fi
+if [ "${ENV}" = "_SETUP_" ]; then
+  setup_project
+  exit 0
 fi
 if [ "${ENV}" != "dev" ] && [ "${ENV}" != "test" ] && [ "${ENV}" != "prod" ]; then
   echo "Invalid environment (valid: dev, test, prod)"
@@ -27,14 +44,5 @@ if [ -z "${RESOLVER_CONTRACT_ADDRESS}" ]; then
 fi
 
 if [ -n "${RESOLVER_CONTRACT_ADDRESS}" ]; then
-  if [ ! -e "${LIT_OS_DIR}" ]; then
-    echo "Error: lit-os checkout is required when providing resolver contract "
-    echo "       address (checkout dir: $(readlink -f $LIT_OS_DIR)"
-    exit 2
-  fi
-
-  # Link the ContractResolver so we can call it.
-  if [ ! -e "${SCRIPT_DIR}/contracts/ContractResolver.sol" ]; then
-    ln -s "${LIT_OS_DIR}/blockchain/contracts/ContractResolver.sol" contracts/
-  fi
+  setup_project
 fi
