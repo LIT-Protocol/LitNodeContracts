@@ -24,6 +24,8 @@ Prepare (you only need to run this once):
 make setup
 ```
 
+Then to perform the deploy:
+
 ```shell
 ./deployEverything.sh <env> [resolver_address] [chain]
 ```
