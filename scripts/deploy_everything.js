@@ -336,6 +336,13 @@ async function main() {
         pkpNftMetadataContract.address
       )
     );
+    txs.push(
+      await resolverContract.setContract(
+        await resolverContract.ALLOWLIST_CONTRACT(),
+        deployEnvEnum,
+        allowlistContract.address
+      )
+    );
 
     await Promise.all(txs);
   }
