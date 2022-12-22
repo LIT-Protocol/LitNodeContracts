@@ -4,6 +4,8 @@ pragma solidity ^0.8.17;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+
 import {PKPNFT} from "./PKPNFT.sol";
 import {PubkeyRouter} from "./PubkeyRouter.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
@@ -50,6 +52,9 @@ contract PKPPermissions is Ownable {
     // map the AuthMethod hash to the pubkeys that it's allowed to sign for
     // this makes it possible to be given a discord id and then lookup all the pubkeys that are allowed to sign for that discord id
     mapping(uint => EnumerableSet.UintSet) authMethodToPkpIds;
+
+    // map the keccack256(uncompressed pubkey) -> (group => merkle tree root hash)
+    mapping(uint => mapping(uint => bytes32)) private _rootHashes;
 
     /* ========== CONSTRUCTOR ========== */
     constructor(address _pkpNft, address _router) {
@@ -457,6 +462,49 @@ contract PKPPermissions is Ownable {
         router = PubkeyRouter(newRouterAddress);
     }
 
+    /**
+     * Update the root hash of the merkle tree representing off-chain states for the PKP  
+     */
+    function setRootHash(uint tokenId, uint group, bytes32 root) public {
+        // check that user is allowed to set this
+        address nftOwner = pkpNFT.ownerOf(tokenId);
+        require(
+            msg.sender == nftOwner,
+            "Only the PKP NFT owner can set root hash"
+        );
+        _rootHashes[tokenId][group] = root;
+        emit RootHashUpdated(tokenId, group, root);
+    }
+
+    /**
+     * Verify the given leaf existing in the merkle tree
+     */
+    function verifyState(
+        uint tokenId,
+        uint group,
+        bytes32[] memory proof,
+        bytes32 leaf
+    ) public view returns (bool) {
+        bytes32 root = _rootHashes[tokenId][group];
+        if (root == bytes32(0)) return false;
+        return MerkleProof.verify(proof, root, leaf);
+    }
+
+    /**
+     * Verify the given leaves existing in the merkle tree
+     */
+    function verifyStates(
+        uint tokenId,
+        uint group,
+        bytes32[] memory proof,
+        bool[] memory proofFlags,
+        bytes32[] memory leaves
+    ) public view returns (bool) {
+        bytes32 root = _rootHashes[tokenId][group];
+        if (root == bytes32(0)) return false;
+        return MerkleProof.multiProofVerify(proof, proofFlags, root, leaves);
+    }
+
     /* ========== EVENTS ========== */
 
     event PermittedAuthMethodAdded(
@@ -481,5 +529,10 @@ contract PKPPermissions is Ownable {
         uint authMethodType,
         bytes id,
         uint scopeId
+    );
+    event RootHashUpdated(
+        uint indexed tokenId,
+        uint indexed group,
+        bytes32 root
     );
 }

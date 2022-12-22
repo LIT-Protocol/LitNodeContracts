@@ -1,4 +1,5 @@
 const { expect } = require("chai");
+const { StandardMerkleTree } = require("@openzeppelin/merkle-tree");
 const {
   ipfsIdToIpfsIdHash,
   getBytes32FromMultihash,
@@ -515,6 +516,62 @@ describe("PKPPermissions", function () {
         );
         expect(pkpIds.length).equal(0);
       });
+
+      it("updates root hash and verify state", async () => {
+        // permit it
+        pkpPermissions = await pkpPermissions.connect(tester);
+        const authMethodType = 5;
+        const userId1 = "dead1234beef";
+        const userId2 = "1234deadbeef";
+        const userId3 = "deadbeef1234";
+        const group = 1;
+        const leaves = [
+          [authMethodType, Buffer.from(userId1, "hex")],
+          [authMethodType, Buffer.from(userId2, "hex")],
+          [authMethodType, Buffer.from(userId3, "hex")],
+        ];
+        let tree = StandardMerkleTree.of(leaves, ["uint256", "bytes"]);
+        await pkpPermissions.setRootHash(tokenId, group, tree.root);
+
+        const proof = tree.getProof(0);
+        const leafHash = tree.leafHash(leaves[0]);
+        let verified = await pkpPermissions.verifyState(
+          tokenId,
+          group,
+          proof,
+          leafHash
+        );
+        expect(verified).equal(true);
+
+        const multiProof = tree.getMultiProof([0, 1]);
+        verified = await pkpPermissions.verifyStates(
+          tokenId,
+          group,
+          multiProof.proof,
+          multiProof.proofFlags,
+          multiProof.leaves.map(l => tree.leafHash(l))
+        );
+        expect(verified).equal(true);
+
+        const updatedLeafs = [[authMethodType, Buffer.from(userId2, "hex")]];
+        tree = StandardMerkleTree.of(updatedLeafs, ["uint256", "bytes"]);
+        await pkpPermissions.setRootHash(tokenId, group, tree.root);
+        verified = await pkpPermissions.verifyState(
+          tokenId,
+          group,
+          proof,
+          leafHash
+        );
+        expect(verified).equal(false);
+        verified = await pkpPermissions.verifyState(
+          tokenId,
+          2,
+          proof,
+          leafHash
+        );
+        expect(verified).equal(false);
+      });
+
     });
   });
 
