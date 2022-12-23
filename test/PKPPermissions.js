@@ -245,9 +245,7 @@ describe("PKPPermissions", function () {
         pkpPermissions = await pkpPermissions.connect(tester);
         await pkpPermissions.addPermittedAuthMethod(
           tokenId,
-          authMethodType,
-          userId,
-          userPubkey,
+          [authMethodType, userId, userPubkey],
           []
         );
 
@@ -280,9 +278,7 @@ describe("PKPPermissions", function () {
           // attempt to permit it
           pkpPermissions.addPermittedAuthMethod(
             tokenId,
-            authMethodType,
-            userId,
-            "0x55", // a new pubkey
+            [authMethodType, userId, "0x55"], // a new pubkey
             []
           )
         ).revertedWith(
@@ -317,9 +313,7 @@ describe("PKPPermissions", function () {
           // attempt to permit it
           pkpPermissions.addPermittedAuthMethod(
             tokenId,
-            authMethodType,
-            userId,
-            "0x66", // a new pubkey
+            [authMethodType, userId, "0x66"], // a new pubkey
             []
           )
         ).revertedWith(
@@ -396,9 +390,7 @@ describe("PKPPermissions", function () {
         pkpPermissions = await pkpPermissions.connect(tester);
         await pkpPermissions.addPermittedAuthMethod(
           tokenId,
-          authMethodType,
-          userId,
-          userPubkey,
+          [authMethodType, userId, userPubkey],
           scopes
         );
 

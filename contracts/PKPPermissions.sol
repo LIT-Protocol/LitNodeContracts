@@ -63,7 +63,7 @@ contract PKPPermissions is Ownable {
     }
 
     /* ========== Modifier ========== */
-    modifier  onlyPKPOwner(uint tokenId) {
+    modifier onlyPKPOwner(uint tokenId) {
         // check that user is allowed to set this
         address nftOwner = pkpNFT.ownerOf(tokenId);
         require(
@@ -95,7 +95,7 @@ contract PKPPermissions is Ownable {
     /// get the user's pubkey given their authMethodType and userId
     function getUserPubkeyForAuthMethod(
         uint authMethodType,
-        bytes memory id
+        bytes calldata id
     ) external view returns (bytes memory) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
         AuthMethod memory am = authMethods[authMethodId];
@@ -104,7 +104,7 @@ contract PKPPermissions is Ownable {
 
     function getTokenIdsForAuthMethod(
         uint authMethodType,
-        bytes memory id
+        bytes calldata id
     ) external view returns (uint[] memory) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
 
@@ -138,7 +138,7 @@ contract PKPPermissions is Ownable {
     function getPermittedAuthMethodScopes(
         uint tokenId,
         uint authMethodType,
-        bytes memory id,
+        bytes calldata id,
         uint maxScopeId
     ) public view returns (bool[] memory) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
@@ -259,7 +259,7 @@ contract PKPPermissions is Ownable {
     function isPermittedAuthMethodScopePresent(
         uint tokenId,
         uint authMethodType,
-        bytes memory id,
+        bytes calldata id,
         uint scopeId
     ) public view returns (bool) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
@@ -271,7 +271,7 @@ contract PKPPermissions is Ownable {
 
     function isPermittedAction(
         uint tokenId,
-        bytes memory ipfsCID
+        bytes calldata ipfsCID
     ) public view returns (bool) {
         return
             isPermittedAuthMethod(
@@ -298,23 +298,20 @@ contract PKPPermissions is Ownable {
     /// Add a permitted auth method for a given pubkey
     function addPermittedAuthMethod(
         uint tokenId,
-        uint authMethodType,
-        bytes memory id,
-        bytes memory userPubkey,
-        uint[] memory scopes
+        AuthMethod memory authMethod,
+        uint[] calldata scopes
     ) public onlyPKPOwner(tokenId) {
-        AuthMethod memory am = AuthMethod(authMethodType, id, userPubkey);
-        uint authMethodId = getAuthMethodId(authMethodType, id);
+        uint authMethodId = getAuthMethodId(authMethod.authMethodType, authMethod.id);
 
         // we need to ensure that someone with the same auth method type and id can't add a different pubkey
         require(
             authMethods[authMethodId].userPubkey.length == 0 ||
                 keccak256(authMethods[authMethodId].userPubkey) ==
-                keccak256(userPubkey),
+                keccak256(authMethod.userPubkey),
             "Cannot add a different pubkey for the same auth method type and id"
         );
 
-        authMethods[authMethodId] = am;
+        authMethods[authMethodId] = authMethod;
 
         EnumerableSet.UintSet
             storage newPermittedAuthMethods = permittedAuthMethods[tokenId];
@@ -333,12 +330,12 @@ contract PKPPermissions is Ownable {
             emit PermittedAuthMethodScopeAdded(
                 tokenId,
                 authMethodId,
-                id,
+                authMethod.id,
                 scopeId
             );
         }
 
-        emit PermittedAuthMethodAdded(tokenId, authMethodType, id, userPubkey);
+        emit PermittedAuthMethodAdded(tokenId, authMethod.authMethodType, authMethod.id, authMethod.userPubkey);
     }
 
     // Remove a permitted auth method for a given pubkey
@@ -364,7 +361,7 @@ contract PKPPermissions is Ownable {
     function addPermittedAuthMethodScope(
         uint tokenId,
         uint authMethodType,
-        bytes memory id,
+        bytes calldata id,
         uint scopeId
     ) public onlyPKPOwner(tokenId) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
@@ -377,7 +374,7 @@ contract PKPPermissions is Ownable {
     function removePermittedAuthMethodScope(
         uint tokenId,
         uint authMethodType,
-        bytes memory id,
+        bytes calldata id,
         uint scopeId
     ) public onlyPKPOwner(tokenId) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
@@ -395,19 +392,17 @@ contract PKPPermissions is Ownable {
     /// Add a permitted action for a given pubkey
     function addPermittedAction(
         uint tokenId,
-        bytes memory ipfsCID,
-        uint[] memory scopes
+        bytes calldata ipfsCID,
+        uint[] calldata scopes
     ) public {
         addPermittedAuthMethod(
             tokenId,
-            uint(AuthMethodType.ACTION),
-            ipfsCID,
-            "",
+            AuthMethod(uint(AuthMethodType.ACTION), ipfsCID, ""),
             scopes
         );
     }
 
-    function removePermittedAction(uint tokenId, bytes memory ipfsCID) public {
+    function removePermittedAction(uint tokenId, bytes calldata ipfsCID) public {
         removePermittedAuthMethod(
             tokenId,
             uint(AuthMethodType.ACTION),
@@ -418,13 +413,11 @@ contract PKPPermissions is Ownable {
     function addPermittedAddress(
         uint tokenId,
         address user,
-        uint[] memory scopes
+        uint[] calldata scopes
     ) public {
         addPermittedAuthMethod(
             tokenId,
-            uint(AuthMethodType.ADDRESS),
-            abi.encodePacked(user),
-            "",
+            AuthMethod(uint(AuthMethodType.ADDRESS), abi.encodePacked(user), ""),
             scopes
         );
     }
