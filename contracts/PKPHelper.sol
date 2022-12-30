@@ -34,21 +34,21 @@ contract PKPHelper is Ownable, IERC721Receiver {
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     function mintNextAndAddAuthMethods(
-        uint keyType,
-        uint[] memory permittedAuthMethodTypes,
+        uint256 keyType,
+        uint256[] memory permittedAuthMethodTypes,
         bytes[] memory permittedAuthMethodIds,
         bytes[] memory permittedAuthMethodPubkeys,
-        uint[][] memory permittedAuthMethodScopes,
+        uint256[][] memory permittedAuthMethodScopes,
         bool addPkpEthAddressAsPermittedAddress,
         bool sendPkpToItself
-    ) public payable returns (uint) {
+    ) public payable returns (uint256) {
         return
             mintNextAndAddAuthMethodsWithTypes(
                 keyType,
                 new bytes[](0), // permitted ipfs CIDs
-                new uint[][](0), // permitted ipfs CIDs scopes
+                new uint256[][](0), // permitted ipfs CIDs scopes
                 new address[](0), // permitted addresses
-                new uint[][](0), // permitted addresses scopes
+                new uint256[][](0), // permitted addresses scopes
                 permittedAuthMethodTypes,
                 permittedAuthMethodIds,
                 permittedAuthMethodPubkeys,
@@ -59,20 +59,20 @@ contract PKPHelper is Ownable, IERC721Receiver {
     }
 
     function mintNextAndAddAuthMethodsWithTypes(
-        uint keyType,
+        uint256 keyType,
         bytes[] memory permittedIpfsCIDs,
-        uint[][] memory permittedIpfsCIDScopes,
+        uint256[][] memory permittedIpfsCIDScopes,
         address[] memory permittedAddresses,
-        uint[][] memory permittedAddressScopes,
-        uint[] memory permittedAuthMethodTypes,
+        uint256[][] memory permittedAddressScopes,
+        uint256[] memory permittedAuthMethodTypes,
         bytes[] memory permittedAuthMethodIds,
         bytes[] memory permittedAuthMethodPubkeys,
-        uint[][] memory permittedAuthMethodScopes,
+        uint256[][] memory permittedAuthMethodScopes,
         bool addPkpEthAddressAsPermittedAddress,
         bool sendPkpToItself
-    ) public payable returns (uint) {
+    ) public payable returns (uint256) {
         // mint the nft and forward the funds
-        uint tokenId = pkpNFT.mintNext{value: msg.value}(keyType);
+        uint256 tokenId = pkpNFT.mintNext{value: msg.value}(keyType);
 
         // sanity checking array lengths
         require(
@@ -99,7 +99,7 @@ contract PKPHelper is Ownable, IERC721Receiver {
 
         // permit the action
         if (permittedIpfsCIDs.length != 0) {
-            for (uint i = 0; i < permittedIpfsCIDs.length; i++) {
+            for (uint256 i = 0; i < permittedIpfsCIDs.length; i++) {
                 pkpPermissions.addPermittedAction(
                     tokenId,
                     permittedIpfsCIDs[i],
@@ -110,7 +110,7 @@ contract PKPHelper is Ownable, IERC721Receiver {
 
         // permit the address
         if (permittedAddresses.length != 0) {
-            for (uint i = 0; i < permittedAddresses.length; i++) {
+            for (uint256 i = 0; i < permittedAddresses.length; i++) {
                 pkpPermissions.addPermittedAddress(
                     tokenId,
                     permittedAddresses[i],
@@ -121,12 +121,14 @@ contract PKPHelper is Ownable, IERC721Receiver {
 
         // permit the auth method
         if (permittedAuthMethodTypes.length != 0) {
-            for (uint i = 0; i < permittedAuthMethodTypes.length; i++) {
+            for (uint256 i = 0; i < permittedAuthMethodTypes.length; i++) {
                 pkpPermissions.addPermittedAuthMethod(
                     tokenId,
-                    PKPPermissions.AuthMethod(permittedAuthMethodTypes[i],
-                    permittedAuthMethodIds[i],
-                    permittedAuthMethodPubkeys[i]),
+                    PKPPermissions.AuthMethod(
+                        permittedAuthMethodTypes[i],
+                        permittedAuthMethodIds[i],
+                        permittedAuthMethodPubkeys[i]
+                    ),
                     permittedAuthMethodScopes[i]
                 );
             }
@@ -139,7 +141,7 @@ contract PKPHelper is Ownable, IERC721Receiver {
             pkpPermissions.addPermittedAddress(
                 tokenId,
                 pkpEthAddress,
-                new uint[](0)
+                new uint256[](0)
             );
         }
 
@@ -156,16 +158,17 @@ contract PKPHelper is Ownable, IERC721Receiver {
         pkpNFT = PKPNFT(newPkpNftAddress);
     }
 
-    function setPkpPermissionsAddress(
-        address newPkpPermissionsAddress
-    ) public onlyOwner {
+    function setPkpPermissionsAddress(address newPkpPermissionsAddress)
+        public
+        onlyOwner
+    {
         pkpPermissions = PKPPermissions(newPkpPermissionsAddress);
     }
 
     function onERC721Received(
-        address /* operator */,
-        address /* from */,
-        uint /* tokenId */,
+        address, /* operator */
+        address, /* from */
+        uint256, /* tokenId */
         bytes calldata /* data */
     ) external view override returns (bytes4) {
         // only accept transfers from the pkpNft contract

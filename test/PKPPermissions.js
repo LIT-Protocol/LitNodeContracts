@@ -541,7 +541,7 @@ describe("PKPPermissions", function () {
           group,
           multiProof.proof,
           multiProof.proofFlags,
-          multiProof.leaves.map(l => tree.leafHash(l))
+          multiProof.leaves.map((l) => tree.leafHash(l))
         );
         expect(verified).equal(true);
 
@@ -563,7 +563,6 @@ describe("PKPPermissions", function () {
         );
         expect(verified).equal(false);
       });
-
     });
   });
 
