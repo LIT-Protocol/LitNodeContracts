@@ -4,7 +4,7 @@
     "useTabs": false,
     "singleQuote": false,
     "bracketSpacing": false,
-    "explicitTypes": "preserve",
+    "explicitTypes": "always",
     "overrides": [
         {
             "files": "*.sol",
@@ -14,7 +14,7 @@
                 "useTabs": false,
                 "singleQuote": false,
                 "bracketSpacing": false,
-                "explicitTypes": "preserve"
+                "explicitTypes": "always"
             }
         }
     ]
