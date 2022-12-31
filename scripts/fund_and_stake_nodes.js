@@ -117,7 +117,7 @@ const saveConfigFiles = (wallets, contracts) => {
   for (let i = 0; i < wallets.length; i++) {
     let restOfEnvVars = generateBaseConfig(i, contracts);
     const fullConfigFile = `${restOfEnvVars}\n${walletToConfig(wallets[i])}`;
-    fs.writeFileSync(`./node_configs/lit_config${i}.env`, fullConfigFile);
+    fs.writeFileSync(`./node_configs/lit_config${i}.toml`, fullConfigFile);
   }
 };
 
