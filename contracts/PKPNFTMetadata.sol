@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.3;
 
-import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import "hardhat/console.sol";
 

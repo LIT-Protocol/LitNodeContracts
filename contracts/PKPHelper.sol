@@ -1,12 +1,12 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.3;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {PKPPermissions} from "./PKPPermissions.sol";
-import {PKPNFT} from "./PKPNFT.sol";
-import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { PKPPermissions } from "./PKPPermissions.sol";
+import { PKPNFT } from "./PKPNFT.sol";
+import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 // TODO: tests for the mintGrantAndBurn function, withdraw function, some of the setters, transfer function, freeMint and freeMintGrantAndBurn
 
@@ -72,7 +72,7 @@ contract PKPHelper is Ownable, IERC721Receiver {
         bool sendPkpToItself
     ) public payable returns (uint256) {
         // mint the nft and forward the funds
-        uint256 tokenId = pkpNFT.mintNext{value: msg.value}(keyType);
+        uint256 tokenId = pkpNFT.mintNext{ value: msg.value }(keyType);
 
         // sanity checking array lengths
         require(

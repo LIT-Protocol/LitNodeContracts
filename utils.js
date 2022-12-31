@@ -64,7 +64,7 @@ function getBytesFromMultihash(multihash) {
  * @returns {(string|null)} base58 encoded multihash string
  */
 function getMultihashFromBytes32(multihash) {
-    const {digest, hashFunction, size} = multihash;
+    const { digest, hashFunction, size } = multihash;
     if (size === 0) return null;
 
     // cut off leading "0x"

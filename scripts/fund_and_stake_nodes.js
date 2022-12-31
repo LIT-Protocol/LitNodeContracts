@@ -8,14 +8,14 @@ const hre = require("hardhat");
 const fs = require("fs");
 var spawn = require("child_process").spawn;
 const nacl = require("tweetnacl");
-const {ethers} = hre;
+const { ethers } = hre;
 const chainName = hre.network.name;
 const rpcUrl = hre.network.config.url;
 
 const walletCount = 3;
 
 async function getChainId() {
-    const {chainId} = await ethers.provider.getNetwork();
+    const { chainId } = await ethers.provider.getNetwork();
     return chainId;
 }
 
@@ -132,7 +132,7 @@ const generateWallets = () => {
         const nodeWallet = generateWallet();
         nodeWallet.comsKeysSender = generateComsKeys();
         nodeWallet.comsKeysReceiver = generateComsKeys();
-        newWallets.push({node: nodeWallet, staker: generateWallet()});
+        newWallets.push({ node: nodeWallet, staker: generateWallet() });
     }
     return newWallets;
 };
@@ -155,13 +155,13 @@ const fundWalletsWithGas = async (wallets, contracts) => {
 
     const nodeTx = await multisenderContract.sendEth(
         wallets.map((w) => w.node.address),
-        {value: nodeAmount}
+        { value: nodeAmount }
     );
     console.log("fundWalletsWithGas nodeTx: ", nodeTx);
 
     const stakerTx = await multisenderContract.sendEth(
         wallets.map((w) => w.staker.address),
-        {value: stakerAmount}
+        { value: stakerAmount }
     );
     console.log("fundWalletsWithGas stakerTx: ", stakerTx);
 

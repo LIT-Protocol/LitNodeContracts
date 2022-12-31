@@ -1,10 +1,10 @@
-const {expect} = require("chai");
+const { expect } = require("chai");
 const {
     ipfsIdToIpfsIdHash,
     getBytes32FromMultihash,
     getBytesFromMultihash,
 } = require("../utils.js");
-const {smock} = require("@defi-wonderland/smock");
+const { smock } = require("@defi-wonderland/smock");
 
 describe("PubkeyRouter", function () {
     let deployer;

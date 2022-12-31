@@ -1,6 +1,6 @@
-const {expect} = require("chai");
-const {ethers} = require("hardhat");
-const {smock} = require("@defi-wonderland/smock");
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+const { smock } = require("@defi-wonderland/smock");
 
 describe("RateLimitNFT", function () {
     let deployer;

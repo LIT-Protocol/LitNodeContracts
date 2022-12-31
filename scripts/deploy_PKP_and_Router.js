@@ -102,7 +102,7 @@ async function main() {
         name: "PubkeyRouterAndPermissions",
         address: routerContract.address,
     });
-    await hre.ethernal.push({name: "PKPNFT", address: TokenContract.address});
+    await hre.ethernal.push({ name: "PKPNFT", address: TokenContract.address });
 }
 
 // We recommend this pattern to be able to use async/await everywhere

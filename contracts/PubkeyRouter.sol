@@ -1,10 +1,10 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.17;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {PKPNFT} from "./PKPNFT.sol";
-import {Staking} from "./Staking.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { PKPNFT } from "./PKPNFT.sol";
+import { Staking } from "./Staking.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 
 import "hardhat/console.sol";

@@ -4,7 +4,7 @@
 // When running the script with `hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
-const {ip2int, int2ip} = require("../utils.js");
+const { ip2int, int2ip } = require("../utils.js");
 const fs = require("fs");
 require("hardhat-ethernal"); // required for ethernal - removing this will only break deploy scripts that are linked to ethernal .
 require("dotenv").config();
@@ -39,7 +39,7 @@ async function main() {
     // Deploy Access Control Conditions
     const f_AccessCtlConditions = await hre.ethers.getContractFactory(
         "AccessControlConditions",
-        {signer: deployer}
+        { signer: deployer }
     );
     const c_AccessCtlConditions = await f_AccessCtlConditions.deploy(); /// currently the owner address is hardcoded.  To be replaced by public keys.
     await c_AccessCtlConditions.deployed();
@@ -67,7 +67,7 @@ async function main() {
     // Deploy Condition Validations Contract
     const f_conditionValidation = await hre.ethers.getContractFactory(
         "ConditionValidations",
-        {signer: deployer}
+        { signer: deployer }
     );
     const c_conditionValidation = await f_conditionValidation.deploy(
         "0x804C96C9750a57FB841f26a7bC9f2815782D8529"
@@ -115,8 +115,8 @@ async function main() {
         name: "AccessControlConditions",
         address: c_AccessCtlConditions.address,
     });
-    await hre.ethernal.push({name: "LITToken", address: c_LITToken.address});
-    await hre.ethernal.push({name: "Staking", address: c_Staking.address});
+    await hre.ethernal.push({ name: "LITToken", address: c_LITToken.address });
+    await hre.ethernal.push({ name: "Staking", address: c_Staking.address });
     await hre.ethernal.push({
         name: "ConditionValidations",
         address: c_conditionValidation.address,
@@ -125,7 +125,7 @@ async function main() {
         name: "PubkeyRouterAndPermissions",
         address: RouterContract.address,
     });
-    await hre.ethernal.push({name: "PKPNFT", address: TokenContract.address});
+    await hre.ethernal.push({ name: "PKPNFT", address: TokenContract.address });
     await hre.ethernal.push({
         name: "RateLimitNFT",
         address: RateLimitNFTContract.address,

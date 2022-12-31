@@ -1,11 +1,11 @@
-const {expect} = require("chai");
-const {StandardMerkleTree} = require("@openzeppelin/merkle-tree");
+const { expect } = require("chai");
+const { StandardMerkleTree } = require("@openzeppelin/merkle-tree");
 const {
     ipfsIdToIpfsIdHash,
     getBytes32FromMultihash,
     getBytesFromMultihash,
 } = require("../utils.js");
-const {smock} = require("@defi-wonderland/smock");
+const { smock } = require("@defi-wonderland/smock");
 
 describe("PKPPermissions", function () {
     let deployer;

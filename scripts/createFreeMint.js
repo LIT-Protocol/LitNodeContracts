@@ -1,4 +1,4 @@
-const {ethers} = require("ethers");
+const { ethers } = require("ethers");
 const uuid = require("uuid");
 
 const PKP_CONTRACT_ADDRESS = "0x6A275664C0d1789A59a8f8141A21409a1508a2f7";

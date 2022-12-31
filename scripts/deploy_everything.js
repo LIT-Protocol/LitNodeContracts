@@ -7,12 +7,12 @@
 const hre = require("hardhat");
 const fs = require("fs");
 var spawn = require("child_process").spawn;
-const {ethers} = hre;
+const { ethers } = hre;
 const chainName = hre.network.name;
 const rpcUrl = hre.network.config.url;
 
 async function getChainId() {
-    const {chainId} = await ethers.provider.getNetwork();
+    const { chainId } = await ethers.provider.getNetwork();
     return chainId;
 }
 

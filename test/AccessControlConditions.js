@@ -1,4 +1,4 @@
-const {expect} = require("chai");
+const { expect } = require("chai");
 // const hre = require("hardhat");
 // const { ethers } = hre;
 // const chainName = hre.network.name;

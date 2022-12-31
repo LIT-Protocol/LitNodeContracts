@@ -1,11 +1,11 @@
-const {assert} = require("chai");
+const { assert } = require("chai");
 const chai = require("chai");
-const {solidity} = require("ethereum-waffle");
-const {BigNumber, utils} = require("ethers");
-const {ip2int, int2ip} = require("../utils.js");
+const { solidity } = require("ethereum-waffle");
+const { BigNumber, utils } = require("ethers");
+const { ip2int, int2ip } = require("../utils.js");
 
 chai.use(solidity);
-const {expect} = chai;
+const { expect } = chai;
 
 const StakingState = {
     Active: 0,
@@ -343,7 +343,7 @@ describe("Staking", function () {
             // signal that we are ready to advance epoch
             for (let i = 0; i < stakingAccounts.length; i++) {
                 const stakingAccount = stakingAccounts[i];
-                const {nodeAddress} = stakingAccount;
+                const { nodeAddress } = stakingAccount;
                 stakingContract = stakingContract.connect(nodeAddress);
                 await stakingContract.signalReadyForNextEpoch();
             }
