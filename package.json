@@ -8,7 +8,8 @@
     "compile": "npx hardhat compile",
     "convertPubkey": "node pubkeyToRoutingData.js",
     "convertIpfsId": "node ipfsIdToParts.js",
-    "hashIpfsId": "node ipfsIdToHash.js"
+    "hashIpfsId": "node ipfsIdToHash.js",
+    "prettier": "prettier -c -w '**/*.js' '**/*.sol' '**/*.md'"
   },
   "devDependencies": {
     "@defi-wonderland/smock": "^2.1.0",

@@ -1,10 +1,10 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.17;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC20Burnable } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 /// @title Lit Protocol Token
 ///
@@ -45,7 +45,7 @@ contract LITToken is
     ///
     /// @param _recipient the account to mint tokens to.
     /// @param _amount    the amount of tokens to mint.
-    function mint(address _recipient, uint _amount) external onlyMinter {
+    function mint(address _recipient, uint256 _amount) external onlyMinter {
         _mint(_recipient, _amount);
     }
 }

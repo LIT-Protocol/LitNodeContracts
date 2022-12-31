@@ -1,12 +1,12 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.17;
 
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {LITToken} from "./LITToken.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { LITToken } from "./LITToken.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "hardhat/console.sol";
@@ -38,21 +38,21 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     LITToken public stakingToken;
 
     struct Epoch {
-        uint epochLength;
-        uint number;
-        uint endBlock; //
-        uint retries; // incremented upon failure to advance and subsequent unlock
+        uint256 epochLength;
+        uint256 number;
+        uint256 endBlock; //
+        uint256 retries; // incremented upon failure to advance and subsequent unlock
     }
 
     Epoch public epoch;
 
-    uint public tokenRewardPerTokenPerEpoch;
+    uint256 public tokenRewardPerTokenPerEpoch;
 
-    uint public minimumStake;
-    uint public totalStaked;
+    uint256 public minimumStake;
+    uint256 public totalStaked;
 
     // tokens slashed when kicked
-    uint public kickPenaltyPercent;
+    uint256 public kickPenaltyPercent;
 
     EnumerableSet.AddressSet validatorsInCurrentEpoch;
     EnumerableSet.AddressSet validatorsInNextEpoch;
@@ -63,14 +63,14 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint128 ipv6;
         uint32 port;
         address nodeAddress;
-        uint balance;
-        uint reward;
-        uint senderPubKey;
-        uint receiverPubKey;
+        uint256 balance;
+        uint256 reward;
+        uint256 senderPubKey;
+        uint256 receiverPubKey;
     }
 
     struct VoteToKickValidatorInNextEpoch {
-        uint votes;
+        uint256 votes;
         mapping(address => bool) voted;
     }
 
@@ -91,7 +91,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     // nodes can vote to kick another node.  If a threshold of nodes vote to kick someone, they
     // are removed from the next validator set
-    mapping(uint => mapping(address => VoteToKickValidatorInNextEpoch))
+    mapping(uint256 => mapping(address => VoteToKickValidatorInNextEpoch))
         public votesToKickValidatorsInNextEpoch;
 
     // resolver contract address. the resolver contract is used to lookup other contract addresses.
@@ -107,9 +107,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             retries: 0
         });
         // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
-        tokenRewardPerTokenPerEpoch = (10 ** stakingToken.decimals()) / 20;
+        tokenRewardPerTokenPerEpoch = (10**stakingToken.decimals()) / 20;
         // 1 token minimum stake
-        minimumStake = 1 * (10 ** stakingToken.decimals());
+        minimumStake = 1 * (10**stakingToken.decimals());
         kickPenaltyPercent = 5;
     }
 
@@ -118,19 +118,19 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return validatorsInCurrentEpoch.contains(account);
     }
 
-    function rewardOf(address account) external view returns (uint) {
+    function rewardOf(address account) external view returns (uint256) {
         return validators[account].reward;
     }
 
-    function balanceOf(address account) external view returns (uint) {
+    function balanceOf(address account) external view returns (uint256) {
         return validators[account].balance;
     }
 
     function getVotingStatusToKickValidator(
-        uint epochNumber,
+        uint256 epochNumber,
         address validatorStakerAddress,
         address voterStakerAddress
-    ) external view returns (uint, bool) {
+    ) external view returns (uint256, bool) {
         VoteToKickValidatorInNextEpoch
             storage votingStatus = votesToKickValidatorsInNextEpoch[
                 epochNumber
@@ -146,8 +146,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         address[] memory values = new address[](
             validatorsInCurrentEpoch.length()
         );
-        uint validatorLength = validatorsInCurrentEpoch.length();
-        for (uint i = 0; i < validatorLength; i++) {
+        uint256 validatorLength = validatorsInCurrentEpoch.length();
+        for (uint256 i = 0; i < validatorLength; i++) {
             values[i] = validatorsInCurrentEpoch.at(i);
         }
         return values;
@@ -159,17 +159,17 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         returns (address[] memory)
     {
         address[] memory values = new address[](validatorsInNextEpoch.length());
-        uint validatorLength = validatorsInNextEpoch.length();
-        for (uint i = 0; i < validatorLength; i++) {
+        uint256 validatorLength = validatorsInNextEpoch.length();
+        for (uint256 i = 0; i < validatorLength; i++) {
             values[i] = validatorsInNextEpoch.at(i);
         }
         return values;
     }
 
     function isReadyForNextEpoch() public view returns (bool) {
-        uint total = 0;
-        uint validatorLength = validatorsInNextEpoch.length();
-        for (uint i = 0; i < validatorLength; i++) {
+        uint256 total = 0;
+        uint256 validatorLength = validatorsInNextEpoch.length();
+        for (uint256 i = 0; i < validatorLength; i++) {
             if (readyForNextEpoch[validatorsInNextEpoch.at(i)]) {
                 total++;
             }
@@ -181,9 +181,11 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return false;
     }
 
-    function shouldKickValidator(
-        address stakerAddress
-    ) public view returns (bool) {
+    function shouldKickValidator(address stakerAddress)
+        public
+        view
+        returns (bool)
+    {
         VoteToKickValidatorInNextEpoch
             storage vk = votesToKickValidatorsInNextEpoch[epoch.number][
                 stakerAddress
@@ -209,7 +211,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     // currently set to 2/3.  this could be changed to be configurable.
-    function validatorCountForConsensus() public view returns (uint) {
+    function validatorCountForConsensus() public view returns (uint256) {
         if (validatorsInCurrentEpoch.length() <= 2) {
             return 1;
         }
@@ -269,8 +271,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             "Must be in NextValidatorSetLocked"
         );
 
-        uint validatorLength = validatorsInNextEpoch.length();
-        for (uint i = 0; i < validatorLength; i++) {
+        uint256 validatorLength = validatorsInNextEpoch.length();
+        for (uint256 i = 0; i < validatorLength; i++) {
             readyForNextEpoch[validatorsInNextEpoch.at(i)] = false;
         }
 
@@ -297,13 +299,13 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         );
 
         // reward the validators
-        uint validatorLength = validatorsInCurrentEpoch.length();
-        for (uint i = 0; i < validatorLength; i++) {
+        uint256 validatorLength = validatorsInCurrentEpoch.length();
+        for (uint256 i = 0; i < validatorLength; i++) {
             address validatorAddress = validatorsInCurrentEpoch.at(i);
             validators[validatorAddress].reward +=
                 (tokenRewardPerTokenPerEpoch *
                     validators[validatorAddress].balance) /
-                10 ** stakingToken.decimals();
+                10**stakingToken.decimals();
         }
 
         // set the validators to the new validator set
@@ -318,7 +320,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
         // copy validators from next epoch to current epoch
         validatorLength = validatorsInNextEpoch.length();
-        for (uint i = 0; i < validatorLength; i++) {
+        for (uint256 i = 0; i < validatorLength; i++) {
             validatorsInCurrentEpoch.add(validatorsInNextEpoch.at(i));
 
             // clear out readyForNextEpoch
@@ -337,13 +339,13 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// @param ip The IP address of the node
     /// @param port The port of the node
     function stakeAndJoin(
-        uint amount,
+        uint256 amount,
         uint32 ip,
         uint128 ipv6,
         uint32 port,
         address nodeAddress,
-        uint senderPubKey,
-        uint receiverPubKey
+        uint256 senderPubKey,
+        uint256 receiverPubKey
     ) public whenNotPaused {
         stake(amount);
         requestToJoin(
@@ -357,7 +359,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     /// Stake tokens for a validator
-    function stake(uint amount) public nonReentrant {
+    function stake(uint256 amount) public nonReentrant {
         require(amount > 0, "Cannot stake 0");
 
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
@@ -373,10 +375,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint128 ipv6,
         uint32 port,
         address nodeAddress,
-        uint senderPubKey,
-        uint receiverPubKey
+        uint256 senderPubKey,
+        uint256 receiverPubKey
     ) public nonReentrant {
-        uint amountStaked = validators[msg.sender].balance;
+        uint256 amountStaked = validators[msg.sender].balance;
         require(
             amountStaked >= minimumStake,
             "Stake must be greater than or equal to minimumStake"
@@ -407,7 +409,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// Withdraw staked tokens.  This can only be done by users who are not active in the validator set.
     /// @param amount The amount of tokens to withdraw
-    function withdraw(uint amount) public nonReentrant {
+    function withdraw(uint256 amount) public nonReentrant {
         require(amount > 0, "Cannot withdraw 0");
 
         require(
@@ -443,7 +445,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// Transfer any outstanding reward tokens
     function getReward() public nonReentrant {
-        uint reward = validators[msg.sender].reward;
+        uint256 reward = validators[msg.sender].reward;
         if (reward > 0) {
             validators[msg.sender].reward = 0;
             stakingToken.safeTransfer(msg.sender, reward);
@@ -461,7 +463,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// It's expected that this will be called by the node directly, so msg.sender will be the nodeAddress
     function kickValidatorInNextEpoch(
         address validatorStakerAddress,
-        uint reason,
+        uint256 reason,
         bytes calldata data
     ) public nonReentrant {
         address stakerAddressOfSender = nodeAddressToStakerAddress[msg.sender];
@@ -495,7 +497,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             // block them from rejoining the next epoch
             validatorsKickedFromNextEpoch.add(validatorStakerAddress);
             // slash the stake
-            uint amountToBurn = (validators[validatorStakerAddress].balance *
+            uint256 amountToBurn = (validators[validatorStakerAddress].balance *
                 kickPenaltyPercent) / 100;
             validators[validatorStakerAddress].balance -= amountToBurn;
             totalStaked -= amountToBurn;
@@ -520,8 +522,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint128 ipv6,
         uint32 port,
         address nodeAddress,
-        uint senderPubKey,
-        uint receiverPubKey
+        uint256 senderPubKey,
+        uint256 receiverPubKey
     ) public {
         validators[msg.sender].ip = ip;
         validators[msg.sender].ipv6 = ipv6;
@@ -531,7 +533,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         validators[msg.sender].receiverPubKey = receiverPubKey;
     }
 
-    function setEpochLength(uint newEpochLength) public onlyOwner {
+    function setEpochLength(uint256 newEpochLength) public onlyOwner {
         epoch.epochLength = newEpochLength;
         emit EpochLengthSet(newEpochLength);
     }
@@ -542,27 +544,29 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     function setTokenRewardPerTokenPerEpoch(
-        uint newTokenRewardPerTokenPerEpoch
+        uint256 newTokenRewardPerTokenPerEpoch
     ) public onlyOwner {
         tokenRewardPerTokenPerEpoch = newTokenRewardPerTokenPerEpoch;
         emit TokenRewardPerTokenPerEpochSet(newTokenRewardPerTokenPerEpoch);
     }
 
-    function setMinimumStake(uint newMinimumStake) public onlyOwner {
+    function setMinimumStake(uint256 newMinimumStake) public onlyOwner {
         minimumStake = newMinimumStake;
         emit MinimumStakeSet(newMinimumStake);
     }
 
-    function setKickPenaltyPercent(
-        uint newKickPenaltyPercent
-    ) public onlyOwner {
+    function setKickPenaltyPercent(uint256 newKickPenaltyPercent)
+        public
+        onlyOwner
+    {
         kickPenaltyPercent = newKickPenaltyPercent;
         emit KickPenaltyPercentSet(newKickPenaltyPercent);
     }
 
-    function setResolverContractAddress(
-        address newResolverContractAddress
-    ) public onlyOwner {
+    function setResolverContractAddress(address newResolverContractAddress)
+        public
+        onlyOwner
+    {
         resolverContractAddress = newResolverContractAddress;
 
         emit ResolverContractAddressSet(newResolverContractAddress);
@@ -570,28 +574,30 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /* ========== EVENTS ========== */
 
-    event Staked(address indexed staker, uint amount);
-    event Withdrawn(address indexed staker, uint amount);
-    event RewardPaid(address indexed staker, uint reward);
-    event RewardsDurationUpdated(uint newDuration);
+    event Staked(address indexed staker, uint256 amount);
+    event Withdrawn(address indexed staker, uint256 amount);
+    event RewardPaid(address indexed staker, uint256 reward);
+    event RewardsDurationUpdated(uint256 newDuration);
     event RequestToJoin(address indexed staker);
     event RequestToLeave(address indexed staker);
-    event Recovered(address token, uint amount);
+    event Recovered(address token, uint256 amount);
     event ReadyForNextEpoch(address indexed staker);
     event StateChanged(States newState);
     event VotedToKickValidatorInNextEpoch(
         address indexed reporter,
         address indexed validatorStakerAddress,
-        uint indexed reason,
+        uint256 indexed reason,
         bytes data
     );
     event ValidatorKickedFromNextEpoch(address indexed staker);
 
     // onlyOwner events
-    event EpochLengthSet(uint newEpochLength);
+    event EpochLengthSet(uint256 newEpochLength);
     event StakingTokenSet(address newStakingTokenAddress);
-    event TokenRewardPerTokenPerEpochSet(uint newTokenRewardPerTokenPerEpoch);
-    event MinimumStakeSet(uint newMinimumStake);
-    event KickPenaltyPercentSet(uint newKickPenaltyPercent);
+    event TokenRewardPerTokenPerEpochSet(
+        uint256 newTokenRewardPerTokenPerEpoch
+    );
+    event MinimumStakeSet(uint256 newMinimumStake);
+    event KickPenaltyPercentSet(uint256 newKickPenaltyPercent);
     event ResolverContractAddressSet(address newResolverContractAddress);
 }

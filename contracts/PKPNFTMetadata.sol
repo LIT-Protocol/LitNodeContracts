@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.3;
 
-import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import "hardhat/console.sol";
 
@@ -14,7 +14,7 @@ import "hardhat/console.sol";
 /// The owner can also grant signing permissions to other eth addresses
 /// or lit actions
 contract PKPNFTMetadata {
-    using Strings for uint;
+    using Strings for uint256;
 
     /* ========== STATE VARIABLES ========== */
 
@@ -33,7 +33,7 @@ contract PKPNFTMetadata {
 
         bytes memory _base = "0123456789abcdef";
 
-        for (uint i = 0; i < buffer.length; i++) {
+        for (uint256 i = 0; i < buffer.length; i++) {
             converted[i * 2] = _base[uint8(buffer[i]) / _base.length];
             converted[i * 2 + 1] = _base[uint8(buffer[i]) % _base.length];
         }
@@ -42,7 +42,7 @@ contract PKPNFTMetadata {
     }
 
     function tokenURI(
-        uint tokenId,
+        uint256 tokenId,
         bytes memory pubKey,
         address ethAddress
     ) public pure returns (string memory) {

@@ -1,24 +1,24 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.17;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "hardhat/console.sol";
 
 contract AccessControlConditions is Ownable, ReentrancyGuard {
     /* ========== STRUCTS ========== */
     struct StoredCondition {
-        uint value;
-        uint securityHash;
-        uint chainId;
+        uint256 value;
+        uint256 securityHash;
+        uint256 chainId;
         bool permanent;
         address creator;
     }
 
     /* ========== STATE VARIABLES ========== */
 
-    mapping(uint => StoredCondition) public storedConditions;
+    mapping(uint256 => StoredCondition) public storedConditions;
     address public signer;
 
     /* ========== CONSTRUCTOR ========== */
@@ -28,19 +28,21 @@ contract AccessControlConditions is Ownable, ReentrancyGuard {
 
     /* ========== VIEWS ========== */
 
-    function getCondition(
-        uint key
-    ) external view returns (StoredCondition memory) {
+    function getCondition(uint256 key)
+        external
+        view
+        returns (StoredCondition memory)
+    {
         return storedConditions[key];
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     function storeCondition(
-        uint key,
-        uint value,
-        uint securityHash,
-        uint chainId,
+        uint256 key,
+        uint256 value,
+        uint256 securityHash,
+        uint256 chainId,
         bool permanent
     ) external nonReentrant {
         _storeCondition(
@@ -54,10 +56,10 @@ contract AccessControlConditions is Ownable, ReentrancyGuard {
     }
 
     function storeConditionWithSigner(
-        uint key,
-        uint value,
-        uint securityHash,
-        uint chainId,
+        uint256 key,
+        uint256 value,
+        uint256 securityHash,
+        uint256 chainId,
         bool permanent,
         address creatorAddress
     ) external nonReentrant {
@@ -82,10 +84,10 @@ contract AccessControlConditions is Ownable, ReentrancyGuard {
     /* ========== PRIVATE FUNCTIONS ========== */
 
     function _storeCondition(
-        uint key,
-        uint value,
-        uint securityHash,
-        uint chainId,
+        uint256 key,
+        uint256 value,
+        uint256 securityHash,
+        uint256 chainId,
         bool permanent,
         address creatorAddress
     ) private {
@@ -116,9 +118,9 @@ contract AccessControlConditions is Ownable, ReentrancyGuard {
     /* ========== EVENTS ========== */
 
     event ConditionStored(
-        uint indexed key,
-        uint value,
-        uint chainId,
+        uint256 indexed key,
+        uint256 value,
+        uint256 chainId,
         bool permanent,
         address creator
     );

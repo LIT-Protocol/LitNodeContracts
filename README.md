@@ -4,8 +4,8 @@ Learn more here: https://developer.litprotocol.com/docs/litactionsandpkps/whatar
 
 # TODO
 
-- Tests for the token reward in the staking contracts (Staking.sol and Staking.js)
-- Make it so that the nodes can't accidently kick eachother to below the threshold. Limit the number of nodes that can be kicked per epoch? Have the ability to rejoin if kicked and recovered?
+-   Tests for the token reward in the staking contracts (Staking.sol and Staking.js)
+-   Make it so that the nodes can't accidently kick eachother to below the threshold. Limit the number of nodes that can be kicked per epoch? Have the ability to rejoin if kicked and recovered?
 
 # How to verify contracts
 
@@ -30,9 +30,9 @@ Then to perform the deploy:
 ./deployEverything.sh <env> [resolver_address] [chain]
 ```
 
-- **env**: Environment (dev, test or prod).
-- **resolver_address**: Address of the ContractResolver (optional).
-- **chain**: Chain (optional, defaults to mumbai).
+-   **env**: Environment (dev, test or prod).
+-   **resolver_address**: Address of the ContractResolver (optional).
+-   **chain**: Chain (optional, defaults to mumbai).
 
 Use the `deployEverything.sh` script to deploy all the contracts and create config files for the nodes. You should set the ENV var LIT_MUMBAI_DEPLOYER_PRIVATE_KEY to the private key of the account you want to deploy from. It should have Polygon Mumbai testnet tokens in it for gas. You can get them from the [Polygon Mumbai faucet](https://faucet.matic.network/) or from the [Alchemy mumbai faucet](https://mumbaifaucet.com/) or if you need even more ask Chris on slack.
 

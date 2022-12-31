@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.17;
 
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import "hardhat/console.sol";
 
@@ -24,8 +24,8 @@ Todos
 contract ConditionValidations is ReentrancyGuard {
     /* ========== STRUCTS ========== */
     struct ValidatedCondition {
-        uint chainId;
-        uint timestamp;
+        uint256 chainId;
+        uint256 timestamp;
         address creator;
     }
 
@@ -50,9 +50,11 @@ contract ConditionValidations is ReentrancyGuard {
 
     /* ========== VIEWS ========== */
 
-    function getValidatedCondition(
-        bytes32 conditionHashKey
-    ) external view returns (ValidatedCondition memory) {
+    function getValidatedCondition(bytes32 conditionHashKey)
+        external
+        view
+        returns (ValidatedCondition memory)
+    {
         // check if key exists in validatedConditions
         if (validatedConditions[conditionHashKey].timestamp != 0) {
             return validatedConditions[conditionHashKey];
@@ -61,21 +63,24 @@ contract ConditionValidations is ReentrancyGuard {
         }
     }
 
-    function verifySignature(
-        bytes32 conditionHash,
-        bytes memory signature
-    ) external view returns (bool) {
+    function verifySignature(bytes32 conditionHash, bytes memory signature)
+        external
+        view
+        returns (bool)
+    {
         address sigAddress = ECDSA.recover(conditionHash, signature);
 
         return validAddresses[sigAddress];
     }
 
-    function testPubKeyToAddress(
-        bytes memory _publicKey
-    ) external pure returns (address) {
+    function testPubKeyToAddress(bytes memory _publicKey)
+        external
+        pure
+        returns (address)
+    {
         //require(_publicKey.length == 64);
         address addrFromPublicKey = address(
-            uint160(uint(keccak256(_publicKey)))
+            uint160(uint256(keccak256(_publicKey)))
         );
 
         return addrFromPublicKey;
@@ -83,7 +88,7 @@ contract ConditionValidations is ReentrancyGuard {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
     function storeValidatedCondition(
-        uint chainId,
+        uint256 chainId,
         bytes32 conditionHash,
         bytes memory signature
     ) external nonReentrant {
@@ -112,8 +117,8 @@ contract ConditionValidations is ReentrancyGuard {
 
     event ValidationStored(
         bytes32 indexed conditionHash,
-        uint chainId,
-        uint timestamp,
+        uint256 chainId,
+        uint256 timestamp,
         address creator
     );
 }
