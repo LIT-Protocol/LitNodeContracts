@@ -62,6 +62,17 @@ contract PKPPermissions is Ownable {
         router = PubkeyRouter(_router);
     }
 
+    /* ========== Modifier ========== */
+    modifier onlyPKPOwner(uint tokenId) {
+        // check that user is allowed to set this
+        address nftOwner = pkpNFT.ownerOf(tokenId);
+        require(
+            msg.sender == nftOwner,
+            "Not PKP NFT owner"
+        );
+        _;
+    }
+
     /* ========== VIEWS ========== */
 
     /// get the eth address for the keypair, as long as it's an ecdsa keypair
@@ -84,7 +95,7 @@ contract PKPPermissions is Ownable {
     /// get the user's pubkey given their authMethodType and userId
     function getUserPubkeyForAuthMethod(
         uint authMethodType,
-        bytes memory id
+        bytes calldata id
     ) external view returns (bytes memory) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
         AuthMethod memory am = authMethods[authMethodId];
@@ -93,7 +104,7 @@ contract PKPPermissions is Ownable {
 
     function getTokenIdsForAuthMethod(
         uint authMethodType,
-        bytes memory id
+        bytes calldata id
     ) external view returns (uint[] memory) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
 
@@ -127,7 +138,7 @@ contract PKPPermissions is Ownable {
     function getPermittedAuthMethodScopes(
         uint tokenId,
         uint authMethodType,
-        bytes memory id,
+        bytes calldata id,
         uint maxScopeId
     ) public view returns (bool[] memory) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
@@ -248,7 +259,7 @@ contract PKPPermissions is Ownable {
     function isPermittedAuthMethodScopePresent(
         uint tokenId,
         uint authMethodType,
-        bytes memory id,
+        bytes calldata id,
         uint scopeId
     ) public view returns (bool) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
@@ -260,7 +271,7 @@ contract PKPPermissions is Ownable {
 
     function isPermittedAction(
         uint tokenId,
-        bytes memory ipfsCID
+        bytes calldata ipfsCID
     ) public view returns (bool) {
         return
             isPermittedAuthMethod(
@@ -287,30 +298,20 @@ contract PKPPermissions is Ownable {
     /// Add a permitted auth method for a given pubkey
     function addPermittedAuthMethod(
         uint tokenId,
-        uint authMethodType,
-        bytes memory id,
-        bytes memory userPubkey,
-        uint[] memory scopes
-    ) public {
-        // check that user is allowed to set this
-        address nftOwner = pkpNFT.ownerOf(tokenId);
-        require(
-            msg.sender == nftOwner,
-            "Only the PKP NFT owner can add and remove permitted auth methods"
-        );
-
-        AuthMethod memory am = AuthMethod(authMethodType, id, userPubkey);
-        uint authMethodId = getAuthMethodId(authMethodType, id);
+        AuthMethod memory authMethod,
+        uint[] calldata scopes
+    ) public onlyPKPOwner(tokenId) {
+        uint authMethodId = getAuthMethodId(authMethod.authMethodType, authMethod.id);
 
         // we need to ensure that someone with the same auth method type and id can't add a different pubkey
         require(
             authMethods[authMethodId].userPubkey.length == 0 ||
                 keccak256(authMethods[authMethodId].userPubkey) ==
-                keccak256(userPubkey),
+                keccak256(authMethod.userPubkey),
             "Cannot add a different pubkey for the same auth method type and id"
         );
 
-        authMethods[authMethodId] = am;
+        authMethods[authMethodId] = authMethod;
 
         EnumerableSet.UintSet
             storage newPermittedAuthMethods = permittedAuthMethods[tokenId];
@@ -329,12 +330,12 @@ contract PKPPermissions is Ownable {
             emit PermittedAuthMethodScopeAdded(
                 tokenId,
                 authMethodId,
-                id,
+                authMethod.id,
                 scopeId
             );
         }
 
-        emit PermittedAuthMethodAdded(tokenId, authMethodType, id, userPubkey);
+        emit PermittedAuthMethodAdded(tokenId, authMethod.authMethodType, authMethod.id, authMethod.userPubkey);
     }
 
     // Remove a permitted auth method for a given pubkey
@@ -342,14 +343,7 @@ contract PKPPermissions is Ownable {
         uint tokenId,
         uint authMethodType,
         bytes memory id
-    ) public {
-        // check that user is allowed to set this
-        address nftOwner = pkpNFT.ownerOf(tokenId);
-        require(
-            msg.sender == nftOwner,
-            "Only the PKP NFT owner can add and remove permitted addresses"
-        );
-
+    ) public onlyPKPOwner(tokenId) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
 
         EnumerableSet.UintSet
@@ -367,16 +361,9 @@ contract PKPPermissions is Ownable {
     function addPermittedAuthMethodScope(
         uint tokenId,
         uint authMethodType,
-        bytes memory id,
+        bytes calldata id,
         uint scopeId
-    ) public {
-        // check that user is allowed to set this
-        address nftOwner = pkpNFT.ownerOf(tokenId);
-        require(
-            msg.sender == nftOwner,
-            "Only the PKP NFT owner can add and remove permitted auth method scoped"
-        );
-
+    ) public onlyPKPOwner(tokenId) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
 
         permittedAuthMethodScopes[tokenId][authMethodId].set(scopeId);
@@ -387,16 +374,9 @@ contract PKPPermissions is Ownable {
     function removePermittedAuthMethodScope(
         uint tokenId,
         uint authMethodType,
-        bytes memory id,
+        bytes calldata id,
         uint scopeId
-    ) public {
-        // check that user is allowed to set this
-        address nftOwner = pkpNFT.ownerOf(tokenId);
-        require(
-            msg.sender == nftOwner,
-            "Only the PKP NFT owner can add and remove permitted auth method scopes"
-        );
-
+    ) public onlyPKPOwner(tokenId) {
         uint authMethodId = getAuthMethodId(authMethodType, id);
 
         permittedAuthMethodScopes[tokenId][authMethodId].unset(scopeId);
@@ -412,19 +392,17 @@ contract PKPPermissions is Ownable {
     /// Add a permitted action for a given pubkey
     function addPermittedAction(
         uint tokenId,
-        bytes memory ipfsCID,
-        uint[] memory scopes
+        bytes calldata ipfsCID,
+        uint[] calldata scopes
     ) public {
         addPermittedAuthMethod(
             tokenId,
-            uint(AuthMethodType.ACTION),
-            ipfsCID,
-            "",
+            AuthMethod(uint(AuthMethodType.ACTION), ipfsCID, ""),
             scopes
         );
     }
 
-    function removePermittedAction(uint tokenId, bytes memory ipfsCID) public {
+    function removePermittedAction(uint tokenId, bytes calldata ipfsCID) public {
         removePermittedAuthMethod(
             tokenId,
             uint(AuthMethodType.ACTION),
@@ -435,13 +413,11 @@ contract PKPPermissions is Ownable {
     function addPermittedAddress(
         uint tokenId,
         address user,
-        uint[] memory scopes
+        uint[] calldata scopes
     ) public {
         addPermittedAuthMethod(
             tokenId,
-            uint(AuthMethodType.ADDRESS),
-            abi.encodePacked(user),
-            "",
+            AuthMethod(uint(AuthMethodType.ADDRESS), abi.encodePacked(user), ""),
             scopes
         );
     }
@@ -465,13 +441,7 @@ contract PKPPermissions is Ownable {
     /**
      * Update the root hash of the merkle tree representing off-chain states for the PKP  
      */
-    function setRootHash(uint tokenId, uint group, bytes32 root) public {
-        // check that user is allowed to set this
-        address nftOwner = pkpNFT.ownerOf(tokenId);
-        require(
-            msg.sender == nftOwner,
-            "Only the PKP NFT owner can set root hash"
-        );
+    function setRootHash(uint tokenId, uint group, bytes32 root) public onlyPKPOwner(tokenId) {
         _rootHashes[tokenId][group] = root;
         emit RootHashUpdated(tokenId, group, root);
     }

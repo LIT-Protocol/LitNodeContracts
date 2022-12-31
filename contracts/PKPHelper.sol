@@ -124,9 +124,9 @@ contract PKPHelper is Ownable, IERC721Receiver {
             for (uint i = 0; i < permittedAuthMethodTypes.length; i++) {
                 pkpPermissions.addPermittedAuthMethod(
                     tokenId,
-                    permittedAuthMethodTypes[i],
+                    PKPPermissions.AuthMethod(permittedAuthMethodTypes[i],
                     permittedAuthMethodIds[i],
-                    permittedAuthMethodPubkeys[i],
+                    permittedAuthMethodPubkeys[i]),
                     permittedAuthMethodScopes[i]
                 );
             }
