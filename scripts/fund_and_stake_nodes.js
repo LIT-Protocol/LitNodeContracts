@@ -54,56 +54,69 @@ const serializeWallets = (wals) => {
   return allWallets;
 };
 
-const generateEnvVars = (nodeIndex, contracts) => {
+const generateBaseConfig = (nodeIndex, contracts) => {
   const template = `
-LIT_CHAIN_NAME = ${contracts.chainName}
-LIT_CHAIN_ID = ${contracts.chainId}
-LIT_CHAIN_RPC_URL = ${contracts.rpcUrl}
+# NB: Do NOT deploy this with the env below (this is just for local env).
+[lit]
+env = "dev"
 
-LIT_CONTRACT_CONDITIONVALIDATIONS = 0x0
-LIT_CONTRACT_ACCESSCONTROLCONDITIONS = ${
+# These values will be provided by the guest.
+[blockchain]
+chain_id = "${contracts.chainId}"
+chain_name = "${contracts.chainName}"
+rpc_url = "${contracts.rpcUrl}"
+
+# TODO: Change this.
+[subnet]
+id = "aA7aD6F5EAc8bF4bAe5CC03295559723677EcA6c"
+
+[contracts]
+condition_validations = "0x0"
+access_control_conditions = "${
     contracts.accessControlConditionsContractAddress
-  }
-LIT_CONTRACT_LITTOKEN = ${contracts.litTokenContractAddress}
-LIT_CONTRACT_STAKING = ${contracts.stakingContractAddress}
-LIT_CONTRACT_PUBKEYROUTER = ${contracts.pubkeyRouterContractAddress}
-LIT_CONTRACT_PKPNFT = ${contracts.pkpNftContractAddress}
-LIT_CONTRACT_RATELIMITNFT = ${contracts.rateLimitNftContractAddress}
-LIT_CONTRACT_PKPPERMISSIONS = ${contracts.pkpPermissionsContractAddress}
-LIT_CONTRACT_PKPHELPER = ${contracts.pkpHelperContractAddress}
-LIT_CONTRACT_ALLOWLIST = ${contracts.allowlistContractAddress}
+  }"
+lit_token = "${contracts.litTokenContractAddress}"
+staking = "${contracts.stakingContractAddress}"
+pubkey_router = "${contracts.pubkeyRouterContractAddress}"
+pkp_nft = "${contracts.pkpNftContractAddress}"
+rate_limit_nft = "${contracts.rateLimitNftContractAddress}"
+pkp_permissions = "${contracts.pkpPermissionsContractAddress}"
+pkp_helper = "${contracts.pkpHelperContractAddress}"
+allowlist = "${contracts.allowlistContractAddress}"
 
-    
-LIT_NODE_DOMAIN_NAME = ${contracts.litNodeDomainName}
-LIT_NODE_PORT = ${contracts.litNodePort + nodeIndex}
-ROCKET_PORT = ${contracts.rocketPort + nodeIndex}
 
-LIT_IPFS_GATEWAY = http://127.0.0.1:8080/ipfs/
+[node]
+domain_name = "${contracts.litNodeDomainName}"
+port = "${contracts.litNodePort + nodeIndex}"
+rocket_port = "${contracts.rocketPort + nodeIndex}"
 
-LIT_ENABLE_RATE_LIMITING = false
-LIT_ENABLE_ACTIONS_ALLOWLIST = true
-LIT_ENABLE_EPOCH_TRANSITIONS = true
+ipfs_gateway = "https://cloudflare-ipfs.com/ipfs/"
+
+enable_rate_limiting = false
+enable_actions_allowlist = false
+enable_epoch_transitions = true
   `;
 
   return template;
 };
 
-const walletToEnvVar = (wallet) => {
+const walletToConfig = (wallet) => {
   return `
-LIT_NODE_ADDRESS = ${wallet.node.address}
-LIT_NODE_PRIVATEKEY = ${wallet.node.privateKey}
-LIT_NODE_PUBLICKEY = ${wallet.node.publicKey}
-LIT_STAKER_ADDRESS = ${wallet.staker.address}
+address = "${wallet.node.address}"
+private_key = "${wallet.node.privateKey}"
+public_key = "${wallet.node.publicKey}"
+staker_address = "${wallet.staker.address}"
+admin_address = "0x50e2dac5e78B5905CB09495547452cEE64426db2"
 
-LIT_NODE_COMS_KEYS_SENDER_PRIVKEY = ${wallet.node.comsKeysSender.privateKey}
-LIT_NODE_COMS_KEYS_RECEIVER_PRIVKEY = ${wallet.node.comsKeysReceiver.privateKey}
+coms_keys_sender_privkey = "${wallet.node.comsKeysSender.privateKey}"
+coms_keys_receiver_privkey = "${wallet.node.comsKeysReceiver.privateKey}"
   `;
 };
 
 const saveConfigFiles = (wallets, contracts) => {
   for (let i = 0; i < wallets.length; i++) {
-    let restOfEnvVars = generateEnvVars(i, contracts);
-    const fullConfigFile = `${restOfEnvVars}\n${walletToEnvVar(wallets[i])}`;
+    let restOfEnvVars = generateBaseConfig(i, contracts);
+    const fullConfigFile = `${restOfEnvVars}\n${walletToConfig(wallets[i])}`;
     fs.writeFileSync(`./node_configs/lit_config${i}.env`, fullConfigFile);
   }
 };
