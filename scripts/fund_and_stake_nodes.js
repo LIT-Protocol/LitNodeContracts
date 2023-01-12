@@ -55,7 +55,7 @@ const serializeWallets = (wals) => {
 };
 
 const generateBaseConfig = (nodeIndex, contracts) => {
-  const template = `
+    const template = `
 # NB: Do NOT deploy this with the env below (this is just for local env).
 [lit]
 env = "dev"
@@ -64,7 +64,6 @@ env = "dev"
 [blockchain]
 chain_id = "${contracts.chainId}"
 chain_name = "${contracts.chainName}"
-rpc_url = "${contracts.rpcUrl}"
 
 # TODO: Change this.
 [subnet]
@@ -73,8 +72,8 @@ id = "aA7aD6F5EAc8bF4bAe5CC03295559723677EcA6c"
 [contracts]
 condition_validations = "0x0"
 access_control_conditions = "${
-    contracts.accessControlConditionsContractAddress
-  }"
+        contracts.accessControlConditionsContractAddress
+    }"
 lit_token = "${contracts.litTokenContractAddress}"
 staking = "${contracts.stakingContractAddress}"
 pubkey_router = "${contracts.pubkeyRouterContractAddress}"
@@ -89,6 +88,7 @@ allowlist = "${contracts.allowlistContractAddress}"
 domain_name = "${contracts.litNodeDomainName}"
 port = "${contracts.litNodePort + nodeIndex}"
 rocket_port = "${contracts.rocketPort + nodeIndex}"
+rpc_url = "${contracts.rpcUrl}"
 
 ipfs_gateway = "https://cloudflare-ipfs.com/ipfs/"
 
@@ -101,7 +101,7 @@ enable_epoch_transitions = true
 };
 
 const walletToConfig = (wallet) => {
-  return `
+    return `
 address = "${wallet.node.address}"
 private_key = "${wallet.node.privateKey}"
 public_key = "${wallet.node.publicKey}"
@@ -114,11 +114,13 @@ coms_keys_receiver_privkey = "${wallet.node.comsKeysReceiver.privateKey}"
 };
 
 const saveConfigFiles = (wallets, contracts) => {
-  for (let i = 0; i < wallets.length; i++) {
-    let restOfEnvVars = generateBaseConfig(i, contracts);
-    const fullConfigFile = `${restOfEnvVars}\n${walletToConfig(wallets[i])}`;
-    fs.writeFileSync(`./node_configs/lit_config${i}.toml`, fullConfigFile);
-  }
+    for (let i = 0; i < wallets.length; i++) {
+        let restOfEnvVars = generateBaseConfig(i, contracts);
+        const fullConfigFile = `${restOfEnvVars}\n${walletToConfig(
+            wallets[i]
+        )}`;
+        fs.writeFileSync(`./node_configs/lit_config${i}.toml`, fullConfigFile);
+    }
 };
 
 const generateWallet = () => {
