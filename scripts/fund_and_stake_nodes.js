@@ -70,7 +70,7 @@ chain_name = "${contracts.chainName}"
 id = "aA7aD6F5EAc8bF4bAe5CC03295559723677EcA6c"
 
 [contracts]
-condition_validations = "0x0"
+condition_validations = "0x0000000000000000000000000000000000000000"
 access_control_conditions = "${
         contracts.accessControlConditionsContractAddress
     }"
