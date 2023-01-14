@@ -54,7 +54,7 @@ const serializeWallets = (wals) => {
     return allWallets;
 };
 
-const generateBaseConfig = (nodeIndex, contracts) => {
+const generateBaseConfig = (nodeIndex, contracts, wallet) => {
     const template = `
 # NB: Do NOT deploy this with the env below (this is just for local env).
 [lit]
@@ -64,6 +64,7 @@ env = "dev"
 [blockchain]
 chain_id = "${contracts.chainId}"
 chain_name = "${contracts.chainName}"
+wallet.default.private_key = "${wallet.node.privateKey}"
 
 # TODO: Change this.
 [subnet]
@@ -82,6 +83,7 @@ rate_limit_nft = "${contracts.rateLimitNftContractAddress}"
 pkp_permissions = "${contracts.pkpPermissionsContractAddress}"
 pkp_helper = "${contracts.pkpHelperContractAddress}"
 allowlist = "${contracts.allowlistContractAddress}"
+resolver = "${contracts.resolverContractAddress}"
 
 
 [node]
@@ -103,7 +105,6 @@ enable_epoch_transitions = true
 const walletToConfig = (wallet) => {
     return `
 address = "${wallet.node.address}"
-private_key = "${wallet.node.privateKey}"
 public_key = "${wallet.node.publicKey}"
 staker_address = "${wallet.staker.address}"
 admin_address = "0x50e2dac5e78B5905CB09495547452cEE64426db2"
@@ -115,7 +116,7 @@ coms_keys_receiver_privkey = "${wallet.node.comsKeysReceiver.privateKey}"
 
 const saveConfigFiles = (wallets, contracts) => {
     for (let i = 0; i < wallets.length; i++) {
-        let restOfEnvVars = generateBaseConfig(i, contracts);
+        let restOfEnvVars = generateBaseConfig(i, contracts, wallets[i]);
         const fullConfigFile = `${restOfEnvVars}\n${walletToConfig(
             wallets[i]
         )}`;
