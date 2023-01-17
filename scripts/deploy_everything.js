@@ -118,10 +118,6 @@ async function main() {
             getResolverContractAddress()
         );
     }
-    let tx = await transferOwnershipToNewOwner(stakingContract);
-    await tx.wait();
-    console.log("New owner set.");
-    verifyContractInBg(stakingContract.address, [litToken.address]);
 
     // *** 3. Deploy AccessControlConditions Conttact
     const accessControlConditionsContract = await deployContract(
@@ -131,7 +127,7 @@ async function main() {
 
     // *** 3.1 Deploy Allowlist Conttact
     const allowlistContract = await deployContract("Allowlist");
-    tx = await transferOwnershipToNewOwner(allowlistContract);
+    let tx = await transferOwnershipToNewOwner(allowlistContract);
     await tx.wait();
     console.log("New owner set.");
     verifyContractInBg(allowlistContract.address);
@@ -274,6 +270,20 @@ async function main() {
         ]);
         verifyContractInBg(resolverContract.address);
     }
+
+    // *** 16.1 Set resolver contract address in staking contract
+    console.log("Setting resolver contract address in staking contract");
+    tx = await stakingContract.setResolverContractAddress(
+        resolverContract.address
+    );
+    await tx.wait();
+
+    // *** 16.2 Set owner of staking contract
+    console.log("Setting new owner of staking contract...");
+    tx = await transferOwnershipToNewOwner(stakingContract);
+    await tx.wait();
+    console.log("New owner set.");
+    verifyContractInBg(stakingContract.address, [litToken.address]);
 
     // *** 17. Set contract addresses in resolver contract
     console.log("Setting contract addresses in resolver...");

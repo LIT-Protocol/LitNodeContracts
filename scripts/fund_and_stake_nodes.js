@@ -68,7 +68,7 @@ wallet.default.private_key = "${wallet.node.privateKey}"
 
 # TODO: Change this.
 [subnet]
-id = "aA7aD6F5EAc8bF4bAe5CC03295559723677EcA6c"
+id = "${contracts.stakingContractAddress.substr(2)}"
 
 [contracts]
 condition_validations = "0x0000000000000000000000000000000000000000"
