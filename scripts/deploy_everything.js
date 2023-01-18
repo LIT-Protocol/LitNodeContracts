@@ -118,10 +118,6 @@ async function main() {
             getResolverContractAddress()
         );
     }
-    let tx = await transferOwnershipToNewOwner(stakingContract);
-    await tx.wait();
-    console.log("New owner set.");
-    verifyContractInBg(stakingContract.address, [litToken.address]);
 
     // *** 3. Deploy AccessControlConditions Conttact
     const accessControlConditionsContract = await deployContract(
@@ -131,7 +127,7 @@ async function main() {
 
     // *** 3.1 Deploy Allowlist Conttact
     const allowlistContract = await deployContract("Allowlist");
-    tx = await transferOwnershipToNewOwner(allowlistContract);
+    let tx = await transferOwnershipToNewOwner(allowlistContract);
     await tx.wait();
     console.log("New owner set.");
     verifyContractInBg(allowlistContract.address);
@@ -258,98 +254,127 @@ async function main() {
     console.log("New owner set.");
     verifyContractInBg(pkpNFTContract.address);
 
-    if (getResolverContractAddress()) {
-        // *** 17. Set contract addresses in resolver contract
-        console.log("Setting contract addresses in resolver...");
+    const deployEnvEnum = mapEnvToEnum(getEnv());
 
-        const deployEnvEnum = mapEnvToEnum(getEnv());
-        const resolverContract = await getContract(
+    let resolverContract;
+    if (getResolverContractAddress()) {
+        resolverContract = await getContract(
             "ContractResolver",
             getResolverContractAddress()
         );
-
-        let txs = [];
-
-        txs.push(
-            await resolverContract.setContract(
-                await resolverContract.STAKING_CONTRACT(),
-                deployEnvEnum,
-                stakingContract.address
-            )
-        );
-        txs.push(
-            await resolverContract.setContract(
-                await resolverContract.MULTI_SENDER_CONTRACT(),
-                deployEnvEnum,
-                multisenderContract.address
-            )
-        );
-        txs.push(
-            await resolverContract.setContract(
-                await resolverContract.LIT_TOKEN_CONTRACT(),
-                deployEnvEnum,
-                litToken.address
-            )
-        );
-        txs.push(
-            await resolverContract.setContract(
-                await resolverContract.ACCESS_CONTROL_CONTRACT(),
-                deployEnvEnum,
-                accessControlConditionsContract.address
-            )
-        );
-        txs.push(
-            await resolverContract.setContract(
-                await resolverContract.PUB_KEY_ROUTER_CONTRACT(),
-                deployEnvEnum,
-                pubkeyRouterContract.address
-            )
-        );
-        txs.push(
-            await resolverContract.setContract(
-                await resolverContract.PKP_NFT_CONTRACT(),
-                deployEnvEnum,
-                pkpNFTContract.address
-            )
-        );
-        txs.push(
-            await resolverContract.setContract(
-                await resolverContract.RATE_LIMIT_NFT_CONTRACT(),
-                deployEnvEnum,
-                rateLimitNftContract.address
-            )
-        );
-        txs.push(
-            await resolverContract.setContract(
-                await resolverContract.PKP_HELPER_CONTRACT(),
-                deployEnvEnum,
-                pkpHelperContract.address
-            )
-        );
-        txs.push(
-            await resolverContract.setContract(
-                await resolverContract.PKP_PERMISSIONS_CONTRACT(),
-                deployEnvEnum,
-                pkpPermissionsContract.address
-            )
-        );
-        txs.push(
-            await resolverContract.setContract(
-                await resolverContract.PKP_NFT_METADATA_CONTRACT(),
-                deployEnvEnum,
-                pkpNftMetadataContract.address
-            )
-        );
-        txs.push(
-            await resolverContract.setContract(
-                await resolverContract.ALLOWLIST_CONTRACT(),
-                deployEnvEnum,
-                allowlistContract.address
-            )
-        );
-
-        await Promise.all(txs);
+    } else {
+        console.log("Deploying resolver contract");
+        // deploy resolver contract
+        resolverContract = await deployContract("ContractResolver", [
+            deployEnvEnum,
+        ]);
+        verifyContractInBg(resolverContract.address);
     }
+
+    // *** 16.1 Set resolver contract address in staking contract
+    console.log("Setting resolver contract address in staking contract");
+    tx = await stakingContract.setResolverContractAddress(
+        resolverContract.address
+    );
+    await tx.wait();
+
+    // *** 16.2 Set owner of staking contract
+    console.log("Setting new owner of staking contract...");
+    tx = await transferOwnershipToNewOwner(stakingContract);
+    await tx.wait();
+    console.log("New owner set.");
+    verifyContractInBg(stakingContract.address, [litToken.address]);
+
+    // *** 17. Set contract addresses in resolver contract
+    console.log("Setting contract addresses in resolver...");
+
+    let txs = [];
+
+    txs.push(
+        await resolverContract.setContract(
+            await resolverContract.STAKING_CONTRACT(),
+            deployEnvEnum,
+            stakingContract.address
+        )
+    );
+    txs.push(
+        await resolverContract.setContract(
+            await resolverContract.MULTI_SENDER_CONTRACT(),
+            deployEnvEnum,
+            multisenderContract.address
+        )
+    );
+    txs.push(
+        await resolverContract.setContract(
+            await resolverContract.LIT_TOKEN_CONTRACT(),
+            deployEnvEnum,
+            litToken.address
+        )
+    );
+    txs.push(
+        await resolverContract.setContract(
+            await resolverContract.ACCESS_CONTROL_CONTRACT(),
+            deployEnvEnum,
+            accessControlConditionsContract.address
+        )
+    );
+    txs.push(
+        await resolverContract.setContract(
+            await resolverContract.PUB_KEY_ROUTER_CONTRACT(),
+            deployEnvEnum,
+            pubkeyRouterContract.address
+        )
+    );
+    txs.push(
+        await resolverContract.setContract(
+            await resolverContract.PKP_NFT_CONTRACT(),
+            deployEnvEnum,
+            pkpNFTContract.address
+        )
+    );
+    txs.push(
+        await resolverContract.setContract(
+            await resolverContract.RATE_LIMIT_NFT_CONTRACT(),
+            deployEnvEnum,
+            rateLimitNftContract.address
+        )
+    );
+    txs.push(
+        await resolverContract.setContract(
+            await resolverContract.PKP_HELPER_CONTRACT(),
+            deployEnvEnum,
+            pkpHelperContract.address
+        )
+    );
+    txs.push(
+        await resolverContract.setContract(
+            await resolverContract.PKP_PERMISSIONS_CONTRACT(),
+            deployEnvEnum,
+            pkpPermissionsContract.address
+        )
+    );
+    txs.push(
+        await resolverContract.setContract(
+            await resolverContract.PKP_NFT_METADATA_CONTRACT(),
+            deployEnvEnum,
+            pkpNftMetadataContract.address
+        )
+    );
+    txs.push(
+        await resolverContract.setContract(
+            await resolverContract.ALLOWLIST_CONTRACT(),
+            deployEnvEnum,
+            allowlistContract.address
+        )
+    );
+
+    const results = await Promise.all(txs);
+    console.log("results from setting contracts in resolver", results);
+
+    console.log("Setting new owner of resolver");
+    tx = await resolverContract.setAdmin(newOwner);
+    await tx.wait();
+    console.log("New owner set.");
 
     const finalJson = {
         stakingContractAddress: stakingContract.address,
@@ -365,6 +390,7 @@ async function main() {
         pkpPermissionsContractAddress: pkpPermissionsContract.address,
         pkpNftMetadataContractAddress: pkpNftMetadataContract.address,
         allowlistContractAddress: allowlistContract.address,
+        resolverContractAddress: resolverContract.address,
         chainId,
         rpcUrl,
         chainName,
