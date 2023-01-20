@@ -64,9 +64,10 @@ env = "dev"
 [blockchain]
 chain_id = "${contracts.chainId}"
 chain_name = "${contracts.chainName}"
-wallet.default.private_key = "${wallet.node.privateKey}"
 
-# TODO: Change this.
+["blockchain.wallet.default"]
+private_key = "${wallet.node.privateKey}"
+
 [subnet]
 id = "${contracts.stakingContractAddress.substr(2)}"
 
