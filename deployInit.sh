@@ -11,9 +11,9 @@ export LIT_OS_DIR="${SCRIPT_DIR}/../lit-os"
 
 setup_project() {
   if [ ! -e "${LIT_OS_DIR}" ]; then
-    echo "Error: lit-os checkout is required to perform this operation"
-    echo "       address (checkout dir: $(readlink -f $LIT_OS_DIR)"
-    exit 2
+    # checkout the lit-os repo
+    cd "${SCRIPT_DIR}/.."
+    git clone git@github.com:LIT-Protocol/lit-os.git
   fi
 
   # Link the ContractResolver so we can call it.
