@@ -344,6 +344,14 @@ async function main() {
     // *** 5. Stake and lock validator set
     await stakeTokensAndLockValidatorSet(wallets, contracts);
 
+    // *** 6. Make sure the directories exist and create them if not
+    const dirs = ["./wallets", "./node_configs"];
+    dirs.forEach((dir) => {
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir);
+        }
+    });
+
     // *** 6. Generate env vars and conf files
     saveConfigFiles(wallets, contracts);
 
