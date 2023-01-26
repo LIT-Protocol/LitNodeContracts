@@ -71,6 +71,19 @@ private_key = "${wallet.node.privateKey}"
 [subnet]
 id = "${contracts.stakingContractAddress.substr(2)}"
 
+# The below addresses are for reference only and may not be correct
+# if you've changed them on the resolver after deployment
+# access control conditions: ${contracts.accessControlConditionsContractAddress}
+# lit token: ${contracts.litTokenContractAddress}
+# staking: ${contracts.stakingContractAddress}
+# pubkey router: ${contracts.pubkeyRouterContractAddress}
+# pkp nft: ${contracts.pkpNftContractAddress}
+# rate limit nft: ${contracts.rateLimitNftContractAddress}
+# pkp permissions: ${contracts.pkpPermissionsContractAddress}
+# pkp helper: ${contracts.pkpHelperContractAddress}
+# allowlist: ${contracts.allowlistContractAddress}
+# resolver: ${contracts.resolverContractAddress}
+
 [node.http]
 port = "${contracts.rocketPort + nodeIndex}"
 
