@@ -71,26 +71,12 @@ private_key = "${wallet.node.privateKey}"
 [subnet]
 id = "${contracts.stakingContractAddress.substr(2)}"
 
-[contracts]
-condition_validations = "0x0000000000000000000000000000000000000000"
-access_control_conditions = "${
-        contracts.accessControlConditionsContractAddress
-    }"
-lit_token = "${contracts.litTokenContractAddress}"
-staking = "${contracts.stakingContractAddress}"
-pubkey_router = "${contracts.pubkeyRouterContractAddress}"
-pkp_nft = "${contracts.pkpNftContractAddress}"
-rate_limit_nft = "${contracts.rateLimitNftContractAddress}"
-pkp_permissions = "${contracts.pkpPermissionsContractAddress}"
-pkp_helper = "${contracts.pkpHelperContractAddress}"
-allowlist = "${contracts.allowlistContractAddress}"
-resolver = "${contracts.resolverContractAddress}"
-
+[node.http]
+port = "${contracts.rocketPort + nodeIndex}"
 
 [node]
-domain_name = "${contracts.litNodeDomainName}"
 port = "${contracts.litNodePort + nodeIndex}"
-rocket_port = "${contracts.rocketPort + nodeIndex}"
+domain = "${contracts.litNodeDomainName}"
 rpc_url = "${contracts.rpcUrl}"
 
 ipfs_gateway = "https://cloudflare-ipfs.com/ipfs/"
