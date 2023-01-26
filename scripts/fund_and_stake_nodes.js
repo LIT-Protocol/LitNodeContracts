@@ -88,7 +88,6 @@ id = "${contracts.stakingContractAddress.substr(2)}"
 port = "${contracts.rocketPort + nodeIndex}"
 
 [node]
-port = "${contracts.litNodePort + nodeIndex}"
 domain = "${contracts.litNodeDomainName}"
 rpc_url = "${contracts.rpcUrl}"
 
