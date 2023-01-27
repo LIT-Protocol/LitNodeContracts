@@ -171,8 +171,11 @@ R7g4ElLqvZLUjeFDnSTHG2J9DjMXvl6phI9OjS3QiJu2+VfSPouqt76+QkoSKQq4
 
 const walletToConfig = (wallet) => {
     return `
-address = "${wallet.node.address}"
-public_key = "${wallet.node.publicKey}"
+# The below are for reference only and are derived from 
+# the blockchain.wallet.default.private_key above    
+# address: ${wallet.node.address}
+# public_key: ${wallet.node.publicKey}
+
 staker_address = "${wallet.staker.address}"
 admin_address = "0x50e2dac5e78B5905CB09495547452cEE64426db2"
 
