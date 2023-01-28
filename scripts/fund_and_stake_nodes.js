@@ -96,6 +96,7 @@ ipfs_gateway = "https://cloudflare-ipfs.com/ipfs/"
 enable_rate_limiting = false
 enable_actions_allowlist = false
 enable_epoch_transitions = true
+enable_ecdsa_dkg = true
 
 gpg_pubkey = """
 -----BEGIN PGP PUBLIC KEY BLOCK-----
