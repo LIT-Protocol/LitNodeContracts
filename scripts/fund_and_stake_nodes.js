@@ -84,15 +84,15 @@ id = "${contracts.stakingContractAddress.substr(2)}"
 # allowlist: ${contracts.allowlistContractAddress}
 # resolver: ${contracts.resolverContractAddress}
 
+[ipfs]
+gateway = "https://cloudflare-ipfs.com/ipfs/"
+
 [node.http]
 port = "${contracts.rocketPort + nodeIndex}"
 
 [node]
 domain = "${contracts.litNodeDomainName}"
 rpc_url = "${contracts.rpcUrl}"
-
-ipfs_gateway = "https://cloudflare-ipfs.com/ipfs/"
-
 enable_rate_limiting = false
 enable_actions_allowlist = false
 enable_epoch_transitions = true
