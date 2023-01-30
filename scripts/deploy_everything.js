@@ -34,6 +34,9 @@ const mapEnvToEnum = (env) => {
 };
 
 const getResolverContractAddress = () => {
+    if (process.env.RESOLVER_CONTRACT_ADDRESS.length == 0) {
+        return null;
+    }
     return process.env.RESOLVER_CONTRACT_ADDRESS;
 };
 
@@ -97,6 +100,14 @@ const transferOwnershipToNewOwner = async (contract) => {
 };
 
 async function main() {
+    let resolverContract = getResolverContractAddress();
+    if (!resolverContract) {
+        console.log(
+            "Please pass the resolver contract address as env var RESOLVER_CONTRACT_ADDRESS"
+        );
+        process.exit(1);
+    }
+
     const [deployer] = await ethers.getSigners();
 
     // *** 1. Deploy LITToken
@@ -256,13 +267,17 @@ async function main() {
 
     const deployEnvEnum = mapEnvToEnum(getEnv());
 
-    let resolverContract;
-    if (getResolverContractAddress()) {
+    if (resolverContract) {
         resolverContract = await getContract(
             "ContractResolver",
-            getResolverContractAddress()
+            resolverContract
         );
     } else {
+        console.log(
+            "Please pass the resolver contract address as env var RESOLVER_CONTRACT_ADDRESS"
+        );
+        process.exit(1);
+        // FIXME:  we should call lit-os/blockchain/scripts/deploy.sh dev instead of deploying it here
         console.log("Deploying resolver contract");
         // deploy resolver contract
         resolverContract = await deployContract("ContractResolver", [
