@@ -26,7 +26,7 @@ import "hardhat/console.sol";
 /// Simply put, whomever owns a PKP NFT can ask that PKP to sign a message.
 /// The owner can also grant signing permissions to other eth addresses
 /// or lit actions
-contract LITGMPass is
+contract SoloNetPKP is
     ERC721("Programmable Keypair", "PKP"),
     Ownable,
     ERC721Burnable,

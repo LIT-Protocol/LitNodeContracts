@@ -7,11 +7,10 @@ const {
     getBytesFromMultihash,
 } = require("../utils.js");
 
-describe("LITGMPass", function () {
+describe("SoloNetPKP", function () {
     let deployer;
     let signers;
     let pkpContract;
-    let staking;
     let pkpPermissions;
     let pkpNftMetadata;
     let minter;
@@ -22,7 +21,7 @@ describe("LITGMPass", function () {
     let PkpNftMetadataFactory;
 
     before(async () => {
-        PkpFactory = await ethers.getContractFactory("LITGMPass");
+        PkpFactory = await ethers.getContractFactory("SoloNetPKP");
         PkpPermissionsFactory = await ethers.getContractFactory(
             "PKPPermissions"
         );
