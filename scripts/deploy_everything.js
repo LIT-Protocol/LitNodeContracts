@@ -277,13 +277,15 @@ async function main() {
             "Please pass the resolver contract address as env var RESOLVER_CONTRACT_ADDRESS"
         );
         process.exit(1);
-        // FIXME:  we should call lit-os/blockchain/scripts/deploy.sh dev instead of deploying it here
-        console.log("Deploying resolver contract");
-        // deploy resolver contract
-        resolverContract = await deployContract("ContractResolver", [
-            deployEnvEnum,
-        ]);
-        verifyContractInBg(resolverContract.address);
+        // Don't deploy the resolver contract - that's why this is commented out.
+        // instead, it's deployed by lit-os/blockchain/scripts/deploy.sh from the
+        // deployInit.sh script in this repo.
+        // console.log("Deploying resolver contract");
+        // // deploy resolver contract
+        // resolverContract = await deployContract("ContractResolver", [
+        //     deployEnvEnum,
+        // ]);
+        // verifyContractInBg(resolverContract.address);
     }
 
     // *** 16.1 Set resolver contract address in staking contract

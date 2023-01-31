@@ -39,8 +39,20 @@ if [ -z "${NETWORK}" ]; then
   NETWORK="mumbai"
 fi
 if [ -z "${RESOLVER_CONTRACT_ADDRESS}" ]; then
-  # Default from LIT_RESOLVER_CONTRACT_ADDRESS
-  export RESOLVER_CONTRACT_ADDRESS="${LIT_RESOLVER_CONTRACT_ADDRESS}"
+  if [ -z "${LIT_RESOLVER_CONTRACT_ADDRESS}" ]; then
+    # deploy the resolver etc.
+    cd ..
+    cd lit-os/blockchain
+    ./scripts/deploy.sh "${ENV}"
+
+    export RESOLVER_CONTRACT_ADDRESS=$(cat deployed-contracts-dev.json | jq -r ".contractResolver")
+    cd ../..
+    cd LitNodeContracts
+
+  else
+    # Default from LIT_RESOLVER_CONTRACT_ADDRESS
+    export RESOLVER_CONTRACT_ADDRESS="${LIT_RESOLVER_CONTRACT_ADDRESS}"
+  fi
 fi
 
 if [ -n "${RESOLVER_CONTRACT_ADDRESS}" ]; then
