@@ -37,8 +37,7 @@ describe("PKPHelper", function () {
         router = await RouterFactory.deploy(pkpContract.address);
         await pkpContract.setRouterAddress(router.address);
         pkpPermissions = await PkpPermissionsFactory.deploy(
-            pkpContract.address,
-            router.address
+            pkpContract.address
         );
         pkpHelper = await PkpHelperFactory.deploy(
             pkpContract.address,

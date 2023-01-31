@@ -41,8 +41,7 @@ describe("PKPPermissions", function () {
         await pkpContract.setRouterAddress(routerContract.address);
 
         pkpPermissions = await PKPPermissionsFactory.deploy(
-            pkpContract.address,
-            routerContract.address
+            pkpContract.address
         );
 
         stakingContract = await StakingContractFactory.deploy(

@@ -7,7 +7,6 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import { PKPNFT } from "./PKPNFT.sol";
-import { PubkeyRouter } from "./PubkeyRouter.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 
 import "hardhat/console.sol";
@@ -22,7 +21,6 @@ contract PKPPermissions is Ownable {
     /* ========== STATE VARIABLES ========== */
 
     PKPNFT public pkpNFT;
-    PubkeyRouter public router;
 
     enum AuthMethodType {
         NULLMETHOD, // 0
@@ -57,9 +55,8 @@ contract PKPPermissions is Ownable {
     mapping(uint256 => mapping(uint256 => bytes32)) private _rootHashes;
 
     /* ========== CONSTRUCTOR ========== */
-    constructor(address _pkpNft, address _router) {
+    constructor(address _pkpNft) {
         pkpNFT = PKPNFT(_pkpNft);
-        router = PubkeyRouter(_router);
     }
 
     /* ========== Modifier ========== */
@@ -74,19 +71,18 @@ contract PKPPermissions is Ownable {
 
     /// get the eth address for the keypair, as long as it's an ecdsa keypair
     function getEthAddress(uint256 tokenId) public view returns (address) {
-        return router.getEthAddress(tokenId);
+        return pkpNFT.getEthAddress(tokenId);
     }
 
     /// includes the 0x04 prefix so you can pass this directly to ethers.utils.computeAddress
     function getPubkey(uint256 tokenId) public view returns (bytes memory) {
-        return router.getPubkey(tokenId);
+        return pkpNFT.getPubkey(tokenId);
     }
 
-    function getAuthMethodId(uint256 authMethodType, bytes memory id)
-        public
-        pure
-        returns (uint256)
-    {
+    function getAuthMethodId(
+        uint256 authMethodType,
+        bytes memory id
+    ) public pure returns (uint256) {
         return uint256(keccak256(abi.encode(authMethodType, id)));
     }
 
@@ -100,11 +96,10 @@ contract PKPPermissions is Ownable {
         return am.userPubkey;
     }
 
-    function getTokenIdsForAuthMethod(uint256 authMethodType, bytes calldata id)
-        external
-        view
-        returns (uint256[] memory)
-    {
+    function getTokenIdsForAuthMethod(
+        uint256 authMethodType,
+        bytes calldata id
+    ) external view returns (uint256[] memory) {
         uint256 authMethodId = getAuthMethodId(authMethodType, id);
 
         uint256 pkpIdsLength = authMethodToPkpIds[authMethodId].length();
@@ -117,11 +112,9 @@ contract PKPPermissions is Ownable {
         return allPkpIds;
     }
 
-    function getPermittedAuthMethods(uint256 tokenId)
-        external
-        view
-        returns (AuthMethod[] memory)
-    {
+    function getPermittedAuthMethods(
+        uint256 tokenId
+    ) external view returns (AuthMethod[] memory) {
         uint256 permittedAuthMethodsLength = permittedAuthMethods[tokenId]
             .length();
         AuthMethod[] memory allPermittedAuthMethods = new AuthMethod[](
@@ -156,11 +149,9 @@ contract PKPPermissions is Ownable {
         return allScopes;
     }
 
-    function getPermittedActions(uint256 tokenId)
-        public
-        view
-        returns (bytes[] memory)
-    {
+    function getPermittedActions(
+        uint256 tokenId
+    ) public view returns (bytes[] memory) {
         uint256 permittedAuthMethodsLength = permittedAuthMethods[tokenId]
             .length();
 
@@ -191,11 +182,9 @@ contract PKPPermissions is Ownable {
         return allPermittedActions;
     }
 
-    function getPermittedAddresses(uint256 tokenId)
-        public
-        view
-        returns (address[] memory)
-    {
+    function getPermittedAddresses(
+        uint256 tokenId
+    ) public view returns (address[] memory) {
         uint256 permittedAuthMethodsLength = permittedAuthMethods[tokenId]
             .length();
 
@@ -274,11 +263,10 @@ contract PKPPermissions is Ownable {
         return present;
     }
 
-    function isPermittedAction(uint256 tokenId, bytes calldata ipfsCID)
-        public
-        view
-        returns (bool)
-    {
+    function isPermittedAction(
+        uint256 tokenId,
+        bytes calldata ipfsCID
+    ) public view returns (bool) {
         return
             isPermittedAuthMethod(
                 tokenId,
@@ -287,11 +275,10 @@ contract PKPPermissions is Ownable {
             );
     }
 
-    function isPermittedAddress(uint256 tokenId, address user)
-        public
-        view
-        returns (bool)
-    {
+    function isPermittedAddress(
+        uint256 tokenId,
+        address user
+    ) public view returns (bool) {
         return
             isPermittedAuthMethod(
                 tokenId,
@@ -417,9 +404,10 @@ contract PKPPermissions is Ownable {
         );
     }
 
-    function removePermittedAction(uint256 tokenId, bytes calldata ipfsCID)
-        public
-    {
+    function removePermittedAction(
+        uint256 tokenId,
+        bytes calldata ipfsCID
+    ) public {
         removePermittedAuthMethod(
             tokenId,
             uint256(AuthMethodType.ACTION),
@@ -453,10 +441,6 @@ contract PKPPermissions is Ownable {
 
     function setPkpNftAddress(address newPkpNftAddress) public onlyOwner {
         pkpNFT = PKPNFT(newPkpNftAddress);
-    }
-
-    function setRouterAddress(address newRouterAddress) public onlyOwner {
-        router = PubkeyRouter(newRouterAddress);
     }
 
     /**

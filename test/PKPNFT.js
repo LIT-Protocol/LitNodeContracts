@@ -38,8 +38,7 @@ describe("PKPNFT", function () {
         pkpContract = await PkpFactory.deploy();
         router = await RouterFactory.deploy(pkpContract.address);
         pkpPermissions = await PkpPermissionsFactory.deploy(
-            pkpContract.address,
-            router.address
+            pkpContract.address
         );
         pkpNftMetadata = await PkpNftMetadataFactory.deploy();
         await pkpContract.setRouterAddress(router.address);
