@@ -7,21 +7,21 @@ const {
     getBytesFromMultihash,
 } = require("../utils.js");
 
-describe("PKPNFT", function () {
+describe("SoloNetPKP", function () {
     let deployer;
     let signers;
     let pkpContract;
-    let router;
     let pkpPermissions;
     let pkpNftMetadata;
+    let minter;
+    const fakeStakingContractAddress =
+        "0x1eEE5bdDe12ff75B076D6F7Cbe76B5131120b07b";
 
     let PkpFactory;
-    let RouterFactory;
     let PkpNftMetadataFactory;
 
     before(async () => {
-        PkpFactory = await ethers.getContractFactory("PKPNFT");
-        RouterFactory = await smock.mock("PubkeyRouter");
+        PkpFactory = await ethers.getContractFactory("SoloNetPKP");
         PkpPermissionsFactory = await ethers.getContractFactory(
             "PKPPermissions"
         );
@@ -31,25 +31,24 @@ describe("PKPNFT", function () {
     });
 
     beforeEach(async () => {
-        [deployer, ...signers] = await ethers.getSigners();
+        [deployer, minter, ...signers] = await ethers.getSigners();
     });
 
     beforeEach(async () => {
         pkpContract = await PkpFactory.deploy();
-        router = await RouterFactory.deploy(pkpContract.address);
         pkpPermissions = await PkpPermissionsFactory.deploy(
             pkpContract.address
         );
         pkpNftMetadata = await PkpNftMetadataFactory.deploy();
-        await pkpContract.setRouterAddress(router.address);
+        await pkpContract.setStakingAddress(fakeStakingContractAddress);
         await pkpContract.setPkpPermissionsAddress(pkpPermissions.address);
         await pkpContract.setPkpNftMetadataAddress(pkpNftMetadata.address);
+        await pkpContract.setPermittedMinter(minter.address);
     });
 
     describe("Attempt to Mint PKP NFT", async () => {
-        let minter;
-
-        beforeEach(async () => ([minter, recipient, ...signers] = signers));
+        let recipient;
+        beforeEach(async () => ([recipient, ...signers] = signers));
         beforeEach(async () => (pkpContract = pkpContract.connect(minter)));
 
         let pubkey =
@@ -59,39 +58,33 @@ describe("PKPNFT", function () {
         //console.log("PubkeyHash: " , pubkeyHash);
 
         it("refuses to mint for free", async () => {
-            expect(pkpContract.mintNext(2)).revertedWith(
+            expect(pkpContract.mint(pubkey)).revertedWith(
                 "You must pay exactly mint cost"
             );
         });
 
-        it("refuses to mint because the PKP isnt routed yet", async () => {
+        it("refuses to mint because the user is not the permittedMinter", async () => {
             // send eth with the txn
             const mintCost = await pkpContract.mintCost();
             const transaction = {
                 value: mintCost,
             };
 
-            expect(pkpContract.mintNext(2, transaction)).revertedWith(
-                "There are no unminted routed token ids to mint"
-            );
+            const pkpContractWithRecipient = pkpContract.connect(recipient);
+
+            expect(
+                pkpContractWithRecipient.mint(pubkey, transaction)
+            ).revertedWith("You are not permitted to mint");
         });
 
         it("mints successfully", async () => {
-            // route it
-            await router.setRoutingData(
-                tokenId,
-                pubkey,
-                "0x0000000000000000000000000000000000000003",
-                2
-            );
-
             // send eth with the txn
             const mintCost = await pkpContract.mintCost();
             const transaction = {
                 value: mintCost,
             };
 
-            await pkpContract.mintNext(2, transaction);
+            await pkpContract.mint(pubkey, transaction);
 
             // check the token was minted
             const owner = await pkpContract.ownerOf(tokenId);
@@ -121,28 +114,20 @@ describe("PKPNFT", function () {
     });
 
     describe("Test free minting of PKP NFT", async () => {
-        let minter;
         let admin;
 
         let pubkey =
-            "0x79ad3ad10f47993173e69e040a2e5299060bd531f4d5632b45a1b56f6dc17f9d";
+            "0x04fde9eaa7f4aa2bc89c1ae37a0a685b9340b3f7deff76550f766609eac9f7e5881c4b0b7bc3b2d3680a86c96223556914c7ef806800f976097705415e78304f98";
         const pubkeyHash = ethers.utils.keccak256(pubkey);
         // console.log("pubkeyhash: ", pubkeyHash);
         const tokenId = ethers.BigNumber.from(pubkeyHash);
         //console.log("PubkeyHash: " , pubkeyHash);
 
-        beforeEach(async () => ([minter, admin, ...signers] = signers));
-        beforeEach(async () => {
-            await router.setRoutingData(
-                tokenId,
-                pubkey,
-                "0x0000000000000000000000000000000000000003",
-                2
-            );
-        });
+        beforeEach(async () => ([admin, ...signers] = signers));
         beforeEach(async () => {
             pkpContract = pkpContract.connect(deployer);
             await pkpContract.setFreeMintSigner(admin.address);
+            pkpContract = pkpContract.connect(minter);
         });
 
         it("refuses to mint with an empty sig", async () => {
@@ -150,8 +135,8 @@ describe("PKPNFT", function () {
 
             // test with empty sig
             expect(
-                pkpContract.freeMintNext(
-                    2,
+                pkpContract.freeMint(
+                    pubkey,
                     freeMintId,
                     "0x0000000000000000000000000000000000000000000000000000000000000000",
                     0,
@@ -188,32 +173,22 @@ describe("PKPNFT", function () {
             );
 
             // mint ECDSA key
-
-            await pkpContract.freeMintNext(2, freeMintId, msgHash, v, r, s);
+            await pkpContract.freeMint(pubkey, freeMintId, msgHash, v, r, s);
         });
     });
 
     describe("Test Mint Grant And Burn", async () => {
-        let minter;
-
-        beforeEach(async () => ([minter, recipient, ...signers] = signers));
+        let recipient;
+        beforeEach(async () => ([recipient, ...signers] = signers));
         beforeEach(async () => (pkpContract = pkpContract.connect(minter)));
 
         let pubkey =
-            "0xb6505db66ceebb717d2b925660799c5fac6d8d14a4ed04c3dbeecffaf7a0d4c4c584dfddbbdeb8b80cb895af4b9eb61a216aa477f8ceb301c9c034b2239c2a08";
+            "0x04c5c4c5762982cd8364174385eab907c839be7ce9b09488f6f4d194a701dad1be1f1055c7bda56591ab0d3b7752f69a0c4a42d6616c6f5e2d172db5a60532714e";
         const pubkeyHash = ethers.utils.keccak256(pubkey);
         const tokenId = ethers.BigNumber.from(pubkeyHash);
         //console.log("PubkeyHash: " , pubkeyHash);
 
         it("mints, grants, and burns successfully", async () => {
-            // route it
-            await router.setRoutingData(
-                tokenId,
-                pubkey,
-                "0x0000000000000000000000000000000000000003",
-                2
-            );
-
             // send eth with the txn
             const mintCost = await pkpContract.mintCost();
             const transaction = {
@@ -232,7 +207,11 @@ describe("PKPNFT", function () {
             //   multihashStruct.size
             // );
 
-            await pkpContract.mintGrantAndBurnNext(2, ipfsIdBytes, transaction);
+            await pkpContract.mintGrantAndBurn(
+                pubkey,
+                ipfsIdBytes,
+                transaction
+            );
 
             // check the token was minted
             expect(pkpContract.ownerOf(tokenId)).revertedWith(

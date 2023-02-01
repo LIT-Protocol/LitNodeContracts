@@ -144,7 +144,7 @@ async function main() {
     verifyContractInBg(allowlistContract.address);
 
     // *** 4. Deploy PKPNFT Contract
-    const pkpNFTContract = await deployContract("PKPNFT");
+    const pkpNFTContract = await deployContract("SoloNetPKP");
 
     // *** 5. Deploy RateLimitNft Contract
     const rateLimitNftContract = await deployContract("RateLimitNFT");
@@ -153,15 +153,6 @@ async function main() {
     console.log("New owner set.");
     verifyContractInBg(rateLimitNftContract.address);
 
-    // *** 6. Deploy PubkeyRouterAndPermissions Contract
-    const pubkeyRouterContract = await deployContract("PubkeyRouter", [
-        pkpNFTContract.address,
-    ]);
-    tx = await transferOwnershipToNewOwner(pubkeyRouterContract);
-    await tx.wait();
-    console.log("New owner set.");
-    verifyContractInBg(pubkeyRouterContract.address, [pkpNFTContract.address]);
-
     // *** 7. Deploy Multisender Contract
     const multisenderContract = await deployContract("Multisender");
     tx = await transferOwnershipToNewOwner(multisenderContract);
@@ -169,9 +160,9 @@ async function main() {
     console.log("New owner set.");
     verifyContractInBg(multisenderContract.address);
 
-    // *** 8. Set router contract address in PKP NFT
-    console.log("Setting router address in PKP NFT");
-    await pkpNFTContract.setRouterAddress(pubkeyRouterContract.address);
+    // *** 8. Set staking contract address in PKP NFT
+    console.log("Setting staking address in PKP NFT");
+    await pkpNFTContract.setStakingAddress(stakingContract.address);
 
     // *** 9. Send tokens to multisender to be sent to stakers
     console.log("Sending tokens to multisender");
@@ -244,7 +235,7 @@ async function main() {
 
     // *** 15. Deploy PKPHelper Contract
     console.log("Deploying PKP helper contract and then setting new owner");
-    const pkpHelperContract = await deployContract("PKPHelper", [
+    const pkpHelperContract = await deployContract("SoloNetPKPHelper", [
         pkpNFTContract.address,
         pkpPermissionsContract.address,
     ]);
@@ -335,13 +326,6 @@ async function main() {
     );
     txs.push(
         await resolverContract.setContract(
-            await resolverContract.PUB_KEY_ROUTER_CONTRACT(),
-            deployEnvEnum,
-            pubkeyRouterContract.address
-        )
-    );
-    txs.push(
-        await resolverContract.setContract(
             await resolverContract.PKP_NFT_CONTRACT(),
             deployEnvEnum,
             pkpNFTContract.address
@@ -398,7 +382,6 @@ async function main() {
         // used for the config file generation
         accessControlConditionsContractAddress:
             accessControlConditionsContract.address,
-        pubkeyRouterContractAddress: pubkeyRouterContract.address,
         pkpNftContractAddress: pkpNFTContract.address,
         rateLimitNftContractAddress: rateLimitNftContract.address,
         pkpHelperContractAddress: pkpHelperContract.address,

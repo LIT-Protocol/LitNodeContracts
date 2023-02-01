@@ -3,29 +3,27 @@ pragma solidity ^0.8.17;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { PKPPermissions } from "./PKPPermissions.sol";
-import { PKPNFT } from "./PKPNFT.sol";
+import { SoloNetPKP } from "./SoloNetPKP.sol";
 import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-// TODO: tests for the mintGrantAndBurn function, withdraw function, some of the setters, transfer function, freeMint and freeMintGrantAndBurn
-
-/// @title Programmable Keypair NFT
+/// @title PKP Helper Contract
 ///
-/// @dev This is the contract for the PKP NFTs
+/// @dev This is the contract that helps minting PKPs
 ///
 /// Simply put, whomever owns a PKP NFT can ask that PKP to sign a message.
 /// The owner can also grant signing permissions to other eth addresses
 /// or lit actions
-contract PKPHelper is Ownable, IERC721Receiver {
+contract SoloNetPKPHelper is Ownable, IERC721Receiver {
     /* ========== STATE VARIABLES ========== */
 
-    PKPNFT public pkpNFT;
+    SoloNetPKP public pkpNFT;
     PKPPermissions public pkpPermissions;
 
     /* ========== CONSTRUCTOR ========== */
     constructor(address _pkpNft, address _pkpPermissions) {
-        pkpNFT = PKPNFT(_pkpNft);
+        pkpNFT = SoloNetPKP(_pkpNft);
         pkpPermissions = PKPPermissions(_pkpPermissions);
     }
 
@@ -33,8 +31,8 @@ contract PKPHelper is Ownable, IERC721Receiver {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function mintNextAndAddAuthMethods(
-        uint256 keyType,
+    function mintAndAddAuthMethods(
+        bytes memory pubkey,
         uint256[] memory permittedAuthMethodTypes,
         bytes[] memory permittedAuthMethodIds,
         bytes[] memory permittedAuthMethodPubkeys,
@@ -43,8 +41,8 @@ contract PKPHelper is Ownable, IERC721Receiver {
         bool sendPkpToItself
     ) public payable returns (uint256) {
         return
-            mintNextAndAddAuthMethodsWithTypes(
-                keyType,
+            mintAndAddAuthMethodsWithTypes(
+                pubkey,
                 new bytes[](0), // permitted ipfs CIDs
                 new uint256[][](0), // permitted ipfs CIDs scopes
                 new address[](0), // permitted addresses
@@ -58,8 +56,8 @@ contract PKPHelper is Ownable, IERC721Receiver {
             );
     }
 
-    function mintNextAndAddAuthMethodsWithTypes(
-        uint256 keyType,
+    function mintAndAddAuthMethodsWithTypes(
+        bytes memory pubkey,
         bytes[] memory permittedIpfsCIDs,
         uint256[][] memory permittedIpfsCIDScopes,
         address[] memory permittedAddresses,
@@ -72,7 +70,7 @@ contract PKPHelper is Ownable, IERC721Receiver {
         bool sendPkpToItself
     ) public payable returns (uint256) {
         // mint the nft and forward the funds
-        uint256 tokenId = pkpNFT.mintNext{ value: msg.value }(keyType);
+        uint256 tokenId = pkpNFT.mint{ value: msg.value }(pubkey);
 
         // sanity checking array lengths
         require(
@@ -134,7 +132,7 @@ contract PKPHelper is Ownable, IERC721Receiver {
             }
         }
 
-        address pkpEthAddress = pkpPermissions.getEthAddress(tokenId);
+        address pkpEthAddress = pkpNFT.getEthAddress(tokenId);
 
         // add the pkp eth address as a permitted address
         if (addPkpEthAddressAsPermittedAddress) {
@@ -155,20 +153,19 @@ contract PKPHelper is Ownable, IERC721Receiver {
     }
 
     function setPkpNftAddress(address newPkpNftAddress) public onlyOwner {
-        pkpNFT = PKPNFT(newPkpNftAddress);
+        pkpNFT = SoloNetPKP(newPkpNftAddress);
     }
 
-    function setPkpPermissionsAddress(address newPkpPermissionsAddress)
-        public
-        onlyOwner
-    {
+    function setPkpPermissionsAddress(
+        address newPkpPermissionsAddress
+    ) public onlyOwner {
         pkpPermissions = PKPPermissions(newPkpPermissionsAddress);
     }
 
     function onERC721Received(
-        address, /* operator */
-        address, /* from */
-        uint256, /* tokenId */
+        address /* operator */,
+        address /* from */,
+        uint256 /* tokenId */,
         bytes calldata /* data */
     ) external view override returns (bytes4) {
         // only accept transfers from the pkpNft contract

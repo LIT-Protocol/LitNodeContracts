@@ -12,6 +12,8 @@ import { ERC721Burnable } from "@openzeppelin/contracts/token/ERC721/extensions/
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { IERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import { IERC721Metadata } from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import { Staking } from "./Staking.sol";
+import "solidity-bytes-utils/contracts/BytesLib.sol";
 
 import "hardhat/console.sol";
 
@@ -24,23 +26,29 @@ import "hardhat/console.sol";
 /// Simply put, whomever owns a PKP NFT can ask that PKP to sign a message.
 /// The owner can also grant signing permissions to other eth addresses
 /// or lit actions
-contract PKPNFT is
+contract SoloNetPKP is
     ERC721("Programmable Keypair", "PKP"),
     Ownable,
     ERC721Burnable,
     ERC721Enumerable,
     ReentrancyGuard
 {
+    using BytesLib for bytes;
+
     /* ========== STATE VARIABLES ========== */
 
-    PubkeyRouter public router;
     PKPPermissions public pkpPermissions;
     PKPNFTMetadata public pkpNftMetadata;
     uint256 public mintCost;
     address public freeMintSigner;
+    Staking public staking;
+    address public permittedMinter;
 
-    // maps keytype to array of unminted routed token ids
-    mapping(uint256 => uint256[]) public unmintedRoutedTokenIds;
+    // map tokenId to the actual pubkey
+    mapping(uint256 => bytes) public pubkeys;
+
+    // map the eth address to a pkp id
+    mapping(address => uint256) public ethAddressToPkpId;
 
     mapping(uint256 => bool) public redeemedFreeMintIds;
 
@@ -48,18 +56,22 @@ contract PKPNFT is
     constructor() {
         mintCost = 1e14; // 0.0001 eth
         freeMintSigner = msg.sender;
+        permittedMinter = msg.sender;
     }
 
     /* ========== VIEWS ========== */
 
-    /// get the eth address for the keypair, as long as it's an ecdsa keypair
+    /// get the eth address for the keypair
     function getEthAddress(uint256 tokenId) public view returns (address) {
-        return router.getEthAddress(tokenId);
+        // remove 0x04 prefix
+        bytes memory pubkey = pubkeys[tokenId].slice(1, 64);
+        bytes32 hashed = keccak256(pubkey);
+        return address(uint160(uint256(hashed)));
     }
 
     /// includes the 0x04 prefix so you can pass this directly to ethers.utils.computeAddress
     function getPubkey(uint256 tokenId) public view returns (bytes memory) {
-        return router.getPubkey(tokenId);
+        return pubkeys[tokenId];
     }
 
     /// throws if the sig is bad or msg doesn't match
@@ -92,13 +104,9 @@ contract PKPNFT is
         );
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC721, ERC721Enumerable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC721, ERC721Enumerable) returns (bool) {
         return
             interfaceId == type(IERC721Enumerable).interfaceId ||
             interfaceId == type(IERC721Metadata).interfaceId ||
@@ -113,27 +121,16 @@ contract PKPNFT is
         ERC721Enumerable._beforeTokenTransfer(from, to, tokenId);
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override
-        returns (string memory)
-    {
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
         console.log("getting token uri");
-        bytes memory pubKey = router.getPubkey(tokenId);
+        bytes memory pubKey = getPubkey(tokenId);
         console.log("got pubkey, getting eth address");
-        address ethAddress = router.getEthAddress(tokenId);
+        address ethAddress = getEthAddress(tokenId);
         console.log("calling tokenURI");
 
         return pkpNftMetadata.tokenURI(tokenId, pubKey, ethAddress);
-    }
-
-    function getUnmintedRoutedTokenIdCount(uint256 keyType)
-        public
-        view
-        returns (uint256)
-    {
-        return unmintedRoutedTokenIds[keyType].length;
     }
 
     // Builds a prefixed hash to mimic the behavior of eth_sign.
@@ -148,109 +145,87 @@ contract PKPNFT is
         return _exists(tokenId);
     }
 
+    function _getTokenIdToMint(
+        bytes memory pubkey
+    ) public view returns (uint256) {
+        uint256 tokenId = uint256(keccak256(pubkey));
+        require(pubkeys[tokenId].length == 0, "This pubkey already exists");
+        return tokenId;
+    }
+
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function mintNext(uint256 keyType) public payable returns (uint256) {
+    function mint(bytes memory pubkey) public payable returns (uint256) {
         require(msg.value == mintCost, "You must pay exactly mint cost");
-        uint256 tokenId = _getNextTokenIdToMint(keyType);
-        _mintWithoutValueCheck(tokenId, msg.sender);
+        require(tx.origin == permittedMinter, "You are not permitted to mint");
+
+        uint256 tokenId = _getTokenIdToMint(pubkey);
+
+        _mintWithoutValueCheck(pubkey, msg.sender);
         return tokenId;
     }
 
-    function mintGrantAndBurnNext(uint256 keyType, bytes memory ipfsCID)
-        public
-        payable
-        returns (uint256)
-    {
+    function mintGrantAndBurn(
+        bytes memory pubkey,
+        bytes memory ipfsCID
+    ) public payable returns (uint256) {
         require(msg.value == mintCost, "You must pay exactly mint cost");
-        uint256 tokenId = _getNextTokenIdToMint(keyType);
-        _mintWithoutValueCheck(tokenId, address(this));
+        require(tx.origin == permittedMinter, "You are not permitted to mint");
+
+        uint256 tokenId = _mintWithoutValueCheck(pubkey, address(this));
+
         pkpPermissions.addPermittedAction(tokenId, ipfsCID, new uint256[](0));
         _burn(tokenId);
         return tokenId;
-    }
-
-    function freeMintNext(
-        uint256 keyType,
-        uint256 freeMintId,
-        bytes32 msgHash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public returns (uint256) {
-        uint256 tokenId = _getNextTokenIdToMint(keyType);
-        freeMint(freeMintId, tokenId, msgHash, v, r, s);
-        return tokenId;
-    }
-
-    function freeMintGrantAndBurnNext(
-        uint256 keyType,
-        uint256 freeMintId,
-        bytes memory ipfsCID,
-        bytes32 msgHash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public returns (uint256) {
-        uint256 tokenId = _getNextTokenIdToMint(keyType);
-        freeMintGrantAndBurn(freeMintId, tokenId, ipfsCID, msgHash, v, r, s);
-        return tokenId;
-    }
-
-    /// create a valid token for a given public key.
-    function mintSpecific(uint256 tokenId) public onlyOwner {
-        _mintWithoutValueCheck(tokenId, msg.sender);
-    }
-
-    /// mint a PKP, grant access to a Lit Action, and then burn the PKP
-    /// this happens in a single txn, so it's provable that only that lit action
-    /// has ever had access to use the PKP.
-    /// this is useful in the context of something like a "prime number certification lit action"
-    /// where you could just trust the sig that a number is prime.
-    /// without this function, a user could mint a PKP, sign a bunch of junk, and then burn the
-    /// PKP to make it looks like only the Lit Action can use it.
-    function mintGrantAndBurnSpecific(uint256 tokenId, bytes memory ipfsCID)
-        public
-        onlyOwner
-    {
-        _mintWithoutValueCheck(tokenId, address(this));
-        pkpPermissions.addPermittedAction(tokenId, ipfsCID, new uint256[](0));
-        _burn(tokenId);
     }
 
     function freeMint(
+        bytes memory pubkey,
         uint256 freeMintId,
-        uint256 tokenId,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) internal {
+    ) public returns (uint256) {
+        require(tx.origin == permittedMinter, "You are not permitted to mint");
+
         // this will panic if the sig is bad
         freeMintSigTest(freeMintId, msgHash, v, r, s);
-        _mintWithoutValueCheck(tokenId, msg.sender);
+        uint256 tokenId = _mintWithoutValueCheck(pubkey, msg.sender);
         redeemedFreeMintIds[freeMintId] = true;
+        return tokenId;
     }
 
     function freeMintGrantAndBurn(
+        bytes memory pubkey,
         uint256 freeMintId,
-        uint256 tokenId,
         bytes memory ipfsCID,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) internal {
+    ) public returns (uint256) {
+        require(tx.origin == permittedMinter, "You are not permitted to mint");
+
         // this will panic if the sig is bad
         freeMintSigTest(freeMintId, msgHash, v, r, s);
-        _mintWithoutValueCheck(tokenId, address(this));
+        uint256 tokenId = _mintWithoutValueCheck(pubkey, address(this));
         redeemedFreeMintIds[freeMintId] = true;
         pkpPermissions.addPermittedAction(tokenId, ipfsCID, new uint256[](0));
         _burn(tokenId);
+        return tokenId;
     }
 
-    function _mintWithoutValueCheck(uint256 tokenId, address to) internal {
-        require(router.isRouted(tokenId), "This PKP has not been routed yet");
+    function _mintWithoutValueCheck(
+        bytes memory pubkey,
+        address to
+    ) internal returns (uint256) {
+        uint256 tokenId = uint256(keccak256(pubkey));
+        require(pubkeys[tokenId].length == 0, "This pubkey already exists");
+        pubkeys[tokenId] = pubkey;
+
+        address pkpAddress = getEthAddress(tokenId);
+        ethAddressToPkpId[pkpAddress] = tokenId;
 
         if (to == address(this)) {
             // permit unsafe transfer only to this contract, because it's going to be burned
@@ -258,40 +233,30 @@ contract PKPNFT is
         } else {
             _safeMint(to, tokenId);
         }
-    }
-
-    /// Take a tokenId off the stack
-    function _getNextTokenIdToMint(uint256 keyType) internal returns (uint256) {
-        require(
-            unmintedRoutedTokenIds[keyType].length > 0,
-            "There are no unminted routed token ids to mint"
-        );
-        uint256 tokenId = unmintedRoutedTokenIds[keyType][
-            unmintedRoutedTokenIds[keyType].length - 1
-        ];
-
-        unmintedRoutedTokenIds[keyType].pop();
 
         return tokenId;
     }
 
-    function setRouterAddress(address routerAddress) public onlyOwner {
-        router = PubkeyRouter(routerAddress);
-        emit RouterAddressSet(routerAddress);
+    function setStakingAddress(address stakingAddress) public onlyOwner {
+        staking = Staking(stakingAddress);
+        emit StakingAddressSet(stakingAddress);
     }
 
-    function setPkpNftMetadataAddress(address pkpNftMetadataAddress)
-        public
-        onlyOwner
-    {
+    function setPermittedMinter(address newPermittedMinter) public onlyOwner {
+        permittedMinter = newPermittedMinter;
+        emit PermittedMinterSet(permittedMinter);
+    }
+
+    function setPkpNftMetadataAddress(
+        address pkpNftMetadataAddress
+    ) public onlyOwner {
         pkpNftMetadata = PKPNFTMetadata(pkpNftMetadataAddress);
         emit PkpNftMetadataAddressSet(pkpNftMetadataAddress);
     }
 
-    function setPkpPermissionsAddress(address pkpPermissionsAddress)
-        public
-        onlyOwner
-    {
+    function setPkpPermissionsAddress(
+        address pkpPermissionsAddress
+    ) public onlyOwner {
         pkpPermissions = PKPPermissions(pkpPermissionsAddress);
         emit PkpPermissionsAddressSet(pkpPermissionsAddress);
     }
@@ -313,19 +278,10 @@ contract PKPNFT is
         emit Withdrew(withdrawAmount);
     }
 
-    /// Push a tokenId onto the stack
-    function pkpRouted(uint256 tokenId, uint256 keyType) public {
-        require(
-            msg.sender == address(router),
-            "Only the routing contract can call this function"
-        );
-        unmintedRoutedTokenIds[keyType].push(tokenId);
-        emit PkpRouted(tokenId, keyType);
-    }
-
     /* ========== EVENTS ========== */
 
-    event RouterAddressSet(address indexed routerAddress);
+    event StakingAddressSet(address indexed stakingAddress);
+    event PermittedMinterSet(address indexed permittedMinterAddress);
     event PkpNftMetadataAddressSet(address indexed pkpNftMetadataAddress);
     event PkpPermissionsAddressSet(address indexed pkpPermissionsAddress);
     event MintCostSet(uint256 newMintCost);

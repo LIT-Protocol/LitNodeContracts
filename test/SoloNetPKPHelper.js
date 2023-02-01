@@ -7,35 +7,32 @@ const {
     getBytesFromMultihash,
 } = require("../utils.js");
 
-describe("PKPHelper", function () {
+describe("SoloNetPKPHelper", function () {
     let deployer;
     let signers;
     let pkpContract;
-    let router;
+    let minter;
     let pkpHelper;
     let pkpPermissions;
 
     let PkpFactory;
-    let RouterFactory;
     let PkpHelperFactory;
 
     before(async () => {
-        PkpFactory = await ethers.getContractFactory("PKPNFT");
-        RouterFactory = await smock.mock("PubkeyRouter");
-        PkpHelperFactory = await ethers.getContractFactory("PKPHelper");
+        PkpFactory = await ethers.getContractFactory("SoloNetPKP");
+        PkpHelperFactory = await ethers.getContractFactory("SoloNetPKPHelper");
         PkpPermissionsFactory = await ethers.getContractFactory(
             "PKPPermissions"
         );
     });
 
     beforeEach(async () => {
-        [deployer, ...signers] = await ethers.getSigners();
+        [deployer, minter, ...signers] = await ethers.getSigners();
     });
 
     beforeEach(async () => {
         pkpContract = await PkpFactory.deploy();
-        router = await RouterFactory.deploy(pkpContract.address);
-        await pkpContract.setRouterAddress(router.address);
+        await pkpContract.setPermittedMinter(minter.address);
         pkpPermissions = await PkpPermissionsFactory.deploy(
             pkpContract.address
         );
@@ -46,9 +43,8 @@ describe("PKPHelper", function () {
     });
 
     describe("Attempt to Mint PKP NFT via PKPHelper", async () => {
-        let minter;
-
-        beforeEach(async () => ([minter, recipient, ...signers] = signers));
+        let recipient;
+        beforeEach(async () => ([recipient, ...signers] = signers));
         beforeEach(async () => {
             pkpContract = pkpContract.connect(minter);
             pkpHelper = pkpHelper.connect(minter);
@@ -60,13 +56,6 @@ describe("PKPHelper", function () {
             const pubkeyHash = ethers.utils.keccak256(pubkey);
             const tokenId = ethers.BigNumber.from(pubkeyHash);
             //console.log("PubkeyHash: " , pubkeyHash);
-            // route it
-            await router.setRoutingData(
-                tokenId,
-                pubkey,
-                "0x0000000000000000000000000000000000000003",
-                2
-            );
 
             const addressesToPermit = [
                 "0x75EdCdfb5A678290A8654979703bdb75C683B3dD",
@@ -105,8 +94,8 @@ describe("PKPHelper", function () {
                 value: mintCost,
             };
 
-            await pkpHelper.mintNextAndAddAuthMethodsWithTypes(
-                2,
+            await pkpHelper.mintAndAddAuthMethodsWithTypes(
+                pubkey,
                 ipfsIdsBytes,
                 [[], []],
                 addressesToPermit,
@@ -222,13 +211,6 @@ describe("PKPHelper", function () {
             const pubkeyHash = ethers.utils.keccak256(pubkey);
             const tokenId = ethers.BigNumber.from(pubkeyHash);
             //console.log("PubkeyHash: " , pubkeyHash);
-            // route it
-            await router.setRoutingData(
-                tokenId,
-                pubkey,
-                "0x0000000000000000000000000000000000000003",
-                2
-            );
 
             const addressesToPermit = [
                 "0x75EdCdfb5A678290A8654979703bdb75C683B3dD",
@@ -265,8 +247,8 @@ describe("PKPHelper", function () {
                 value: mintCost,
             };
 
-            await pkpHelper.mintNextAndAddAuthMethods(
-                2,
+            await pkpHelper.mintAndAddAuthMethods(
+                pubkey,
                 authMethodTypes,
                 authMethodUserIds,
                 authMethodPubkeys,
@@ -378,13 +360,6 @@ describe("PKPHelper", function () {
             const pubkeyHash = ethers.utils.keccak256(pubkey);
             const tokenId = ethers.BigNumber.from(pubkeyHash);
             //console.log("PubkeyHash: " , pubkeyHash);
-            // route it
-            await router.setRoutingData(
-                tokenId,
-                pubkey,
-                "0x0000000000000000000000000000000000000003",
-                2
-            );
 
             const addressesToPermit = [
                 "0x75EdCdfb5A678290A8654979703bdb75C683B3dD",
@@ -423,8 +398,8 @@ describe("PKPHelper", function () {
                 value: mintCost,
             };
 
-            await pkpHelper.mintNextAndAddAuthMethodsWithTypes(
-                2,
+            await pkpHelper.mintAndAddAuthMethodsWithTypes(
+                pubkey,
                 ipfsIdsBytes,
                 [[], []],
                 addressesToPermit,
@@ -541,22 +516,14 @@ describe("PKPHelper", function () {
             const tokenId = ethers.BigNumber.from(pubkeyHash);
             //console.log("PubkeyHash: " , pubkeyHash);
 
-            // route it
-            await router.setRoutingData(
-                tokenId,
-                pubkey,
-                "0x0000000000000000000000000000000000000003",
-                2
-            );
-
             // send eth with the txn
             const mintCost = await pkpContract.mintCost();
             const transaction = {
                 value: mintCost,
             };
 
-            await pkpHelper.mintNextAndAddAuthMethodsWithTypes(
-                2,
+            await pkpHelper.mintAndAddAuthMethodsWithTypes(
+                pubkey,
                 [],
                 [],
                 [],
@@ -596,13 +563,6 @@ describe("PKPHelper", function () {
             const pubkeyHash = ethers.utils.keccak256(pubkey);
             const tokenId = ethers.BigNumber.from(pubkeyHash);
             //console.log("PubkeyHash: " , pubkeyHash);
-            // route it
-            await router.setRoutingData(
-                tokenId,
-                pubkey,
-                "0x0000000000000000000000000000000000000003",
-                2
-            );
 
             const addressesToPermit = [];
             const ipfsIdsToPermit = [];
@@ -621,8 +581,8 @@ describe("PKPHelper", function () {
                 value: mintCost,
             };
 
-            await pkpHelper.mintNextAndAddAuthMethodsWithTypes(
-                2,
+            await pkpHelper.mintAndAddAuthMethodsWithTypes(
+                pubkey,
                 ipfsIdsBytes,
                 [],
                 addressesToPermit,
