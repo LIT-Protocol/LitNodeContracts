@@ -226,11 +226,9 @@ async function main() {
     );
     const pkpPermissionsContract = await deployContract("PKPPermissions", [
         pkpNFTContract.address,
-        pubkeyRouterContract.address,
     ]);
     verifyContractInBg(pkpPermissionsContract.address, [
         pkpNFTContract.address,
-        pubkeyRouterContract.address,
     ]);
     tx = await transferOwnershipToNewOwner(pkpPermissionsContract);
     await tx.wait();
