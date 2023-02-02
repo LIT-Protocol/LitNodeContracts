@@ -1,17 +1,3 @@
-This doesn't work yet because i didn't want to paste in the coms keys
-
-
-
-
-
-
-
-
-
-
-
-
-
 // We require the Hardhat Runtime Environment explicitly here. This is optional
 // but useful for running the script in a standalone fashion through `node <script>`.
 //
@@ -33,7 +19,7 @@ async function getChainId() {
     return chainId;
 }
 
-console.log("Setting IP addresses " + chainName);
+console.log("Setting IP addresses for chain" + chainName);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -45,10 +31,7 @@ const ip2int = (ip) => {
     );
 };
 
-
 async function main() {
-    const signer = await getSigner();
-
     const rl = require("readline").createInterface({
         input: process.stdin,
         output: process.stdout,
@@ -58,46 +41,60 @@ async function main() {
         rl.question("What is the staking contract address? ", resolve);
     });
 
-    const stakingContract = await ethers.getContractAt(
-        "Staking",
-        stakingContractAddress,
-        signer
-    );
-
-    const walletJson = await new Promise((resolve) => {
-        rl.question("Paste in the wallets.json: ", resolve);
+    const walletsJsonPath = await new Promise((resolve) => {
+        rl.question("What is the wallets.json path? ", resolve);
     });
-    const wallets = JSON.parse(walletJson);
+    let walletsJson = fs.readFileSync(walletsJsonPath);
+    const wallets = JSON.parse(walletsJson);
 
     for (let i = 0; i < wallets.length; i++) {
         let w = wallets[i];
-        w.staker = new ethers.Wallet(w.staker.privateKey, ethers.provider);
+        const signer = new ethers.Wallet(w.staker.privateKey, ethers.provider);
+        const stakingContract = await ethers.getContractAt(
+            "Staking",
+            stakingContractAddress,
+            signer
+        );
 
         // prompt for ip address to set for the node
-        const ip = await new Promise((resolve) => {
+        let ip = await new Promise((resolve) => {
             rl.question(
                 `What IP address do you want to use for node ${i + 1}? `,
                 resolve
             );
         });
 
-        // prompt for port to set for the node
-        const port = await new Promise((resolve) => {
-            rl.question(
-                `What port do you want to use for node ${i + 1}? `,
-                resolve
-            );
-        });
+        // // prompt for port to set for the node
+        // let port = await new Promise((resolve) => {
+        //     rl.question(
+        //         `What port do you want to use for node ${i + 1}? `,
+        //         resolve
+        //     );
+        // });
+        let port = "443";
 
-        await stakingContract.setIpPortNodeAddressAndCommunicationPubKeys(
-          uint32 ip,
-          uint128 ipv6,
-          uint32 port,
-          address nodeAddress,
-          uint256 senderPubKey,
-          uint256 receiverPubKey
-      );
+        const ipAsInt = ip2int(ip);
+        ip = ethers.BigNumber.from(ipAsInt);
+        const ipv6 = ethers.BigNumber.from("0");
+        port = ethers.BigNumber.from(parseInt(port));
+
+        const txn =
+            await stakingContract.setIpPortNodeAddressAndCommunicationPubKeys(
+                ip,
+                ipv6,
+                port,
+                w.node.address,
+                w.node.comsKeysSender.publicKey,
+                w.node.comsKeysReceiver.publicKey
+            );
+        console.log(`Transaction hash: ${txn.hash}`);
+        await txn.wait();
+        console.log(
+            `Transaction mined: https://dashboard.tenderly.co/tx/mumbai/${txn.hash}`
+        );
     }
+
+    process.exit(0);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
