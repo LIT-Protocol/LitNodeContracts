@@ -12,6 +12,7 @@ import { ERC721Burnable } from "@openzeppelin/contracts/token/ERC721/extensions/
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { IERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import { IERC721Metadata } from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { Staking } from "./Staking.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 
@@ -34,6 +35,7 @@ contract SoloNetPKP is
     ReentrancyGuard
 {
     using BytesLib for bytes;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     /* ========== STATE VARIABLES ========== */
 
@@ -42,7 +44,7 @@ contract SoloNetPKP is
     uint256 public mintCost;
     address public freeMintSigner;
     Staking public staking;
-    address public permittedMinter;
+    EnumerableSet.AddressSet permittedMinters;
 
     // map tokenId to the actual pubkey
     mapping(uint256 => bytes) public pubkeys;
@@ -56,7 +58,7 @@ contract SoloNetPKP is
     constructor() {
         mintCost = 1e14; // 0.0001 eth
         freeMintSigner = msg.sender;
-        permittedMinter = msg.sender;
+        permittedMinters.add(msg.sender);
     }
 
     /* ========== VIEWS ========== */
@@ -157,7 +159,10 @@ contract SoloNetPKP is
 
     function mint(bytes memory pubkey) public payable returns (uint256) {
         require(msg.value == mintCost, "You must pay exactly mint cost");
-        require(tx.origin == permittedMinter, "You are not permitted to mint");
+        require(
+            permittedMinters.contains(tx.origin),
+            "You are not permitted to mint"
+        );
 
         uint256 tokenId = _getTokenIdToMint(pubkey);
 
@@ -170,7 +175,10 @@ contract SoloNetPKP is
         bytes memory ipfsCID
     ) public payable returns (uint256) {
         require(msg.value == mintCost, "You must pay exactly mint cost");
-        require(tx.origin == permittedMinter, "You are not permitted to mint");
+        require(
+            permittedMinters.contains(tx.origin),
+            "You are not permitted to mint"
+        );
 
         uint256 tokenId = _mintWithoutValueCheck(pubkey, address(this));
 
@@ -187,7 +195,10 @@ contract SoloNetPKP is
         bytes32 r,
         bytes32 s
     ) public returns (uint256) {
-        require(tx.origin == permittedMinter, "You are not permitted to mint");
+        require(
+            permittedMinters.contains(tx.origin),
+            "You are not permitted to mint"
+        );
 
         // this will panic if the sig is bad
         freeMintSigTest(freeMintId, msgHash, v, r, s);
@@ -205,7 +216,10 @@ contract SoloNetPKP is
         bytes32 r,
         bytes32 s
     ) public returns (uint256) {
-        require(tx.origin == permittedMinter, "You are not permitted to mint");
+        require(
+            permittedMinters.contains(tx.origin),
+            "You are not permitted to mint"
+        );
 
         // this will panic if the sig is bad
         freeMintSigTest(freeMintId, msgHash, v, r, s);
@@ -242,9 +256,16 @@ contract SoloNetPKP is
         emit StakingAddressSet(stakingAddress);
     }
 
-    function setPermittedMinter(address newPermittedMinter) public onlyOwner {
-        permittedMinter = newPermittedMinter;
-        emit PermittedMinterSet(permittedMinter);
+    function addPermittedMinter(address newPermittedMinter) public onlyOwner {
+        permittedMinters.add(newPermittedMinter);
+        emit MinterPermitted(newPermittedMinter);
+    }
+
+    function removePermittedMinter(
+        address newPermittedMinter
+    ) public onlyOwner {
+        permittedMinters.remove(newPermittedMinter);
+        emit MinterRevoked(newPermittedMinter);
     }
 
     function setPkpNftMetadataAddress(
@@ -281,11 +302,12 @@ contract SoloNetPKP is
     /* ========== EVENTS ========== */
 
     event StakingAddressSet(address indexed stakingAddress);
-    event PermittedMinterSet(address indexed permittedMinterAddress);
     event PkpNftMetadataAddressSet(address indexed pkpNftMetadataAddress);
     event PkpPermissionsAddressSet(address indexed pkpPermissionsAddress);
     event MintCostSet(uint256 newMintCost);
     event FreeMintSignerSet(address indexed newFreeMintSigner);
     event Withdrew(uint256 amount);
     event PkpRouted(uint256 indexed tokenId, uint256 indexed keyType);
+    event MinterPermitted(address indexed minter);
+    event MinterRevoked(address indexed minter);
 }
