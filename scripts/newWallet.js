@@ -7,4 +7,4 @@ let walletJson = {
     publicKey: wallet.publicKey,
     mnemonic: wallet.mnemonic.phrase,
 };
-console.log("walletJson", JSON.stringify(walletJson));
+console.log(JSON.stringify(walletJson));
