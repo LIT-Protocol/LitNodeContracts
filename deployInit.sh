@@ -23,15 +23,15 @@ setup_project() {
 }
 
 if [ -z "${ENV}" ]; then
-  echo "Usage: $0 <dev|test|prod>"
+  echo "Usage: $0 <dev|staging|prod>"
   exit 2
 fi
 if [ "${ENV}" = "_SETUP_" ]; then
   setup_project
   exit 0
 fi
-if [ "${ENV}" != "dev" ] && [ "${ENV}" != "test" ] && [ "${ENV}" != "prod" ]; then
-  echo "Invalid environment (valid: dev, test, prod)"
+if [ "${ENV}" != "dev" ] && [ "${ENV}" != "staging" ] && [ "${ENV}" != "prod" ]; then
+  echo "Invalid environment (valid: dev, staging, prod)"
   exit 2
 fi
 

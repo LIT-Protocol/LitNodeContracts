@@ -24,7 +24,7 @@ const mapEnvToEnum = (env) => {
     switch (env) {
         case "dev":
             return 0;
-        case "test":
+        case "staging":
             return 1;
         case "prod":
             return 2;
