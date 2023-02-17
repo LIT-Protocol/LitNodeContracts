@@ -12,7 +12,7 @@ const { ethers } = hre;
 const chainName = hre.network.name;
 const rpcUrl = hre.network.config.url;
 
-const walletCount = 2;
+const walletCount = 3;
 
 async function getChainId() {
     const { chainId } = await ethers.provider.getNetwork();
