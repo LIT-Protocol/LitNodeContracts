@@ -85,7 +85,7 @@ id = "${contracts.stakingContractAddress.substr(2)}"
 # resolver: ${contracts.resolverContractAddress}
 
 [ipfs]
-gateway = "https://cloudflare-ipfs.com/ipfs/"
+gateway = "https://ipfs.io/ipfs/"
 
 [node.http]
 port = "${contracts.rocketPort + nodeIndex}"
