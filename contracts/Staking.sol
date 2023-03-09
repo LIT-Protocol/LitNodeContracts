@@ -362,7 +362,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     function stake(uint256 amount) public nonReentrant {
         require(amount > 0, "Cannot stake 0");
 
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+        stakingToken.transferFrom(msg.sender, address(this), amount);
         validators[msg.sender].balance += amount;
 
         totalStaked += amount;
@@ -426,7 +426,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         validators[msg.sender].balance =
             validators[msg.sender].balance -
             amount;
-        stakingToken.safeTransfer(msg.sender, amount);
+        stakingToken.transfer(msg.sender, amount);
         emit Withdrawn(msg.sender, amount);
     }
 
@@ -448,7 +448,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint256 reward = validators[msg.sender].reward;
         if (reward > 0) {
             validators[msg.sender].reward = 0;
-            stakingToken.safeTransfer(msg.sender, reward);
+            stakingToken.transfer(msg.sender, reward);
             emit RewardPaid(msg.sender, reward);
         }
     }
