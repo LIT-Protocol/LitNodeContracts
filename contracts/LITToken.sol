@@ -1,10 +1,11 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.17;
 
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ERC20Burnable } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC20BurnableUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 /// @title Lit Protocol Token
 ///
@@ -16,22 +17,19 @@ import { ERC20Burnable } from "@openzeppelin/contracts/token/ERC20/extensions/ER
 ///
 /// This contract was initially borrowed from Alchemix, and modified extensively, from here: https://github.com/alchemix-finance/alchemix-protocol/blob/master/contracts/AlchemixToken.sol
 contract LITToken is
-    AccessControl,
-    ERC20("Lit Protocol", "LIT"),
-    ERC20Burnable
+    AccessControlUpgradeable,
+    ERC20Upgradeable,
+    ERC20BurnableUpgradeable
 {
+    using SafeERC20Upgradeable for ERC20Upgradeable;
+
     /// @dev The identifier of the role which maintains other roles.
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
 
     /// @dev The identifier of the role which allows accounts to mint tokens.
     bytes32 public constant MINTER_ROLE = keccak256("MINTER");
 
-    constructor() {
-        _setupRole(ADMIN_ROLE, msg.sender);
-        _setupRole(MINTER_ROLE, msg.sender);
-        _setRoleAdmin(MINTER_ROLE, ADMIN_ROLE);
-        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
-    }
+    constructor() {}
 
     /// @dev A modifier which checks that the caller has the minter role.
     modifier onlyMinter() {

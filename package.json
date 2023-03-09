@@ -12,6 +12,7 @@
     "prettier": "prettier -c -w '**/*.js' '**/*.sol' '**/*.md'"
   },
   "devDependencies": {
+    "@chugsplash/plugins": "^0.13.0",
     "@defi-wonderland/smock": "^2.1.0",
     "@nomicfoundation/hardhat-foundry": "^1.0.0",
     "@nomiclabs/hardhat-ethers": "^2.0.0",
@@ -28,6 +29,7 @@
   "dependencies": {
     "@noble/ed25519": "^1.7.1",
     "@openzeppelin/contracts": "^4.7.0",
+    "@openzeppelin/contracts-upgradeable": "^4.8.2",
     "@tenderly/hardhat-tenderly": "^1.1.6",
     "bs58": "^5.0.0",
     "dotenv": "^16.0.3",
