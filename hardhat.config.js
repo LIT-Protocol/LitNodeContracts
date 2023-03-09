@@ -11,8 +11,6 @@ require("@tenderly/hardhat-tenderly");
 
 require("hardhat-gas-reporter");
 
-require("@nomicfoundation/hardhat-foundry");
-
 require('@chugsplash/plugins')
 
 // This is a sample Hardhat task. To learn how to create your own go to

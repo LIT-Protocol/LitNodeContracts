@@ -1,45 +1,43 @@
 {
-  "name": "LitNodeContracts",
-  "version": "1.0.0",
-  "main": "index.js",
-  "license": "GPL-3.0-or-later",
-  "scripts": {
-    "test": "npx hardhat test | tee gas_costs.txt",
-    "compile": "npx hardhat compile",
-    "convertPubkey": "node pubkeyToRoutingData.js",
-    "convertIpfsId": "node ipfsIdToParts.js",
-    "hashIpfsId": "node ipfsIdToHash.js",
-    "prettier": "prettier -c -w '**/*.js' '**/*.sol' '**/*.md'"
-  },
-  "devDependencies": {
-    "@chugsplash/plugins": "^0.13.0",
-    "@defi-wonderland/smock": "^2.1.0",
-    "@nomicfoundation/hardhat-foundry": "^1.0.0",
-    "@nomiclabs/hardhat-ethers": "^2.0.0",
-    "@nomiclabs/hardhat-etherscan": "^3.1.1",
-    "@nomiclabs/hardhat-waffle": "^2.0.0",
-    "@openzeppelin/merkle-tree": "^1.0.1",
-    "chai": "^4.2.0",
-    "ethereum-waffle": "^3.0.0",
-    "hardhat": "^2.12.0",
-    "hardhat-gas-reporter": "^1.0.9",
-    "prettier": "^2.7.1",
-    "prettier-plugin-solidity": "^1.0.0-beta.19"
-  },
-  "dependencies": {
-    "@noble/ed25519": "^1.7.1",
-    "@openzeppelin/contracts": "^4.7.0",
-    "@openzeppelin/contracts-upgradeable": "^4.8.2",
-    "@tenderly/hardhat-tenderly": "^1.1.6",
-    "bs58": "^5.0.0",
-    "dotenv": "^16.0.3",
-    "ethers": "^5.7.1",
-    "solidity-bytes-utils": "^0.8.0",
-    "tweetnacl": "^1.0.3",
-    "uint8arrays": "3",
-    "uuid": "^8.3.2"
-  },
-  "resolutions": {
-    "ethereumjs-abi": "0.6.5"
-  }
+    "name": "LitNodeContracts",
+    "version": "1.0.0",
+    "main": "index.js",
+    "license": "GPL-3.0-or-later",
+    "scripts": {
+        "test": "npx hardhat test | tee gas_costs.txt",
+        "compile": "npx hardhat compile",
+        "convertPubkey": "node pubkeyToRoutingData.js",
+        "convertIpfsId": "node ipfsIdToParts.js",
+        "hashIpfsId": "node ipfsIdToHash.js",
+        "prettier": "prettier -c -w '**/*.js' '**/*.sol' '**/*.md'"
+    },
+    "devDependencies": {
+        "@chugsplash/plugins": "^0.13.0",
+        "@defi-wonderland/smock": "^2.1.0",
+        "@nomiclabs/hardhat-ethers": "^2.0.0",
+        "@nomiclabs/hardhat-etherscan": "^3.1.1",
+        "@nomiclabs/hardhat-waffle": "^2.0.0",
+        "@openzeppelin/merkle-tree": "^1.0.1",
+        "chai": "^4.2.0",
+        "ethereum-waffle": "^3.0.0",
+        "hardhat": "^2.12.0",
+        "hardhat-gas-reporter": "^1.0.9",
+        "prettier": "^2.7.1",
+        "prettier-plugin-solidity": "^1.0.0-beta.19"
+    },
+    "dependencies": {
+        "@noble/ed25519": "^1.7.1",
+        "@openzeppelin/contracts": "^4.7.0",
+        "@tenderly/hardhat-tenderly": "^1.1.6",
+        "bs58": "^5.0.0",
+        "dotenv": "^16.0.3",
+        "ethers": "^5.7.1",
+        "solidity-bytes-utils": "^0.8.0",
+        "tweetnacl": "^1.0.3",
+        "uint8arrays": "3",
+        "uuid": "^8.3.2"
+    },
+    "resolutions": {
+        "ethereumjs-abi": "0.6.5"
+    }
 }
