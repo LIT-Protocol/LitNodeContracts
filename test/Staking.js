@@ -782,7 +782,7 @@ describe("Staking", function () {
         });
     });
 
-    describe("only the admin can pause", () => {
+    describe("the admin can pause", () => {
         it("tries to pause then unpause as admin", async () => {
             stakingContract = stakingContract.connect(deployer);
 

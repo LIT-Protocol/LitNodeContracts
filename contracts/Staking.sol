@@ -507,7 +507,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             totalStaked -= amountToBurn;
             stakingToken.burn(amountToBurn);
             // shame them with an event
-            emit ValidatorKickedFromNextEpoch(validatorStakerAddress);
+            emit ValidatorKickedFromNextEpoch(
+                validatorStakerAddress,
+                amountToBurn
+            );
         }
 
         emit VotedToKickValidatorInNextEpoch(
@@ -596,7 +599,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         validatorsInNextEpoch.remove(validatorStakerAddress);
         // block them from rejoining the next epoch
         validatorsKickedFromNextEpoch.add(validatorStakerAddress);
-        emit ValidatorKickedFromNextEpoch(validatorStakerAddress);
+        emit ValidatorKickedFromNextEpoch(validatorStakerAddress, 0);
     }
 
     function adminSlashValidator(
@@ -606,6 +609,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         validators[validatorStakerAddress].balance -= amountToBurn;
         totalStaked -= amountToBurn;
         stakingToken.burn(amountToBurn);
+        emit ValidatorKickedFromNextEpoch(validatorStakerAddress, amountToBurn);
     }
 
     /* ========== EVENTS ========== */
@@ -625,7 +629,10 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint256 indexed reason,
         bytes data
     );
-    event ValidatorKickedFromNextEpoch(address indexed staker);
+    event ValidatorKickedFromNextEpoch(
+        address indexed staker,
+        uint256 amountBurned
+    );
 
     // onlyOwner events
     event EpochLengthSet(uint256 newEpochLength);
