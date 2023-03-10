@@ -384,7 +384,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             "Stake must be greater than or equal to minimumStake"
         );
         require(
-            state == States.Active || state == States.Unlocked,
+            state == States.Active ||
+                state == States.Unlocked ||
+                state == States.Paused,
             "Must be in Active or Unlocked state to request to join"
         );
 
@@ -433,7 +435,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     /// Request to leave in the next Epoch
     function requestToLeave() public nonReentrant {
         require(
-            state == States.Active || state == States.Unlocked,
+            state == States.Active ||
+                state == States.Unlocked ||
+                state == States.Paused,
             "Must be in Active or Unlocked state to request to leave"
         );
         if (validatorsInNextEpoch.contains(msg.sender)) {
@@ -573,6 +577,16 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         resolverContractAddress = newResolverContractAddress;
 
         emit ResolverContractAddressSet(newResolverContractAddress);
+    }
+
+    function setEpochState(States newState) public onlyOwner {
+        state = newState;
+        emit StateChanged(newState);
+    }
+
+    function pauseEpoch() public onlyOwner {
+        state = States.Paused;
+        emit StateChanged(States.Paused);
     }
 
     /* ========== EVENTS ========== */
