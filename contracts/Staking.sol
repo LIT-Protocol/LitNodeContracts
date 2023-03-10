@@ -589,6 +589,25 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         emit StateChanged(States.Paused);
     }
 
+    function adminKickValidatorInNextEpoch(
+        address validatorStakerAddress
+    ) public nonReentrant onlyOwner {
+        // remove from next validator set
+        validatorsInNextEpoch.remove(validatorStakerAddress);
+        // block them from rejoining the next epoch
+        validatorsKickedFromNextEpoch.add(validatorStakerAddress);
+        emit ValidatorKickedFromNextEpoch(validatorStakerAddress);
+    }
+
+    function adminSlashValidator(
+        address validatorStakerAddress,
+        uint256 amountToBurn
+    ) public nonReentrant onlyOwner {
+        validators[validatorStakerAddress].balance -= amountToBurn;
+        totalStaked -= amountToBurn;
+        stakingToken.burn(amountToBurn);
+    }
+
     /* ========== EVENTS ========== */
 
     event Staked(address indexed staker, uint256 amount);

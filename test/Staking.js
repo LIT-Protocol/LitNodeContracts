@@ -11,6 +11,8 @@ const StakingState = {
     Active: 0,
     NextValidatorSetLocked: 1,
     ReadyForNextEpoch: 2,
+    Unlocked: 3,
+    Paused: 4,
 };
 
 const intToState = (num) => {
@@ -720,6 +722,77 @@ describe("Staking", function () {
             expect(await stakingContract.resolverContractAddress()).equal(
                 newResolverContractAddress
             );
+        });
+    });
+
+    describe("only the admin can call admin functions", () => {
+        it("tries to call the admin functions as a non admin and fails", async () => {
+            stakingContract = stakingContract.connect(nodeAccount1);
+
+            expect(stakingContract.setEpochLength(25)).revertedWith(
+                "Ownable: caller is not the owner"
+            );
+
+            expect(stakingContract.setEpochTimeout(25)).revertedWith(
+                "Ownable: caller is not the owner"
+            );
+
+            expect(stakingContract.setStakingToken(token.address)).revertedWith(
+                "Ownable: caller is not the owner"
+            );
+
+            expect(
+                stakingContract.setTokenRewardPerTokenPerEpoch(25)
+            ).revertedWith("Ownable: caller is not the owner");
+
+            expect(stakingContract.setMinimumStake(25)).revertedWith(
+                "Ownable: caller is not the owner"
+            );
+
+            expect(stakingContract.setKickPenaltyPercent(5)).revertedWith(
+                "Ownable: caller is not the owner"
+            );
+
+            expect(
+                stakingContract.setResolverContractAddress(
+                    routerContract.address
+                )
+            ).revertedWith("Ownable: caller is not the owner");
+
+            expect(stakingContract.setEpochState(1)).revertedWith(
+                "Ownable: caller is not the owner"
+            );
+
+            expect(stakingContract.pauseEpoch()).revertedWith(
+                "Ownable: caller is not the owner"
+            );
+
+            expect(
+                stakingContract.adminKickValidatorInNextEpoch(
+                    stakingAccount1.address
+                )
+            ).revertedWith("Ownable: caller is not the owner");
+
+            expect(
+                stakingContract.adminSlashValidator(
+                    stakingAccount1.address,
+                    100
+                )
+            ).revertedWith("Ownable: caller is not the owner");
+        });
+    });
+
+    describe("only the admin can pause", () => {
+        it("tries to pause then unpause as admin", async () => {
+            stakingContract = stakingContract.connect(deployer);
+
+            const currentState = await stakingContract.state();
+            await stakingContract.pauseEpoch();
+            expect(await stakingContract.state()).to.equal(StakingState.Paused);
+
+            // move the state back
+            await stakingContract.setEpochState(currentState);
+            expect(await stakingContract.state()).to.equal(currentState);
         });
     });
 });
