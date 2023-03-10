@@ -21,7 +21,8 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         Active,
         NextValidatorSetLocked,
         ReadyForNextEpoch,
-        Unlocked
+        Unlocked,
+        Paused
     }
 
     // this enum is not used, and instead we use an integer so that
@@ -42,6 +43,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint256 number;
         uint256 endBlock; //
         uint256 retries; // incremented upon failure to advance and subsequent unlock
+        uint256 timeout; // timeout in blocks, where the nodes can be unlocked.
     }
 
     Epoch public epoch;
@@ -104,12 +106,13 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             epochLength: 80,
             number: 1,
             endBlock: block.number + 1,
-            retries: 0
+            retries: 0,
+            timeout: 80
         });
         // 0.05 tokens per token staked meaning a 5% per epoch inflation rate
-        tokenRewardPerTokenPerEpoch = (10**stakingToken.decimals()) / 20;
+        tokenRewardPerTokenPerEpoch = (10 ** stakingToken.decimals()) / 20;
         // 1 token minimum stake
-        minimumStake = 1 * (10**stakingToken.decimals());
+        minimumStake = 1 * (10 ** stakingToken.decimals());
         kickPenaltyPercent = 5;
     }
 
@@ -181,11 +184,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return false;
     }
 
-    function shouldKickValidator(address stakerAddress)
-        public
-        view
-        returns (bool)
-    {
+    function shouldKickValidator(
+        address stakerAddress
+    ) public view returns (bool) {
         VoteToKickValidatorInNextEpoch
             storage vk = votesToKickValidatorsInNextEpoch[epoch.number][
                 stakerAddress
@@ -261,9 +262,9 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /// If the nodes fail to advance (e.g. because dkg failed), anyone can call to unlock and allow retry
     function unlockValidatorsForNextEpoch() public {
-        // the deadline to advance is thus epoch.endBlock + epoch.epochlength
+        // the deadline to advance is thus epoch.endBlock + epoch.timeout
         require(
-            block.number >= epoch.endBlock + epoch.epochLength,
+            block.number >= epoch.endBlock + epoch.timeout,
             "Enough blocks have not elapsed since the last epoch"
         );
         require(
@@ -277,7 +278,6 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         }
 
         epoch.retries++;
-        epoch.endBlock = block.number + epoch.epochLength;
 
         state = States.Unlocked;
         emit StateChanged(state);
@@ -305,7 +305,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             validators[validatorAddress].reward +=
                 (tokenRewardPerTokenPerEpoch *
                     validators[validatorAddress].balance) /
-                10**stakingToken.decimals();
+                10 ** stakingToken.decimals();
         }
 
         // set the validators to the new validator set
@@ -538,6 +538,11 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         emit EpochLengthSet(newEpochLength);
     }
 
+    function setEpochTimeout(uint256 newEpochTimeout) public onlyOwner {
+        epoch.timeout = newEpochTimeout;
+        emit EpochTimeoutSet(newEpochTimeout);
+    }
+
     function setStakingToken(address newStakingTokenAddress) public onlyOwner {
         stakingToken = LITToken(newStakingTokenAddress);
         emit StakingTokenSet(newStakingTokenAddress);
@@ -555,18 +560,16 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         emit MinimumStakeSet(newMinimumStake);
     }
 
-    function setKickPenaltyPercent(uint256 newKickPenaltyPercent)
-        public
-        onlyOwner
-    {
+    function setKickPenaltyPercent(
+        uint256 newKickPenaltyPercent
+    ) public onlyOwner {
         kickPenaltyPercent = newKickPenaltyPercent;
         emit KickPenaltyPercentSet(newKickPenaltyPercent);
     }
 
-    function setResolverContractAddress(address newResolverContractAddress)
-        public
-        onlyOwner
-    {
+    function setResolverContractAddress(
+        address newResolverContractAddress
+    ) public onlyOwner {
         resolverContractAddress = newResolverContractAddress;
 
         emit ResolverContractAddressSet(newResolverContractAddress);
@@ -593,6 +596,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     // onlyOwner events
     event EpochLengthSet(uint256 newEpochLength);
+    event EpochTimeoutSet(uint256 newEpochTimeout);
     event StakingTokenSet(address newStakingTokenAddress);
     event TokenRewardPerTokenPerEpochSet(
         uint256 newTokenRewardPerTokenPerEpoch
