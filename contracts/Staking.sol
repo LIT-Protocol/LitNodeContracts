@@ -113,7 +113,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         tokenRewardPerTokenPerEpoch = (10 ** stakingToken.decimals()) / 20;
         // 1 token minimum stake
         minimumStake = 1 * (10 ** stakingToken.decimals());
-        kickPenaltyPercent = 5;
+        kickPenaltyPercent = 0;
     }
 
     /* ========== VIEWS ========== */
