@@ -139,7 +139,10 @@ async function main() {
 
     // *** 3.1 Deploy Allowlist Conttact
     const allowlistContract = await deployContract("Allowlist");
-    let tx = await transferOwnershipToNewOwner(allowlistContract);
+    // make the newOwner an admin
+    let tx = await allowlistContract.addAdmin(newOwner);
+    // transfer ownership
+    tx = await transferOwnershipToNewOwner(allowlistContract);
     await tx.wait();
     console.log("New owner set.");
     verifyContractInBg(allowlistContract.address);
