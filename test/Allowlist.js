@@ -62,25 +62,33 @@ describe("Allowlist", function () {
                 // attempt to allow it with the wrong address.  it should revert.
                 expect(
                     contract.setAllowed(ethers.utils.keccak256(key))
-                ).revertedWith("Ownable: caller is not the owner");
+                ).revertedWith("Not an admin");
 
-                // connect the owner and try allowing
+                // attempt to unallow it with the wrong address.  it should revert.
+                expect(
+                    contract.setNotAllowed(ethers.utils.keccak256(key))
+                ).revertedWith("Not an admin");
+
+                // attempt to add an admin with the wrong address.  it should revert.
+                expect(contract.addAdmin(tester.address)).revertedWith(
+                    "Ownable: caller is not the owner"
+                );
+
+                // connect an admin and try allowing
                 contract = contract.connect(deployer);
                 await contract.setAllowed(ethers.utils.keccak256(key));
 
                 allowed = await contract.isAllowed(ethers.utils.keccak256(key));
                 expect(allowed).equal(true);
 
+                // allow the tester to be an admin
+                await contract.addAdmin(tester.address);
+
                 contract = contract.connect(tester);
-                // attempt to unallow it with the wrong address.  it should revert.
-                expect(
-                    contract.setNotAllowed(ethers.utils.keccak256(key))
-                ).revertedWith("Ownable: caller is not the owner");
+                // attempt to unallow it as a new admin
+                contract.setNotAllowed(ethers.utils.keccak256(key));
 
-                // connect the owner and try unallowing
-                contract = contract.connect(deployer);
-                await contract.setNotAllowed(ethers.utils.keccak256(key));
-
+                // show that it's not allowed anymore
                 allowed = await contract.isAllowed(ethers.utils.keccak256(key));
                 expect(allowed).equal(false);
             });
