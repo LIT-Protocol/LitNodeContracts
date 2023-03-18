@@ -48,7 +48,9 @@ describe("Staking", function () {
         [deployer, stakingAccount1, nodeAccount1, ...signers] =
             await ethers.getSigners();
 
-        token = await TokenFactory.deploy();
+        token = await TokenFactory.deploy(
+            ethers.utils.parseUnits("1000000000", 18) // 1b tokens
+        );
         await token.mint(deployer.getAddress(), totalTokens);
         token = token.connect(deployer);
 

@@ -111,7 +111,8 @@ async function main() {
     const [deployer] = await ethers.getSigners();
 
     // *** 1. Deploy LITToken
-    const litToken = await deployContract("LITToken");
+    const tokenCap = ethers.utils.parseUnits("1000000000", 18);
+    const litToken = await deployContract("LITToken", [tokenCap]);
 
     // Mint 1b tokens
     const amountToMint = ethers.utils.parseUnits("1000000000", 18);

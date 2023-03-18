@@ -36,7 +36,9 @@ describe("PKPPermissions", function () {
         routerContract = await RouterContractFactory.deploy(
             pkpContract.address
         );
-        tokenContract = await TokenContractFactory.deploy();
+        tokenContract = await TokenContractFactory.deploy(
+            ethers.utils.parseUnits("1000000000", 18) // 1b tokens
+        );
 
         await pkpContract.setRouterAddress(routerContract.address);
 
@@ -219,18 +221,17 @@ describe("PKPPermissions", function () {
                 it("grants permission to an IPFS id and then revokes it", async () => {
                     const ipfsIdToPermit =
                         "QmNc6gpdFBq1dF1imq5xhHQPmbWuL7ScGXChr2rjPgfkbZ";
-                    const ipfsIdHash = ipfsIdToIpfsIdHash(ipfsIdToPermit);
+                    const ipfsIdBytes = getBytesFromMultihash(ipfsIdToPermit);
 
                     pkpContract = await pkpContract.connect(tester);
 
                     // validate that the ipfs ID is not permitted
                     let permitted = await pkpPermissions.isPermittedAction(
                         tokenId,
-                        ipfsIdHash
+                        ipfsIdBytes
                     );
                     expect(permitted).equal(false);
 
-                    const ipfsIdBytes = getBytesFromMultihash(ipfsIdToPermit);
                     await pkpPermissions.addPermittedAction(
                         tokenId,
                         ipfsIdBytes,
