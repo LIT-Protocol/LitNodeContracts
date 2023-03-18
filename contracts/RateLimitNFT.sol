@@ -15,6 +15,10 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 /// @title Rate Limit NFT
 ///
 /// @dev This is the contract for the Rate Limit NFTs
+/// So the general idea here is that you can mint one of these NFTs to pay for service on Lit
+/// And how it works, is that you can buy X millirequestsPerSecond over a period of time
+/// 1 millirequestsPerSecond = 0.001 requests per second and
+/// 1000 millirequestsPerSecond = 1 request per second
 contract RateLimitNFT is
     ERC721("Rate Limit Increases on Lit Protocol", "RLI"),
     Ownable,
@@ -26,7 +30,7 @@ contract RateLimitNFT is
     /* ========== STATE VARIABLES ========== */
 
     address public freeMintSigner;
-    uint256 public additionalRequestsPerMillisecondCost;
+    uint256 public additionalMillirequestsPerSecondCost;
     uint256 public tokenIdCounter;
     uint256 public defaultRateLimitWindowMilliseconds = 60 * 60 * 1000; // 60 mins
     uint256 public RLIHolderRateLimitWindowMilliseconds = 5 * 60 * 1000; // 5 mins
@@ -36,13 +40,13 @@ contract RateLimitNFT is
     mapping(bytes32 => bool) public redeemedFreeMints;
 
     struct RateLimit {
-        uint256 requestsPerMillisecond;
+        uint256 millirequestsPerSecond;
         uint256 expiresAt;
     }
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
-        additionalRequestsPerMillisecondCost = 1; // 1 wei
+        additionalMillirequestsPerSecondCost = 1; // 1 wei
     }
 
     /* ========== VIEWS ========== */
@@ -50,7 +54,7 @@ contract RateLimitNFT is
     /// throws if the sig is bad or msg doesn't match
     function freeMintSigTest(
         uint256 expiresAt,
-        uint256 requestsPerMillisecond,
+        uint256 millirequestsPerSecond,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
@@ -62,11 +66,11 @@ contract RateLimitNFT is
         // and this would be vulnerable to replay attacks
         // FIXME this needs the whole "ethereum signed message: \27" thingy prepended to actually work
         bytes32 expectedHash = prefixed(
-            keccak256(abi.encodePacked(expiresAt, requestsPerMillisecond))
+            keccak256(abi.encodePacked(expiresAt, millirequestsPerSecond))
         );
         require(
             expectedHash == msgHash,
-            "The msgHash is not a hash of the expiresAt + requestsPerMillisecond.  Explain yourself!"
+            "The msgHash is not a hash of the expiresAt + millirequestsPerSecond.  Explain yourself!"
         );
 
         // make sure it was actually signed by freeMintSigner
@@ -83,13 +87,9 @@ contract RateLimitNFT is
         );
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC721, ERC721Enumerable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC721, ERC721Enumerable) returns (bool) {
         return
             interfaceId == type(IERC721Enumerable).interfaceId ||
             interfaceId == type(IERC721Metadata).interfaceId ||
@@ -104,11 +104,10 @@ contract RateLimitNFT is
         ERC721Enumerable._beforeTokenTransfer(from, to, tokenId);
     }
 
-    function calculateCost(uint256 requestsPerMillisecond, uint256 expiresAt)
-        public
-        view
-        returns (uint256)
-    {
+    function calculateCost(
+        uint256 millirequestsPerSecond,
+        uint256 expiresAt
+    ) public view returns (uint256) {
         require(
             expiresAt > block.timestamp,
             "The expiresAt must be in the future"
@@ -118,18 +117,17 @@ contract RateLimitNFT is
         uint256 durationInMilliseconds = (expiresAt - block.timestamp) * 1000;
 
         // calculate the cost
-        uint256 cost = requestsPerMillisecond *
+        uint256 cost = millirequestsPerSecond *
             durationInMilliseconds *
-            additionalRequestsPerMillisecondCost;
+            additionalMillirequestsPerSecondCost;
 
         return cost;
     }
 
-    function calculateRequestsPerSecond(uint256 payingAmount, uint256 expiresAt)
-        public
-        view
-        returns (uint256)
-    {
+    function calculateMillirequestsPerSecond(
+        uint256 payingAmount,
+        uint256 expiresAt
+    ) public view returns (uint256) {
         require(
             expiresAt > block.timestamp,
             "The expiresAt must be in the future"
@@ -139,18 +137,15 @@ contract RateLimitNFT is
         uint256 durationInMilliseconds = (expiresAt - block.timestamp) * 1000;
 
         // calculate the cost
-        uint256 requestsPerSecond = payingAmount /
-            (durationInMilliseconds * additionalRequestsPerMillisecondCost);
+        uint256 millirequestsPerSecond = payingAmount /
+            (durationInMilliseconds * additionalMillirequestsPerSecondCost);
 
-        return requestsPerSecond;
+        return millirequestsPerSecond;
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override
-        returns (string memory)
-    {
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
         string
             memory svgData = "<svg xmlns='http://www.w3.org/2000/svg' width='1080' height='1080' fill='none' xmlns:v='https://vecta.io/nano'><path d='M363.076 392.227s-.977 18.524-36.874 78.947c-41.576 70.018-45.481 151.978-3.017 220.4 89.521 144.245 332.481 141.52 422.556.089 34.832-54.707 44.816-117.479 32.924-181.248 0 0-28.819-133.144-127.237-217.099 1.553 1.308 5.369 19.122 6.101 26.722 2.241 23.354.045 47.838-7.787 70.062-5.746 16.33-13.711 30.467-27.178 41.368 0-3.811-.954-10.635-.976-12.918-.644-46.508-18.659-89.582-48.011-125.743-25.647-31.552-60.812-53.089-97.84-68.932.931 3.191 2.662 16.419 2.906 19.033 1.908 21.958 2.263 52.713-.621 74.649s-7.832 33.878-14.554 54.441c-10.184 31.175-24.05 54.285-41.621 82.004-3.24 5.096-12.913 19.078-18.082 26.146 0 0-8.897-56.191-40.667-87.921h-.022z' fill='#000'/><path d='M562.5 27.28l410.279 236.874c13.923 8.039 22.5 22.895 22.5 38.971v473.75c0 16.076-8.577 30.932-22.5 38.971L562.5 1052.72c-13.923 8.04-31.077 8.04-45 0L107.221 815.846c-13.923-8.039-22.5-22.895-22.5-38.971v-473.75a45 45 0 0 1 22.5-38.971L517.5 27.28a45 45 0 0 1 45 0z' stroke='#000' stroke-width='24.75'/></svg>";
 
@@ -162,8 +157,8 @@ contract RateLimitNFT is
                         bytes(svgData),
                         '","attributes": [{"display_type": "date", "trait_type": "Expiration Date", "value": ',
                         capacity[tokenId].expiresAt.toString(),
-                        '}, {"display_type": "number", "trait_type": "Requests Per Millisecond", "value": ',
-                        capacity[tokenId].requestsPerMillisecond.toString(),
+                        '}, {"display_type": "number", "trait_type": "Millirequests Per Second", "value": ',
+                        capacity[tokenId].millirequestsPerSecond.toString(),
                         "}]}"
                     )
                 )
@@ -191,24 +186,24 @@ contract RateLimitNFT is
         tokenIdCounter++;
         uint256 tokenId = tokenIdCounter;
 
-        uint256 requestsPerMillisecond = calculateRequestsPerSecond(
+        uint256 millirequestsPerSecond = calculateMillirequestsPerSecond(
             msg.value,
             expiresAt
         );
 
         // sanity check
-        uint256 cost = calculateCost(requestsPerMillisecond, expiresAt);
+        uint256 cost = calculateCost(millirequestsPerSecond, expiresAt);
         require(
             msg.value > 0 && msg.value >= cost,
             "You must send the cost of this rate limit increase.  To check the cost, use the calculateCost function."
         );
 
-        _mintWithoutValueCheck(tokenId, requestsPerMillisecond, expiresAt);
+        _mintWithoutValueCheck(tokenId, millirequestsPerSecond, expiresAt);
     }
 
     function freeMint(
         uint256 expiresAt,
-        uint256 requestsPerMillisecond,
+        uint256 millirequestsPerSecond,
         bytes32 msgHash,
         uint8 v,
         bytes32 r,
@@ -218,27 +213,27 @@ contract RateLimitNFT is
         uint256 tokenId = tokenIdCounter;
 
         // this will panic if the sig is bad
-        freeMintSigTest(expiresAt, requestsPerMillisecond, msgHash, v, r, s);
+        freeMintSigTest(expiresAt, millirequestsPerSecond, msgHash, v, r, s);
         redeemedFreeMints[msgHash] = true;
 
-        _mintWithoutValueCheck(tokenId, requestsPerMillisecond, expiresAt);
+        _mintWithoutValueCheck(tokenId, millirequestsPerSecond, expiresAt);
     }
 
     function _mintWithoutValueCheck(
         uint256 tokenId,
-        uint256 requestsPerMillisecond,
+        uint256 millirequestsPerSecond,
         uint256 expiresAt
     ) internal {
         _safeMint(msg.sender, tokenId);
-        capacity[tokenId] = RateLimit(requestsPerMillisecond, expiresAt);
+        capacity[tokenId] = RateLimit(millirequestsPerSecond, expiresAt);
     }
 
     function setAdditionalRequestsPerSecondCost(
-        uint256 newAdditionalRequestsPerMillisecondCost
+        uint256 newAdditionalMillirequestsPerSecondCost
     ) public onlyOwner {
-        additionalRequestsPerMillisecondCost = newAdditionalRequestsPerMillisecondCost;
+        additionalMillirequestsPerSecondCost = newAdditionalMillirequestsPerSecondCost;
         emit AdditionalRequestsPerSecondCostSet(
-            newAdditionalRequestsPerMillisecondCost
+            newAdditionalMillirequestsPerSecondCost
         );
     }
 
@@ -282,7 +277,7 @@ contract RateLimitNFT is
     /* ========== EVENTS ========== */
 
     event AdditionalRequestsPerSecondCostSet(
-        uint256 newAdditionalRequestsPerMillisecondCost
+        uint256 newAdditionalMillirequestsPerSecondCost
     );
     event FreeMintSignerSet(address indexed newFreeMintSigner);
     event Withdrew(uint256 amount);

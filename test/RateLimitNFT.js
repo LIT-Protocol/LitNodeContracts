@@ -51,7 +51,7 @@ describe("RateLimitNFT", function () {
             let now = Date.now();
             // tomorrow
             let expiresAt = ethers.BigNumber.from(now + 1000 * 60 * 60 * 24);
-            let requestsPerMillisecond = ethers.BigNumber.from(1000);
+            let millirequestsPerSecond = ethers.BigNumber.from(1000);
 
             rateLimitNFTContract = rateLimitNFTContract.connect(deployer);
             await rateLimitNFTContract.setFreeMintSigner(admin.address);
@@ -60,14 +60,14 @@ describe("RateLimitNFT", function () {
             expect(
                 rateLimitNFTContract.freeMint(
                     expiresAt,
-                    requestsPerMillisecond,
+                    millirequestsPerSecond,
                     "0x0000000000000000000000000000000000000000000000000000000000000000",
                     0,
                     "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "0x0000000000000000000000000000000000000000000000000000000000000000"
                 )
             ).revertedWith(
-                "The msgHash is not a hash of the expiresAt + requestsPerMillisecond.  Explain yourself!"
+                "The msgHash is not a hash of the expiresAt + millirequestsPerSecond.  Explain yourself!"
             );
 
             // sign for real
