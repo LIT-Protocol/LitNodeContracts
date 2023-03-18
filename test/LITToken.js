@@ -16,7 +16,9 @@ describe("LITToken", function () {
     });
 
     beforeEach(async () => {
-        token = await TokenFactory.deploy();
+        token = await TokenFactory.deploy(
+            ethers.utils.parseUnits("1000000000", 18) // 1 billion
+        );
     });
 
     it("grants the admin role to the deployer", async () => {
@@ -63,21 +65,72 @@ describe("LITToken", function () {
 
             beforeEach(async () => ([minter, recipient, ...signers] = signers));
 
-            beforeEach(
-                async () =>
-                    await token.grantRole(
-                        await token.MINTER_ROLE(),
-                        await minter.getAddress()
-                    )
-            );
+            beforeEach(async () => {
+                await token.grantRole(
+                    await token.MINTER_ROLE(),
+                    await minter.getAddress()
+                );
+
+                return await token.grantRole(
+                    await token.PAUSER_ROLE(),
+                    await minter.getAddress()
+                );
+            });
 
             beforeEach(async () => (token = token.connect(minter)));
 
-            it("mints tokens", async () => {
+            it("mints and burns tokens", async () => {
                 await token.mint(await recipient.getAddress(), amount);
                 expect(
                     await token.balanceOf(await recipient.getAddress())
                 ).equal(amount);
+
+                token = token.connect(recipient);
+
+                await token.burn(amount);
+                expect(
+                    await token.balanceOf(await recipient.getAddress())
+                ).equal(0);
+            });
+
+            it("wont mint past the cap", async () => {
+                // 10 billion but the cap is 1b
+                expect(
+                    token.mint(
+                        await recipient.getAddress(),
+                        ethers.utils.parseUnits("10000000000", 18)
+                    )
+                ).revertedWith("ERC20Capped: cap exceeded");
+            });
+
+            it("wont transfer when paused", async () => {
+                await token.mint(await recipient.getAddress(), amount);
+                expect(
+                    await token.balanceOf(await recipient.getAddress())
+                ).equal(amount);
+
+                await token.pause();
+
+                token = token.connect(recipient);
+
+                expect(
+                    token.transfer(await minter.getAddress(), amount)
+                ).revertedWith("ERC20Pausable: token transfer while paused");
+
+                // confirm the balance is still the same
+                expect(
+                    await token.balanceOf(await recipient.getAddress())
+                ).equal(amount);
+
+                token = token.connect(minter);
+                await token.unpause();
+
+                token = token.connect(recipient);
+                await token.transfer(await minter.getAddress(), amount);
+
+                expect(
+                    await token.balanceOf(await recipient.getAddress())
+                ).equal(0);
             });
         });
     });
