@@ -10,6 +10,7 @@ var spawn = require("child_process").spawn;
 const { ethers } = hre;
 const chainName = hre.network.name;
 const rpcUrl = hre.network.config.url;
+const defaultWallet = "0x50e2dac5e78B5905CB09495547452cEE64426db2";
 
 async function getChainId() {
     const { chainId } = await ethers.provider.getNetwork();
@@ -41,11 +42,6 @@ const getResolverContractAddress = () => {
 };
 
 console.log("Deploying contracts to network " + chainName);
-
-// process.exit(0);
-
-// after deploy, the deployer will set this wallet as the owner for everything.  Make sure the private key for this is easy to access and secure.  I use a metamask wallet for this, so that I can use remix to run any functions as the owner.
-const newOwner = "0x50e2dac5e78B5905CB09495547452cEE64426db2";
 
 const verifyContractInBg = (address, args = []) => {
     let verify = spawn(
@@ -93,7 +89,7 @@ const getContract = async (contractName, addr) => {
     return Factory.attach(addr);
 };
 
-const transferOwnershipToNewOwner = async (contract) => {
+const transferOwnershipToNewOwner = async (contract, newOwner) => {
     console.log(`Setting new owner to ${newOwner}`);
     const tx = await contract.transferOwnership(newOwner);
     return tx;
@@ -139,10 +135,19 @@ async function main() {
 
     // *** 3.1 Deploy Allowlist Conttact
     const allowlistContract = await deployContract("Allowlist");
+
+    var newOwner;
+    if (process.env.LIT_OWNER_WALLET_ID) {
+        newOwner = process.env.LIT_OWNER_WALLET_ID;
+    } else {
+        console.log(`Owner not specified, using default: ${defaultWallet}`);
+        newOwner = defaultWallet;
+    }
+
     // make the newOwner an admin
     let tx = await allowlistContract.addAdmin(newOwner);
     // transfer ownership
-    tx = await transferOwnershipToNewOwner(allowlistContract);
+    tx = await transferOwnershipToNewOwner(allowlistContract, newOwner);
     await tx.wait();
     console.log("New owner set.");
     verifyContractInBg(allowlistContract.address);
@@ -152,14 +157,14 @@ async function main() {
 
     // *** 5. Deploy RateLimitNft Contract
     const rateLimitNftContract = await deployContract("RateLimitNFT");
-    tx = await transferOwnershipToNewOwner(rateLimitNftContract);
+    tx = await transferOwnershipToNewOwner(rateLimitNftContract, newOwner);
     await tx.wait();
     console.log("New owner set.");
     verifyContractInBg(rateLimitNftContract.address);
 
     // *** 7. Deploy Multisender Contract
     const multisenderContract = await deployContract("Multisender");
-    tx = await transferOwnershipToNewOwner(multisenderContract);
+    tx = await transferOwnershipToNewOwner(multisenderContract, newOwner);
     await tx.wait();
     console.log("New owner set.");
     verifyContractInBg(multisenderContract.address);
@@ -225,7 +230,7 @@ async function main() {
     verifyContractInBg(pkpPermissionsContract.address, [
         pkpNFTContract.address,
     ]);
-    tx = await transferOwnershipToNewOwner(pkpPermissionsContract);
+    tx = await transferOwnershipToNewOwner(pkpPermissionsContract, newOwner);
     await tx.wait();
     console.log("New owner set.");
 
@@ -247,13 +252,13 @@ async function main() {
         pkpNFTContract.address,
         pkpPermissionsContract.address,
     ]);
-    tx = await transferOwnershipToNewOwner(pkpHelperContract);
+    tx = await transferOwnershipToNewOwner(pkpHelperContract, newOwner);
     await tx.wait();
     console.log("New owner set.");
 
     // *** 16. Set new owner of PKPNFT contract
     console.log("Setting new owner of PKPNFT contract...");
-    tx = await transferOwnershipToNewOwner(pkpNFTContract);
+    tx = await transferOwnershipToNewOwner(pkpNFTContract, newOwner);
     await tx.wait();
     console.log("New owner set.");
     verifyContractInBg(pkpNFTContract.address);
@@ -290,7 +295,7 @@ async function main() {
 
     // *** 16.2 Set owner of staking contract
     console.log("Setting new owner of staking contract...");
-    tx = await transferOwnershipToNewOwner(stakingContract);
+    tx = await transferOwnershipToNewOwner(stakingContract, newOwner);
     await tx.wait();
     console.log("New owner set.");
     verifyContractInBg(stakingContract.address, [litToken.address]);
