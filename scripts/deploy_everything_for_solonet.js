@@ -116,7 +116,7 @@ async function main() {
     await mintTx.wait();
     verifyContractInBg(litToken.address);
 
-    // *** 2. Deploy Staking Conttact
+    // *** 2. Deploy Staking Contract
     const stakingContract = await deployContract("Staking", [litToken.address]);
     if (getResolverContractAddress()) {
         console.log(
@@ -127,13 +127,13 @@ async function main() {
         );
     }
 
-    // *** 3. Deploy AccessControlConditions Conttact
+    // *** 3. Deploy AccessControlConditions Contract
     const accessControlConditionsContract = await deployContract(
         "AccessControlConditions"
     );
     verifyContractInBg(accessControlConditionsContract.address);
 
-    // *** 3.1 Deploy Allowlist Conttact
+    // *** 3.1 Deploy Allowlist Contract
     const allowlistContract = await deployContract("Allowlist");
 
     var newOwner;
