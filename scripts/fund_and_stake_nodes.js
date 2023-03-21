@@ -11,8 +11,14 @@ const nacl = require("tweetnacl");
 const { ethers } = hre;
 const chainName = hre.network.name;
 const rpcUrl = hre.network.config.url;
+const wlitAddress = hre.network.config.wlitAddress || false;
 
 const walletCount = 1;
+
+// how much gas to send to the nodes, and to the staker addresses.
+// note that this will be divided up by the walletCount
+const nodeAmount = ethers.utils.parseEther("0.01");
+const stakerAmount = ethers.utils.parseEther("0.01");
 
 async function getChainId() {
     const { chainId } = await ethers.provider.getNetwork();
@@ -229,8 +235,6 @@ const getSigner = async () => {
 
 const fundWalletsWithGas = async (wallets, contracts) => {
     const signer = await getSigner();
-    const nodeAmount = ethers.utils.parseEther("10");
-    const stakerAmount = ethers.utils.parseEther("1");
 
     const multisenderContract = await ethers.getContractAt(
         "Multisender",

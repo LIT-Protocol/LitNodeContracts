@@ -108,6 +108,7 @@ module.exports = {
                 ),
             ],
             chainId: 175117,
+            wlitAddress: "0xc716950e5DEae248160109F562e1C9bF8E0CA25B",
         },
     },
     etherscan: {
