@@ -7,7 +7,6 @@ import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { LITToken } from "./LITToken.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "hardhat/console.sol";
 

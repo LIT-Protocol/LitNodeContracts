@@ -5,7 +5,6 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { PKPPermissions } from "./PKPPermissions.sol";
 import { PKPNFT } from "./PKPNFT.sol";
 import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
-import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 // TODO: tests for the mintGrantAndBurn function, withdraw function, some of the setters, transfer function, freeMint and freeMintGrantAndBurn
@@ -158,17 +157,16 @@ contract PKPHelper is Ownable, IERC721Receiver {
         pkpNFT = PKPNFT(newPkpNftAddress);
     }
 
-    function setPkpPermissionsAddress(address newPkpPermissionsAddress)
-        public
-        onlyOwner
-    {
+    function setPkpPermissionsAddress(
+        address newPkpPermissionsAddress
+    ) public onlyOwner {
         pkpPermissions = PKPPermissions(newPkpPermissionsAddress);
     }
 
     function onERC721Received(
-        address, /* operator */
-        address, /* from */
-        uint256, /* tokenId */
+        address /* operator */,
+        address /* from */,
+        uint256 /* tokenId */,
         bytes calldata /* data */
     ) external view override returns (bytes4) {
         // only accept transfers from the pkpNft contract

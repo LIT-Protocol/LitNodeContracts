@@ -5,7 +5,6 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { PKPPermissions } from "./PKPPermissions.sol";
 import { SoloNetPKP } from "./SoloNetPKP.sol";
 import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
-import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 /// @title PKP Helper Contract
