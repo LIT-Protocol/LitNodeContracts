@@ -104,7 +104,7 @@ async function main() {
         process.exit(1);
     }
 
-    var solonet = process.env.LIT_SOLONET == "true";
+    var solonet = process.env.LIT_SOLONET === "true";
     console.log(`Setting up solonet?: ${solonet}`);
 
     const [deployer] = await ethers.getSigners();
@@ -156,7 +156,9 @@ async function main() {
     verifyContractInBg(allowlistContract.address);
 
     // *** 4. Deploy PKPNFT Contract
-    const pkpNFTContract = await (solonet ? deployContract("SoloNetPKP") : deployContract("PKPNFT"));
+    const pkpNFTContract = await (solonet
+        ? deployContract("SoloNetPKP")
+        : deployContract("PKPNFT"));
 
     // *** 5. Deploy RateLimitNft Contract
     const rateLimitNftContract = await deployContract("RateLimitNFT");
@@ -168,13 +170,17 @@ async function main() {
     // *** 6. Deploy PubkeyRouterAndPermissions Contract
     var pubkeyRouterContract;
     if (!solonet) {
-        pubkeyRouterContract = await deployContract("PubkeyRouter", [pkpNFTContract.address,]);
+        pubkeyRouterContract = await deployContract("PubkeyRouter", [
+            pkpNFTContract.address,
+        ]);
         tx = await transferOwnershipToNewOwner(pubkeyRouterContract, newOwner);
         await tx.wait();
         console.log("New owner set.");
-        verifyContractInBg(pubkeyRouterContract.address, [pkpNFTContract.address]);
+        verifyContractInBg(pubkeyRouterContract.address, [
+            pkpNFTContract.address,
+        ]);
     }
-    
+
     // *** 7. Deploy Multisender Contract
     const multisenderContract = await deployContract("Multisender");
     tx = await transferOwnershipToNewOwner(multisenderContract, newOwner);
@@ -262,10 +268,10 @@ async function main() {
 
     // *** 15. Deploy PKPHelper Contract
     console.log("Deploying PKP helper contract and then setting new owner");
-    const pkpHelperContract = await deployContract(solonet ? "SoloNetPKPHelper": "PKPHelper", [
-        pkpNFTContract.address,
-        pkpPermissionsContract.address,
-    ]);
+    const pkpHelperContract = await deployContract(
+        solonet ? "SoloNetPKPHelper" : "PKPHelper",
+        [pkpNFTContract.address, pkpPermissionsContract.address]
+    );
     verifyContractInBg(pkpHelperContract.address, [
         pkpNFTContract.address,
         pkpPermissionsContract.address,
@@ -418,7 +424,9 @@ async function main() {
         // used for the config file generation
         accessControlConditionsContractAddress:
             accessControlConditionsContract.address,
-        pubkeyRouterContractAddress: solonet ? "N/A" : pubkeyRouterContract.address,
+        pubkeyRouterContractAddress: solonet
+            ? "N/A"
+            : pubkeyRouterContract.address,
         pkpNftContractAddress: pkpNFTContract.address,
         rateLimitNftContractAddress: rateLimitNftContract.address,
         pkpHelperContractAddress: pkpHelperContract.address,
