@@ -5,6 +5,6 @@ set -e
 
 
 
-npx hardhat run --network "${NETWORK}" scripts/deploy_everything_for_solonet.js && npx hardhat run --network "${NETWORK}" scripts/fund_and_stake_nodes.js
+npx hardhat run --network "${NETWORK}" scripts/deploy_everything.js && npx hardhat run --network "${NETWORK}" scripts/fund_and_stake_nodes.js
 
 
