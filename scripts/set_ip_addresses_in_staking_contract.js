@@ -12,7 +12,8 @@ const { ethers } = hre;
 const chainName = hre.network.name;
 const rpcUrl = hre.network.config.url;
 
-const walletCount = 3;
+const walletCount = 2;
+const port = "443";
 
 async function getChainId() {
     const { chainId } = await ethers.provider.getNetwork();
@@ -71,18 +72,17 @@ async function main() {
         //         resolve
         //     );
         // });
-        let port = "443";
 
         const ipAsInt = ip2int(ip);
         ip = ethers.BigNumber.from(ipAsInt);
         const ipv6 = ethers.BigNumber.from("0");
-        port = ethers.BigNumber.from(parseInt(port));
+        const bigNumPort = ethers.BigNumber.from(parseInt(port));
 
         const txn =
             await stakingContract.setIpPortNodeAddressAndCommunicationPubKeys(
                 ip,
                 ipv6,
-                port,
+                bigNumPort,
                 w.node.address,
                 w.node.comsKeysSender.publicKey,
                 w.node.comsKeysReceiver.publicKey

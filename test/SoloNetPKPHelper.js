@@ -32,7 +32,7 @@ describe("SoloNetPKPHelper", function () {
 
     beforeEach(async () => {
         pkpContract = await PkpFactory.deploy();
-        await pkpContract.setPermittedMinter(minter.address);
+        await pkpContract.addPermittedMinter(minter.address);
         pkpPermissions = await PkpPermissionsFactory.deploy(
             pkpContract.address
         );

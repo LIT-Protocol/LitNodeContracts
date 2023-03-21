@@ -45,7 +45,7 @@ if [ -z "${RESOLVER_CONTRACT_ADDRESS}" ]; then
     cd lit-os/blockchain
     ./scripts/deploy.sh "${ENV}"
 
-    export RESOLVER_CONTRACT_ADDRESS=$(cat deployed-contracts-dev.json | jq -r ".contractResolver")
+    export RESOLVER_CONTRACT_ADDRESS=$(cat deployed-contracts-$ENV.json | jq -r ".contractResolver")
     cd ../..
     cd LitNodeContracts
 

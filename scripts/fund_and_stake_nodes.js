@@ -85,7 +85,7 @@ id = "${contracts.stakingContractAddress.substr(2)}"
 # resolver: ${contracts.resolverContractAddress}
 
 [ipfs]
-gateway = "https://cloudflare-ipfs.com/ipfs/"
+gateway = "https://ipfs.io/ipfs/"
 
 [node.http]
 port = "${contracts.rocketPort + nodeIndex}"
@@ -229,13 +229,17 @@ const getSigner = async () => {
 
 const fundWalletsWithGas = async (wallets, contracts) => {
     const signer = await getSigner();
-    const nodeAmount = ethers.utils.parseEther("10");
-    const stakerAmount = ethers.utils.parseEther("1");
+    const nodeAmount = ethers.utils.parseEther("0.05");
+    const stakerAmount = ethers.utils.parseEther("0.05");
 
     const multisenderContract = await ethers.getContractAt(
         "Multisender",
         contracts.multisenderContractAddress,
         signer
+    );
+    console.log(
+        "multisender contract address is ",
+        multisenderContract.address
     );
 
     const nodeTx = await multisenderContract.sendEth(

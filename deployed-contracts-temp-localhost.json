@@ -1,0 +1,19 @@
+{
+    "stakingContractAddress": "0x474663b167f0d179C5359160359BB18e925daef5",
+    "multisenderContractAddress": "0x92dfbDD149912f82be54Fd69b0320110b1F5A7fA",
+    "litTokenContractAddress": "0x18D290De0A4e1199dA226D6c1022eB1eDe3A9200",
+    "accessControlConditionsContractAddress": "0x6267eDCd7E8c68748A7c670Cd331649C9c8b1013",
+    "pkpNftContractAddress": "0xD716e915508EdB1dBf65A975872d78cc30578078",
+    "rateLimitNftContractAddress": "0x1Bc0bED99632B5f251fD17407e280E2c0400F3A5",
+    "pkpHelperContractAddress": "0x844eCBe4e72DEA1322804E0d6B7a4e4BE7aE2A96",
+    "pkpPermissionsContractAddress": "0x9fFc5094E312DA04FB00FB970bd65CBDe58A63A6",
+    "pkpNftMetadataContractAddress": "0xD604841Be5F975d6B85F383A973c31Dc4775f258",
+    "allowlistContractAddress": "0xd86f576A09A073ddb77871CC3631280990567a1c",
+    "resolverContractAddress": "0x976c34c57685594d631c731423aEC44059a09cC4",
+    "chainId": 80001,
+    "rpcUrl": "https://polygon-mumbai.g.alchemy.com/v2/onvoLvV97DDoLkAmdi0Cj7sxvfglKqDh",
+    "chainName": "mumbai",
+    "litNodeDomainName": "127.0.0.1",
+    "litNodePort": 7470,
+    "rocketPort": 7470
+}

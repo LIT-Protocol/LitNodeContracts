@@ -111,7 +111,8 @@ async function main() {
     const [deployer] = await ethers.getSigners();
 
     // *** 1. Deploy LITToken
-    const litToken = await deployContract("LITToken");
+    const tokenCap = ethers.utils.parseUnits("1000000000", 18);
+    const litToken = await deployContract("LITToken", [tokenCap]);
 
     // Mint 1b tokens
     const amountToMint = ethers.utils.parseUnits("1000000000", 18);
@@ -138,7 +139,11 @@ async function main() {
 
     // *** 3.1 Deploy Allowlist Conttact
     const allowlistContract = await deployContract("Allowlist");
-    let tx = await transferOwnershipToNewOwner(allowlistContract);
+
+    // make the newOwner an admin
+    let tx = await allowlistContract.addAdmin(newOwner);
+    // transfer ownership
+    tx = await transferOwnershipToNewOwner(allowlistContract);
     await tx.wait();
     console.log("New owner set.");
     verifyContractInBg(allowlistContract.address);

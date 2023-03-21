@@ -31,7 +31,9 @@ describe("PubkeyRouter", function () {
         routerContract = await RouterContractFactory.deploy(
             pkpContract.address
         );
-        tokenContract = await TokenContractFactory.deploy();
+        tokenContract = await TokenContractFactory.deploy(
+            ethers.utils.parseUnits("1000000000", 18) // 1b tokens
+        );
 
         await pkpContract.setRouterAddress(routerContract.address);
 

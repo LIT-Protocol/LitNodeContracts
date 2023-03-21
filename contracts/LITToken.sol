@@ -5,6 +5,10 @@ import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol"
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ERC20Burnable } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import { ERC20Capped } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
+import { ERC20Pausable } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
+import { ERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import { ERC20Votes } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 /// @title Lit Protocol Token
 ///
@@ -18,7 +22,11 @@ import { ERC20Burnable } from "@openzeppelin/contracts/token/ERC20/extensions/ER
 contract LITToken is
     AccessControl,
     ERC20("Lit Protocol", "LIT"),
-    ERC20Burnable
+    ERC20Burnable,
+    ERC20Capped,
+    ERC20Pausable,
+    ERC20Permit,
+    ERC20Votes
 {
     /// @dev The identifier of the role which maintains other roles.
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
@@ -26,11 +34,16 @@ contract LITToken is
     /// @dev The identifier of the role which allows accounts to mint tokens.
     bytes32 public constant MINTER_ROLE = keccak256("MINTER");
 
-    constructor() {
+    /// @dev The identifier of the role which allows accounts to pause the token.
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+    constructor(uint256 cap) ERC20Capped(cap) ERC20Permit("Lit Protocol") {
         _setupRole(ADMIN_ROLE, msg.sender);
         _setupRole(MINTER_ROLE, msg.sender);
+        _setupRole(PAUSER_ROLE, msg.sender);
         _setRoleAdmin(MINTER_ROLE, ADMIN_ROLE);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
+        _setRoleAdmin(PAUSER_ROLE, ADMIN_ROLE);
     }
 
     /// @dev A modifier which checks that the caller has the minter role.
@@ -47,5 +60,71 @@ contract LITToken is
     /// @param _amount    the amount of tokens to mint.
     function mint(address _recipient, uint256 _amount) external onlyMinter {
         _mint(_recipient, _amount);
+    }
+
+    /**
+     * @dev Pauses all token transfers.
+     *
+     * See {ERC20Pausable} and {Pausable-_pause}.
+     *
+     * Requirements:
+     *
+     * - the caller must have the `PAUSER_ROLE`.
+     */
+    function pause() public virtual {
+        require(
+            hasRole(PAUSER_ROLE, _msgSender()),
+            "ERC20PresetMinterPauser: must have pauser role to pause"
+        );
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses all token transfers.
+     *
+     * See {ERC20Pausable} and {Pausable-_unpause}.
+     *
+     * Requirements:
+     *
+     * - the caller must have the `PAUSER_ROLE`.
+     */
+    function unpause() public virtual {
+        require(
+            hasRole(PAUSER_ROLE, _msgSender()),
+            "ERC20PresetMinterPauser: must have pauser role to unpause"
+        );
+        _unpause();
+    }
+
+    /* Overrides */
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override(ERC20, ERC20Pausable) {
+        super._beforeTokenTransfer(from, to, amount);
+    }
+
+    function _afterTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override(ERC20, ERC20Votes) {
+        super._beforeTokenTransfer(from, to, amount);
+    }
+
+    function _burn(
+        address account,
+        uint256 amount
+    ) internal virtual override(ERC20, ERC20Votes) {
+        super._burn(account, amount);
+    }
+
+    function _mint(
+        address account,
+        uint256 amount
+    ) internal virtual override(ERC20, ERC20Votes, ERC20Capped) {
+        super._mint(account, amount);
     }
 }

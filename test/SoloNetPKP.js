@@ -43,7 +43,7 @@ describe("SoloNetPKP", function () {
         await pkpContract.setStakingAddress(fakeStakingContractAddress);
         await pkpContract.setPkpPermissionsAddress(pkpPermissions.address);
         await pkpContract.setPkpNftMetadataAddress(pkpNftMetadata.address);
-        await pkpContract.setPermittedMinter(minter.address);
+        await pkpContract.addPermittedMinter(minter.address);
     });
 
     describe("Attempt to Mint PKP NFT", async () => {

@@ -89,6 +89,16 @@ module.exports = {
                 ),
             ],
         },
+        rollupTestnet: {
+            url: "https://lit-test.calderachain.xyz/http",
+            accounts: [
+                envVarOrDefault(
+                    "LIT_ROLLUP_TESTNET_DEPLOYER_PRIVATE_KEY",
+                    "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
+                ),
+            ],
+            chainId: 987,
+        },
     },
     etherscan: {
         apiKey: {
