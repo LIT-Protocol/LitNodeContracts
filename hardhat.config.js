@@ -89,7 +89,7 @@ module.exports = {
                 ),
             ],
         },
-        rollupTestnet: {
+        litTestnet: {
             url: "https://lit-test.calderachain.xyz/http",
             accounts: [
                 envVarOrDefault(
@@ -99,12 +99,24 @@ module.exports = {
             ],
             chainId: 987,
         },
+        lit: {
+            url: "https://lit-protocol.calderachain.xyz/http",
+            accounts: [
+                envVarOrDefault(
+                    "LIT_ROLLUP_MAINNET_DEPLOYER_PRIVATE_KEY",
+                    "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
+                ),
+            ],
+            chainId: 175117,
+        },
     },
     etherscan: {
         apiKey: {
             celo: process.env.LIT_CELOSCAN_API_KEY,
             mumbai: process.env.LIT_POLYGONSCAN_API_KEY,
             polygon: process.env.LIT_POLYGONSCAN_API_KEY,
+            litTestnet: "meow",
+            lit: "woof",
         },
         customChains: [
             {
@@ -137,6 +149,22 @@ module.exports = {
                 urls: {
                     apiURL: "https://api.polygonscan.com/api",
                     browserURL: "https://polygonscan.com",
+                },
+            },
+            {
+                network: "litTestnet",
+                chainId: 987,
+                urls: {
+                    apiURL: "https://lit-test.calderaexplorer.xyz/api",
+                    browserURL: "https://lit-test.calderaexplorer.xyz",
+                },
+            },
+            {
+                network: "lit",
+                chainId: 175117,
+                urls: {
+                    apiURL: "https://lit-protocol.calderaexplorer.xyz/api",
+                    browserURL: "https://lit-protocol.calderaexplorer.xyz",
                 },
             },
         ],

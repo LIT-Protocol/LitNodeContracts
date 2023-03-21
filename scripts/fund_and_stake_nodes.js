@@ -12,7 +12,7 @@ const { ethers } = hre;
 const chainName = hre.network.name;
 const rpcUrl = hre.network.config.url;
 
-const walletCount = 3;
+const walletCount = 1;
 
 async function getChainId() {
     const { chainId } = await ethers.provider.getNetwork();
@@ -229,8 +229,8 @@ const getSigner = async () => {
 
 const fundWalletsWithGas = async (wallets, contracts) => {
     const signer = await getSigner();
-    const nodeAmount = ethers.utils.parseEther("0.05");
-    const stakerAmount = ethers.utils.parseEther("0.05");
+    const nodeAmount = ethers.utils.parseEther("10");
+    const stakerAmount = ethers.utils.parseEther("1");
 
     const multisenderContract = await ethers.getContractAt(
         "Multisender",

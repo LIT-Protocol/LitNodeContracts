@@ -46,7 +46,7 @@ contract PKPNFT is
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
-        mintCost = 1e14; // 0.0001 eth
+        mintCost = 1; // 1 wei aka 0.000000000000000001 eth
         freeMintSigner = msg.sender;
     }
 
@@ -92,13 +92,9 @@ contract PKPNFT is
         );
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC721, ERC721Enumerable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC721, ERC721Enumerable) returns (bool) {
         return
             interfaceId == type(IERC721Enumerable).interfaceId ||
             interfaceId == type(IERC721Metadata).interfaceId ||
@@ -113,12 +109,9 @@ contract PKPNFT is
         ERC721Enumerable._beforeTokenTransfer(from, to, tokenId);
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override
-        returns (string memory)
-    {
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
         console.log("getting token uri");
         bytes memory pubKey = router.getPubkey(tokenId);
         console.log("got pubkey, getting eth address");
@@ -128,11 +121,9 @@ contract PKPNFT is
         return pkpNftMetadata.tokenURI(tokenId, pubKey, ethAddress);
     }
 
-    function getUnmintedRoutedTokenIdCount(uint256 keyType)
-        public
-        view
-        returns (uint256)
-    {
+    function getUnmintedRoutedTokenIdCount(
+        uint256 keyType
+    ) public view returns (uint256) {
         return unmintedRoutedTokenIds[keyType].length;
     }
 
@@ -157,11 +148,10 @@ contract PKPNFT is
         return tokenId;
     }
 
-    function mintGrantAndBurnNext(uint256 keyType, bytes memory ipfsCID)
-        public
-        payable
-        returns (uint256)
-    {
+    function mintGrantAndBurnNext(
+        uint256 keyType,
+        bytes memory ipfsCID
+    ) public payable returns (uint256) {
         require(msg.value == mintCost, "You must pay exactly mint cost");
         uint256 tokenId = _getNextTokenIdToMint(keyType);
         _mintWithoutValueCheck(tokenId, address(this));
@@ -209,10 +199,10 @@ contract PKPNFT is
     /// where you could just trust the sig that a number is prime.
     /// without this function, a user could mint a PKP, sign a bunch of junk, and then burn the
     /// PKP to make it looks like only the Lit Action can use it.
-    function mintGrantAndBurnSpecific(uint256 tokenId, bytes memory ipfsCID)
-        public
-        onlyOwner
-    {
+    function mintGrantAndBurnSpecific(
+        uint256 tokenId,
+        bytes memory ipfsCID
+    ) public onlyOwner {
         _mintWithoutValueCheck(tokenId, address(this));
         pkpPermissions.addPermittedAction(tokenId, ipfsCID, new uint256[](0));
         _burn(tokenId);
@@ -280,18 +270,16 @@ contract PKPNFT is
         emit RouterAddressSet(routerAddress);
     }
 
-    function setPkpNftMetadataAddress(address pkpNftMetadataAddress)
-        public
-        onlyOwner
-    {
+    function setPkpNftMetadataAddress(
+        address pkpNftMetadataAddress
+    ) public onlyOwner {
         pkpNftMetadata = PKPNFTMetadata(pkpNftMetadataAddress);
         emit PkpNftMetadataAddressSet(pkpNftMetadataAddress);
     }
 
-    function setPkpPermissionsAddress(address pkpPermissionsAddress)
-        public
-        onlyOwner
-    {
+    function setPkpPermissionsAddress(
+        address pkpPermissionsAddress
+    ) public onlyOwner {
         pkpPermissions = PKPPermissions(pkpPermissionsAddress);
         emit PkpPermissionsAddressSet(pkpPermissionsAddress);
     }
