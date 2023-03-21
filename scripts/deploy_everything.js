@@ -104,7 +104,7 @@ async function main() {
         process.exit(1);
     }
 
-    var solonet = process.env.LIT_SOLONET || true;
+    var solonet = process.env.LIT_SOLONET == "true";
     console.log(`Setting up solonet?: ${solonet}`);
 
     const [deployer] = await ethers.getSigners();
@@ -166,9 +166,10 @@ async function main() {
     verifyContractInBg(rateLimitNftContract.address);
 
     // *** 6. Deploy PubkeyRouterAndPermissions Contract
+    var pubkeyRouterContract;
     if (!solonet) {
-        const pubkeyRouterContract = await deployContract("PubkeyRouter", [pkpNFTContract.address,]);
-        tx = await transferOwnershipToNewOwner(pubkeyRouterContract);
+        pubkeyRouterContract = await deployContract("PubkeyRouter", [pkpNFTContract.address,]);
+        tx = await transferOwnershipToNewOwner(pubkeyRouterContract, newOwner);
         await tx.wait();
         console.log("New owner set.");
         verifyContractInBg(pubkeyRouterContract.address, [pkpNFTContract.address]);
