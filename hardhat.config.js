@@ -107,8 +107,8 @@ module.exports = {
                     "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
                 ),
             ],
-            chainId: 175117,
-            wlitAddress: "0xc716950e5DEae248160109F562e1C9bF8E0CA25B",
+            chainId: 175177,
+            wlitAddress: "0xBB118507E802D17ECDD4343797066dDc13Cde7C6",
         },
     },
     etherscan: {
@@ -162,7 +162,7 @@ module.exports = {
             },
             {
                 network: "lit",
-                chainId: 175117,
+                chainId: 175177,
                 urls: {
                     apiURL: "https://lit-protocol.calderaexplorer.xyz/api",
                     browserURL: "https://lit-protocol.calderaexplorer.xyz",

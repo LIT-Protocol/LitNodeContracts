@@ -55,6 +55,11 @@ if [ -z "${RESOLVER_CONTRACT_ADDRESS}" ]; then
   fi
 fi
 
+if [ -z "${LIT_SOLONET}" ]; then
+  export LIT_SOLONET="true" # default to solonet on right now
+fi
+
+
 if [ -n "${RESOLVER_CONTRACT_ADDRESS}" ]; then
   setup_project
 fi

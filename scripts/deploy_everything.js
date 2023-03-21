@@ -106,7 +106,7 @@ async function main() {
         process.exit(1);
     }
 
-    var solonet = process.env.LIT_SOLONET === "true";
+    var solonet = process.env.LIT_SOLONET == "true";
     console.log(`Setting up solonet?: ${solonet}`);
 
     const [deployer] = await ethers.getSigners();
