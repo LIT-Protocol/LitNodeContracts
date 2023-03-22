@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ERC20Burnable } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -33,7 +33,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     States public state = States.Active;
 
-    IERC20 public stakingToken;
+    ERC20Burnable public stakingToken;
 
     struct Epoch {
         uint256 epochLength;
@@ -98,7 +98,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /* ========== CONSTRUCTOR ========== */
     constructor(address _stakingToken) {
-        stakingToken = LITToken(_stakingToken);
+        stakingToken = ERC20Burnable(_stakingToken);
         epoch = Epoch({
             epochLength: 80,
             number: 1,
@@ -548,7 +548,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     function setStakingToken(address newStakingTokenAddress) public onlyOwner {
-        stakingToken = LITToken(newStakingTokenAddress);
+        stakingToken = ERC20Burnable(newStakingTokenAddress);
         emit StakingTokenSet(newStakingTokenAddress);
     }
 
