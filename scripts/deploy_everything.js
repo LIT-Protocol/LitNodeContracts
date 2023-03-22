@@ -129,6 +129,9 @@ async function main() {
     }
 
     // *** 2. Deploy Staking Contract
+    console.log(
+        "Deploying Staking Contract with token address " + litToken.address
+    );
     const stakingContract = await deployContract("Staking", [litToken.address]);
     if (getResolverContractAddress()) {
         console.log(

@@ -289,11 +289,21 @@ const stakeTokensAndLockValidatorSet = async (wallets, contracts) => {
         signer
     );
 
-    const litTokenContract = await ethers.getContractAt(
-        "LITToken",
-        contracts.litTokenContractAddress,
-        signer
-    );
+    let litTokenContract;
+    if (wlitAddress) {
+        // use wlit
+        litTokenContract = await ethers.getContractAt(
+            "WLIT",
+            contracts.litTokenContractAddress,
+            signer
+        );
+    } else {
+        litTokenContract = await ethers.getContractAt(
+            "LITToken",
+            contracts.litTokenContractAddress,
+            signer
+        );
+    }
 
     // stake and join
     const amountToStake = await stakingContract.minimumStake();
