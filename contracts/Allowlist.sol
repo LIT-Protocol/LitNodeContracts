@@ -14,6 +14,7 @@ contract Allowlist is Ownable, ReentrancyGuard {
 
     mapping(bytes32 => bool) public allowedItems;
     EnumerableSet.AddressSet admins;
+    bool public allowAll;
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
@@ -23,6 +24,9 @@ contract Allowlist is Ownable, ReentrancyGuard {
     /* ========== VIEWS ========== */
 
     function isAllowed(bytes32 key) external view returns (bool) {
+        if (allowAll) {
+            return true;
+        }
         return allowedItems[key];
     }
 
@@ -48,6 +52,10 @@ contract Allowlist is Ownable, ReentrancyGuard {
     function removeAdmin(address newAdmin) public onlyOwner {
         admins.remove(newAdmin);
         emit AdminRemoved(newAdmin);
+    }
+
+    function setAllowAll(bool _allowAll) public onlyOwner {
+        allowAll = _allowAll;
     }
 
     /* ========== EVENTS ========== */

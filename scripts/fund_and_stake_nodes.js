@@ -13,12 +13,12 @@ const chainName = hre.network.name;
 const rpcUrl = hre.network.config.url;
 const wlitAddress = hre.network.config.wlitAddress || false;
 
-const walletCount = 1;
+const walletCount = 3;
 
 // how much gas to send to the nodes, and to the staker addresses.
 // note that this will be divided up by the walletCount
-const nodeAmount = ethers.utils.parseEther("0.01");
-const stakerAmount = ethers.utils.parseEther("0.01");
+const nodeAmount = ethers.utils.parseEther("0.1");
+const stakerAmount = ethers.utils.parseEther("0.1");
 
 async function getChainId() {
     const { chainId } = await ethers.provider.getNetwork();
@@ -375,6 +375,11 @@ const stakeTokensAndLockValidatorSet = async (wallets, contracts) => {
         const stakingContractAsStaker = stakingContract.connect(
             connectedStakerWallet
         );
+        // check balance
+        const balance = await litTokenContract.balanceOf(
+            connectedStakerWallet.address
+        );
+        console.log(`balance for ${connectedStakerWallet.address}: `, balance);
         console.log(
             "stakeTokens - staking tokens for staker: ",
             connectedStakerWallet.address
@@ -393,7 +398,9 @@ const stakeTokensAndLockValidatorSet = async (wallets, contracts) => {
         stakingPromises.push(tx);
     }
 
-    console.log("awaiting staking txns to be mined...");
+    console.log(
+        `awaiting ${stakingPromises.length} staking txns to be mined...`
+    );
     await Promise.all(
         stakingPromises.map((tx) => {
             return tx.then((sentTxn) => sentTxn.wait());

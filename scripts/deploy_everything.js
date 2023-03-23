@@ -10,7 +10,7 @@ var spawn = require("child_process").spawn;
 const { ethers } = hre;
 const chainName = hre.network.name;
 const rpcUrl = hre.network.config.url;
-const wlitAddress = hre.network.config.wlitAddress || false;
+let wlitAddress = hre.network.config.wlitAddress || false;
 
 const defaultWallet = "0x50e2dac5e78B5905CB09495547452cEE64426db2";
 
@@ -108,6 +108,14 @@ async function main() {
 
     var solonet = process.env.LIT_SOLONET == "true";
     console.log(`Setting up solonet?: ${solonet}`);
+
+    if (chainName === "localchain") {
+        // to make hardhat act like our rollup, we need to
+        // deploy wlit as well and set the address
+        // so we are simulating that hardhat's native token is lit
+        const wlit = await deployContract("WLIT");
+        wlitAddress = wlit.address;
+    }
 
     const [deployer] = await ethers.getSigners();
 
@@ -213,7 +221,7 @@ async function main() {
     // if we're using the wrapped token, then we need to wrap first, and send a smaller amount
     let amountForStakers;
     if (wlitAddress) {
-        amountForStakers = ethers.utils.parseUnits("0.1", 18);
+        amountForStakers = ethers.utils.parseUnits("3", 18);
         const wrapTx = await litToken.deposit({ value: amountForStakers });
         console.log("wrap tx hash: " + wrapTx.hash);
         await wrapTx.wait();

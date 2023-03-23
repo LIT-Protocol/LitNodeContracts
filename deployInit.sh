@@ -38,6 +38,17 @@ fi
 if [ -z "${NETWORK}" ]; then
   NETWORK="mumbai"
 fi
+
+if [ "${NETWORK}" == "localchain" ]; then
+  if [ "$(pidof anvil)" != "" ]; then
+    echo "Killing anvil..."
+    kill $(pidof anvil)
+  fi
+  
+  anvil &
+fi
+
+
 if [ -z "${RESOLVER_CONTRACT_ADDRESS}" ]; then
   if [ -z "${LIT_RESOLVER_CONTRACT_ADDRESS}" ]; then
     # deploy the resolver etc.
