@@ -10,6 +10,8 @@ var spawn = require("child_process").spawn;
 const { ethers } = hre;
 const chainName = hre.network.name;
 const rpcUrl = hre.network.config.url;
+let wlitAddress = hre.network.config.wlitAddress || false;
+
 const defaultWallet = "0x50e2dac5e78B5905CB09495547452cEE64426db2";
 
 async function getChainId() {
@@ -104,22 +106,40 @@ async function main() {
         process.exit(1);
     }
 
-    var solonet = process.env.LIT_SOLONET === "true";
+    var solonet = process.env.LIT_SOLONET == "true";
     console.log(`Setting up solonet?: ${solonet}`);
+
+    if (chainName === "localchain") {
+        // to make hardhat act like our rollup, we need to
+        // deploy wlit as well and set the address
+        // so we are simulating that hardhat's native token is lit
+        const wlit = await deployContract("WLIT");
+        wlitAddress = wlit.address;
+    }
 
     const [deployer] = await ethers.getSigners();
 
     // *** 1. Deploy LITToken
-    const tokenCap = ethers.utils.parseUnits("1000000000", 18);
-    const litToken = await deployContract("LITToken", [tokenCap]);
+    // if we're deploying this on the rollup, then we don't need to deploy the token.  the token is the native gas itself.  so let's set litToken.address to the wlit address
+    let litToken;
+    if (wlitAddress) {
+        console.log("Deploying on rollup, using wlit address");
+        litToken = await getContract("WLIT", wlitAddress);
+    } else {
+        const tokenCap = ethers.utils.parseUnits("1000000000", 18);
+        litToken = await deployContract("LITToken", [tokenCap]);
 
-    // Mint 1b tokens
-    const amountToMint = ethers.utils.parseUnits("1000000000", 18);
-    const mintTx = await litToken.mint(deployer.address, amountToMint);
-    await mintTx.wait();
-    verifyContractInBg(litToken.address);
+        // Mint 1b tokens
+        const amountToMint = ethers.utils.parseUnits("1000000000", 18);
+        const mintTx = await litToken.mint(deployer.address, amountToMint);
+        await mintTx.wait();
+        verifyContractInBg(litToken.address);
+    }
 
     // *** 2. Deploy Staking Contract
+    console.log(
+        "Deploying Staking Contract with token address " + litToken.address
+    );
     const stakingContract = await deployContract("Staking", [litToken.address]);
     if (getResolverContractAddress()) {
         console.log(
@@ -198,9 +218,18 @@ async function main() {
     }
 
     // *** 9. Send tokens to multisender to be sent to stakers
-    console.log("Sending tokens to multisender");
-    // 100m for stakers
-    const amountForStakers = ethers.utils.parseUnits("100000000", 18);
+    // if we're using the wrapped token, then we need to wrap first, and send a smaller amount
+    let amountForStakers;
+    if (wlitAddress) {
+        amountForStakers = ethers.utils.parseUnits("3", 18);
+        const wrapTx = await litToken.deposit({ value: amountForStakers });
+        console.log("wrap tx hash: " + wrapTx.hash);
+        await wrapTx.wait();
+    } else {
+        console.log("Sending tokens to multisender");
+        // 100m for stakers
+        amountForStakers = ethers.utils.parseUnits("100000000", 18);
+    }
     let transferTx = await litToken.transfer(
         multisenderContract.address,
         amountForStakers
@@ -209,24 +238,27 @@ async function main() {
     await transferTx.wait();
 
     // *** 10. Send remaining tokens to newOwner
-    const amountRemaining = await litToken.balanceOf(deployer.address);
-    transferTx = await litToken.transfer(newOwner, amountRemaining);
-    await transferTx.wait();
+    // only do this if we're not using the wrapped token
+    if (!wlitAddress) {
+        const amountRemaining = await litToken.balanceOf(deployer.address);
+        transferTx = await litToken.transfer(newOwner, amountRemaining);
+        await transferTx.wait();
 
-    // *** 11. Set new owner of LITToken
-    console.log("Setting new owner of LITToken contract...");
-    /// @dev The identifier of the role which maintains other roles.
-    const ADMIN_ROLE = ethers.utils.keccak256(
-        ethers.utils.toUtf8Bytes("ADMIN")
-    );
-    /// @dev The identifier of the role which allows accounts to mint tokens.
-    const MINTER_ROLE = ethers.utils.keccak256(
-        ethers.utils.toUtf8Bytes("MINTER")
-    );
-    let adminTx = await litToken.grantRole(ADMIN_ROLE, newOwner);
-    let minterTx = await litToken.grantRole(MINTER_ROLE, newOwner);
-    await Promise.all([adminTx.wait(), minterTx.wait()]);
-    console.log("New owner set.");
+        // *** 11. Set new owner of LITToken
+        console.log("Setting new owner of LITToken contract...");
+        /// @dev The identifier of the role which maintains other roles.
+        const ADMIN_ROLE = ethers.utils.keccak256(
+            ethers.utils.toUtf8Bytes("ADMIN")
+        );
+        /// @dev The identifier of the role which allows accounts to mint tokens.
+        const MINTER_ROLE = ethers.utils.keccak256(
+            ethers.utils.toUtf8Bytes("MINTER")
+        );
+        let adminTx = await litToken.grantRole(ADMIN_ROLE, newOwner);
+        let minterTx = await litToken.grantRole(MINTER_ROLE, newOwner);
+        await Promise.all([adminTx.wait(), minterTx.wait()]);
+        console.log("New owner set.");
+    }
 
     // *** 11.1 Deploy PKPNFTMetadata contract
     console.log("Deploying PKP NFT metadata contract");

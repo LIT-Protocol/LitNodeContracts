@@ -2,16 +2,14 @@
 pragma solidity ^0.8.17;
 
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC20Burnable } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import { LITToken } from "./LITToken.sol";
 
 import "hardhat/console.sol";
 
 contract Staking is ReentrancyGuard, Pausable, Ownable {
-    using SafeERC20 for LITToken;
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /* ========== STATE VARIABLES ========== */
@@ -35,7 +33,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     States public state = States.Active;
 
-    LITToken public stakingToken;
+    ERC20Burnable public stakingToken;
 
     struct Epoch {
         uint256 epochLength;
@@ -100,7 +98,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
 
     /* ========== CONSTRUCTOR ========== */
     constructor(address _stakingToken) {
-        stakingToken = LITToken(_stakingToken);
+        stakingToken = ERC20Burnable(_stakingToken);
         epoch = Epoch({
             epochLength: 80,
             number: 1,
@@ -361,7 +359,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     function stake(uint256 amount) public nonReentrant {
         require(amount > 0, "Cannot stake 0");
 
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+        stakingToken.transferFrom(msg.sender, address(this), amount);
         validators[msg.sender].balance += amount;
 
         totalStaked += amount;
@@ -427,7 +425,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         validators[msg.sender].balance =
             validators[msg.sender].balance -
             amount;
-        stakingToken.safeTransfer(msg.sender, amount);
+        stakingToken.transfer(msg.sender, amount);
         emit Withdrawn(msg.sender, amount);
     }
 
@@ -451,7 +449,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         uint256 reward = validators[msg.sender].reward;
         if (reward > 0) {
             validators[msg.sender].reward = 0;
-            stakingToken.safeTransfer(msg.sender, reward);
+            stakingToken.transfer(msg.sender, reward);
             emit RewardPaid(msg.sender, reward);
         }
     }
@@ -550,7 +548,7 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
     }
 
     function setStakingToken(address newStakingTokenAddress) public onlyOwner {
-        stakingToken = LITToken(newStakingTokenAddress);
+        stakingToken = ERC20Burnable(newStakingTokenAddress);
         emit StakingTokenSet(newStakingTokenAddress);
     }
 

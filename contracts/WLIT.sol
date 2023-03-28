@@ -69,4 +69,12 @@ contract WLIT {
 
         return true;
     }
+
+    function burn(uint256 amount) internal virtual {
+        transferFrom(msg.sender, address(0), amount);
+    }
+
+    function burnFrom(address account, uint256 amount) public virtual {
+        transferFrom(account, address(0), amount);
+    }
 }

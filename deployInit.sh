@@ -38,6 +38,17 @@ fi
 if [ -z "${NETWORK}" ]; then
   NETWORK="mumbai"
 fi
+
+if [ "${NETWORK}" == "localchain" ]; then
+  if [ "$(pidof anvil)" != "" ]; then
+    echo "Killing anvil..."
+    kill $(pidof anvil)
+  fi
+  
+  anvil &
+fi
+
+
 if [ -z "${RESOLVER_CONTRACT_ADDRESS}" ]; then
   if [ -z "${LIT_RESOLVER_CONTRACT_ADDRESS}" ]; then
     # deploy the resolver etc.
@@ -54,6 +65,11 @@ if [ -z "${RESOLVER_CONTRACT_ADDRESS}" ]; then
     export RESOLVER_CONTRACT_ADDRESS="${LIT_RESOLVER_CONTRACT_ADDRESS}"
   fi
 fi
+
+if [ -z "${LIT_SOLONET}" ]; then
+  export LIT_SOLONET="true" # default to solonet on right now
+fi
+
 
 if [ -n "${RESOLVER_CONTRACT_ADDRESS}" ]; then
   setup_project

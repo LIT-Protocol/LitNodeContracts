@@ -107,7 +107,16 @@ module.exports = {
                     "0x3178746f7ae6a309d14444b4c6c85a96a4be2f53fa8950dea241d232f3e6c166"
                 ),
             ],
-            chainId: 175117,
+            chainId: 175177,
+            wlitAddress: "0x53695556f8a1a064EdFf91767f15652BbfaFaD04",
+        },
+        localchain: {
+            url: "http://127.0.0.1:8545",
+            accounts: [
+                "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // default anvil private key,
+            ],
+            chainId: 31337,
+            wlitAddress: "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0", // this gets deployed by deploy_everything.js but because it's deterministic we know it will end up at this address.  but only if you start anvil fresh for the deploy!
         },
     },
     etherscan: {
@@ -161,7 +170,7 @@ module.exports = {
             },
             {
                 network: "lit",
-                chainId: 175117,
+                chainId: 175177,
                 urls: {
                     apiURL: "https://lit-protocol.calderaexplorer.xyz/api",
                     browserURL: "https://lit-protocol.calderaexplorer.xyz",
