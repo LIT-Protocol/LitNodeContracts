@@ -248,6 +248,7 @@ contract PKPNFT is
         } else {
             _safeMint(to, tokenId);
         }
+        emit PKPMinted(tokenId, getPubkey(tokenId));
     }
 
     /// Take a tokenId off the stack
@@ -320,4 +321,5 @@ contract PKPNFT is
     event FreeMintSignerSet(address indexed newFreeMintSigner);
     event Withdrew(uint256 amount);
     event PkpRouted(uint256 indexed tokenId, uint256 indexed keyType);
+    event PKPMinted(uint256 indexed tokenId, bytes pubkey);
 }

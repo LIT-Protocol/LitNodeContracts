@@ -56,7 +56,7 @@ contract SoloNetPKP is
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
-        mintCost = 1e14; // 0.0001 eth
+        mintCost = 1; // 1 wei aka 0.000000000000000001 eth
         freeMintSigner = msg.sender;
         permittedMinters.add(msg.sender);
     }

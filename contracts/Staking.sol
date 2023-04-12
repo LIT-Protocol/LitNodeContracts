@@ -118,6 +118,15 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
         return validatorsInCurrentEpoch.contains(account);
     }
 
+    function isActiveValidatorByNodeAddress(
+        address account
+    ) external view returns (bool) {
+        return
+            validatorsInCurrentEpoch.contains(
+                nodeAddressToStakerAddress[account]
+            );
+    }
+
     function rewardOf(address account) external view returns (uint256) {
         return validators[account].reward;
     }
@@ -151,6 +160,14 @@ contract Staking is ReentrancyGuard, Pausable, Ownable {
             values[i] = validatorsInCurrentEpoch.at(i);
         }
         return values;
+    }
+
+    function getValidatorsInCurrentEpochLength()
+        external
+        view
+        returns (uint256)
+    {
+        return validatorsInCurrentEpoch.length();
     }
 
     function getValidatorsInNextEpoch()
