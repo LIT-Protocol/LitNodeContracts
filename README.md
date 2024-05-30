@@ -1,11 +1,7 @@
 These contracts govern the Lit Nodes and various PKP things. Currently in testnet only.
 
-Learn more here: https://developer.litprotocol.com/docs/litactionsandpkps/whatarelitactionsandpkps/
+You can find the corresponding addresses for each network here: https://github.com/LIT-Protocol/networks
 
-# TODO
-
-- Tests for the token reward in the staking contracts (Staking.sol and Staking.js)
-- Make it so that the nodes can't accidently kick eachother to below the threshold. Limit the number of nodes that can be kicked per epoch? Have the ability to rejoin if kicked and recovered?
 
 # Running Tests
 
@@ -26,10 +22,7 @@ The second param is any constructor params.
 # Deploying
 
 1. Run `npm install` to install project dependencies.
-2. Run `npm run test` to test the smart contracts.
-3. Export the private key to the environment depending on your deployment target - refer to `hardhat.config.ts` for more details. For example, if deploying to Polygon Mumbia, export `LIT_MUMBAI_DEPLOYER_PRIVATE_KEY=<YOUR-PRIVATE-KEY>`. If deploying to LIT Rollup (Chronicle), export `LIT_ROLLUP_MAINNET_DEPLOYER_PRIVATE_KEY=<YOUR-PRIVATE-KEY>`.
-4. Export the API key for IPFS to the environment variable `IPFS_API_KEY`. You can also declare it inside a `.env` - refer to the `.env.example`.
-5. `npm run deploy -- --network <NETWORK>`
+2. `npx ts-node scripts/deploy.ts --network <NETWORK>` where you will typically use "lit" as the network (which is the Chronicle chain)
 
 - If you know exactly which deployment full config file you would like to use, you can do `npm run deploy -- --deploy-config <DEPLOY_FULL_CONFIG_PATH>`. The `--network` option is not needed here as the deploy config file contains that parameter.
 
