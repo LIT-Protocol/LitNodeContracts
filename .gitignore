@@ -6,14 +6,27 @@ artifacts
 .deps
 lit_config*env
 wallets
+alias_node_configs
 node_configs
 .DS_Store
+deployments
+deployed*contracts-temp.json
+scripts/deployConfig/configs/*
+scripts/generate_wallet_and_add_as_alias_manifest.json
 
 # IDEs
 *.iml
 .idea
 *.gz
 *.core
+yarn-error.log
+npm-*.log
+typechain-types
 
-# Linked contracts
-contracts/ContractResolver.sol
+anvil.log
+
+.env*
+!.env*.example
+networkContext.json
+
+abis/*.json

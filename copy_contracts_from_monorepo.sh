@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rsync -avr --progress --include="*/" --exclude="deployments" /Users/chris/Documents/WorkStuff/LIT/lit-assets/blockchain/contracts/lit-node/contracts ./
+rsync -avr --progress --exclude='node_modules/' --exclude='wallets' --exclude='artifacts' --include='*/' --include='*'  /Users/chris/Documents/WorkStuff/LIT/lit-assets/blockchain/contracts/ ./
